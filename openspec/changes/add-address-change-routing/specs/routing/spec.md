@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Detect address-change notifications
-The system SHALL scan the configured mailbox daily for unprocessed emails whose sender domain matches the pattern `muni<comuna>.cl` and is not the organization's own domain.
+The system SHALL scan the configured mailbox on each polling cycle for unprocessed emails whose sender domain matches a known comuna domain (from the `ComunaContact` directory) and is not the organization's own domain.
 
 #### Scenario: Notification from a recognized comuna domain
 - **WHEN** a new email arrives from `rfloresc@municatemu.cl`
@@ -38,6 +38,13 @@ The system SHALL resolve the comuna's contact email from an imported directory a
 #### Scenario: Unknown comuna
 - **WHEN** a `PersonRequest`'s comuna has no entry in the directory
 - **THEN** the record stays `status = pending` and no email is sent
+
+### Requirement: Prevent duplicate requests for the same person and comuna
+The system SHALL NOT send a second folder request for a RUT+comuna pair that already has a `sent` or `responded` request, even if the notification arrives via a different source email.
+
+#### Scenario: Same person notified twice via different emails
+- **WHEN** a new notification is extracted with a RUT and comuna that already has a `sent` or `responded` `PersonRequest`
+- **THEN** the system does not send a new request and links the new source email to the existing record instead of creating a duplicate
 
 ### Requirement: Idempotent processing
 The system SHALL NOT process the same source email twice across polling cycles.
@@ -75,9 +82,13 @@ The system SHALL notify the operator as soon as a `PersonRequest` transitions to
 - **WHEN** a `PersonRequest` transitions to `responded`
 - **THEN** an email notification is sent to the configured address, identifying the person and comuna, regardless of whether the toast channel is enabled
 
-### Requirement: Export tracking report
-The system SHALL provide a CSV export containing `full_name`, `rut`, and `last_folder_date` for tracked people.
+### Requirement: Continuously-refreshed tracking report
+The system SHALL rewrite a CSV report to a fixed local file path on every polling cycle, so the operator can open/copy it at any time without an explicit export step. The report SHALL include a `Requiere revisión` column marking records that could not be auto-processed (missing data or unknown comuna).
 
-#### Scenario: Export requested
-- **WHEN** the export is run
-- **THEN** a CSV file is produced with one row per `PersonRequest`, including its current `full_name`, `rut`, and `last_folder_date` (empty if not yet responded)
+#### Scenario: Report refreshed each cycle
+- **WHEN** a polling cycle completes
+- **THEN** the CSV file at the configured path is rewritten with one row per `PersonRequest`, containing `full_name`, `rut`, `comuna`, `status`, `last_folder_date` (empty if not yet responded), and `Requiere revisión` (`Sí` for `pending` records with missing data or unknown comuna, `No` otherwise)
+
+#### Scenario: Pending record with missing data
+- **WHEN** a notification could not be parsed for `full_name`/`rut`, or resolved to a known comuna
+- **THEN** its row still appears in the report with `Requiere revisión = Sí` and the original email's subject/sender as reference, so it is not silently lost

@@ -12,11 +12,14 @@ Represents one detected address-change notification for one person, and the life
 
 **Fields:**
 - `id`: Primary key (integer, autoincrement)
-- `full_name`: Full name as extracted from the source email (e.g. `GUSTAVO ANDRÉS PEÑA CASTRO`)
-- `rut`: Chilean RUT as extracted (e.g. `18.785.387-7`)
-- `comuna`: Comuna name, derived from the sender domain (e.g. `Catemu` from `municatemu.cl`)
+- `full_name`: Full name as extracted from the source email (e.g. `GUSTAVO ANDRÉS PEÑA CASTRO`), nullable if extraction failed
+- `rut`: Chilean RUT, normalized to canonical dotted form (e.g. `18.785.387-7`) regardless of source punctuation, nullable if extraction failed
+- `comuna`: Comuna name, resolved via the sender domain against `ComunaContact.domain` (not guessed from the domain string), nullable if the domain isn't in the directory
 - `source_message_id`: Graph message ID of the original address-change notification email
 - `source_conversation_id`: Graph conversation ID of the original email
+- `source_subject`: Subject of the original notification email, kept for manual-review reference when extraction fails
+- `source_sender`: Sender address of the original notification email, kept for manual-review reference
+- `needs_review`: `true` when `full_name`, `rut`, or `comuna` could not be resolved automatically
 - `status`: One of `pending`, `sent`, `responded` (see lifecycle below)
 - `request_sent_at`: Timestamp when the folder-request email was sent to the comuna (nullable until sent)
 - `request_message_id`: Graph message ID of the outgoing request email (nullable until sent)
@@ -28,7 +31,8 @@ Represents one detected address-change notification for one person, and the life
 **Validation Rules:**
 - `full_name` and `rut` are required to move a record from `pending` to `sent` — if either can't be extracted from the source email, the record stays `pending` and is flagged for manual review (not sent automatically).
 - `comuna` must resolve to a known entry in `ComunaContact`; if it doesn't, the record stays `pending` (unknown comuna, no destination to send to).
-- A given `source_message_id` is only ever processed once (idempotency key), so re-running the daily job does not duplicate outgoing requests.
+- A given `source_message_id` is only ever processed once (idempotency key), so re-running a polling cycle does not duplicate outgoing requests.
+- A given `(rut, comuna)` pair has at most one request with `status IN (sent, responded)` at a time — a second notification for the same person+comuna links to the existing record instead of creating a duplicate outgoing request.
 
 **Status Lifecycle:**
 ```
@@ -60,5 +64,6 @@ ComunaContact (1) ----< (N) PersonRequest
 
 ## Identification Rules (business logic, not schema)
 
-- **Address-change source detection**: an email is a candidate address-change notification if its sender domain matches `muni<comuna>.cl` and is **not** the organization's own domain (`munivalpo.cl`).
+- **Address-change source detection**: an email is a candidate address-change notification if its sender domain matches a `domain` already present in `ComunaContact` (the imported directory) and is **not** the organization's own domain (`munivalpo.cl`). Domains not present in the directory are not routing-relevant.
 - **Reply matching**: a comuna's response is matched to a `PersonRequest` first by `source_conversation_id` / `In-Reply-To` (same thread), falling back to RUT match in the new email's body when it arrives as a new thread from a recognized comuna domain.
+- **Duplicate suppression**: before sending, check for an existing `PersonRequest` with the same `(rut, comuna)` and `status IN (sent, responded)`; if found, link the new source email instead of sending again.
