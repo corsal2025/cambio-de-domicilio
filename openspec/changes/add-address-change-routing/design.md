@@ -31,7 +31,7 @@ A `source_message_id` uniqueness constraint only prevents reprocessing the exact
 
 ### Notification of a new response: dual channel, environment-aware
 "Avisar para verificar" requires near-real-time delivery. Two channels, both fired on every newly-detected `responded` transition:
-- **Windows toast notification** (local, on-PC only) — immediate, visible while the operator is at their desk. Uses a native Windows toast API; has no effect on a headless VPS.
+- **Windows toast notification** (local, on-PC only) — immediate, visible while the operator is at their desk. Implemented via a direct PowerShell/WinRT call (`Windows.UI.Notifications`) rather than the `Microsoft.Toolkit.Uwp.Notifications` NuGet package: that package pulled a **critical-severity CVE** (`System.Drawing.Common` 4.7.0, GHSA-rxg9-xrhp-64gj) and would have forced the whole project onto a Windows-only target framework (`net10.0-windows`), contradicting the planned Linux VPS migration. The native call keeps the main project cross-platform-buildable; the channel is still a runtime no-op on non-Windows and best-effort (wrapped in try/catch, never fails the polling cycle).
 - **Email notification** to a configured address (`raul.salazar1984@gmail.com` for now) via the same Graph `sendMail` capability already used for comuna requests — works identically on PC and on the future headless VPS, so no code change is needed at migration time, only configuration (toast channel can be disabled via config on the VPS).
 
 The CSV export remains as the batch-level source of truth for the full tracked list, independent of the real-time notification channels.

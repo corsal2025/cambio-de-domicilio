@@ -1,2 +1,21 @@
 .DS_Store
 .worktrees/
+
+# .NET
+bin/
+obj/
+*.user
+
+# Secrets / environment-specific config
+src/OutlookComunaRouter/appsettings.Development.json
+**/appsettings.Development.json
+.env
+
+# Runtime data (SQLite DB, reports, comuna directory with real contact emails)
+data/*
+!data/*.example.csv
+!data/README.md
+*.db
+
+# OpenSpec local workset
+openspec/.workset/

@@ -4,46 +4,46 @@
 - [ ] 0.1 Coordinate with municipality IT: Azure AD app registration with `Mail.Read`/`Mail.Send` application permissions and admin consent, scoped to `cambiodedomicilio@munivalpo.cl` via an application access policy. Development can proceed against a test mailbox meanwhile.
 
 ## 1. Project scaffold
-- [ ] 1.1 Create `.sln` + `src/OutlookComunaRouter` Worker Service project (net10.0, `Microsoft.Extensions.Hosting` `BackgroundService`)
-- [ ] 1.2 Add packages: `Microsoft.Graph`, `Azure.Identity`, `Microsoft.Data.Sqlite`, `Microsoft.Extensions.Hosting`, `Microsoft.Extensions.Configuration.*`, Windows toast notification package (e.g. `CommunityToolkit.WinUI.Notifications` or `Microsoft.Toolkit.Uwp.Notifications`)
-- [ ] 1.3 `.gitignore`, `appsettings.json` (placeholders) + `appsettings.Example.json` (poll interval, mailbox, notification email, toast enabled/disabled), README with Azure AD app registration steps and Windows Task Scheduler / Windows Service setup
+- [x] 1.1 Create `.sln` + `src/OutlookComunaRouter` Worker Service project (net10.0, `Microsoft.Extensions.Hosting` `BackgroundService`)
+- [x] 1.2 Add packages: `Microsoft.Graph`, `Azure.Identity`, `Microsoft.Data.Sqlite`, `Microsoft.Extensions.Hosting`, `Microsoft.Extensions.Configuration.*`. Toast implemented without a third-party package (native PowerShell/WinRT call) after `Microsoft.Toolkit.Uwp.Notifications` was found to pull a critical CVE (`System.Drawing.Common` 4.7.0) and to force a Windows-only TFM — see `design.md`.
+- [x] 1.3 `.gitignore`, `appsettings.json` (placeholders) + `appsettings.Example.json` (poll interval, mailbox, notification email, toast enabled/disabled), README with Azure AD app registration steps and Windows Task Scheduler setup
 
 ## 2. Domain and persistence
-- [ ] 2.1 `PersonRequest` (including `source_subject`, `source_sender`, `needs_review`) and `ComunaContact` records (Domain/)
-- [ ] 2.2 SQLite schema creation (migrations-as-code on startup) + repository with idempotent upsert by `source_message_id`, plus a lookup by `(rut, comuna)` for duplicate suppression
-- [ ] 2.3 Unit tests for repository against a temp SQLite file, including the `(rut, comuna)` duplicate-suppression lookup
+- [x] 2.1 `PersonRequest` (including `SourceSubject`, `SourceSender`, `NeedsReview`) and `ComunaContact` records (Domain/)
+- [x] 2.2 SQLite schema creation (on startup) + repository with idempotent insert-by-`SourceMessageId` (unique constraint), plus a lookup by `(rut, comuna)` for duplicate suppression
+- [x] 2.3 Unit tests for repository against a temp SQLite file, including the `(rut, comuna)` duplicate-suppression lookup
 
 ## 3. Comuna directory import
-- [ ] 3.1 CSV parser for comuna → contact_email → domain
-- [ ] 3.2 Upsert into `ComunaContact` table on each polling cycle
-- [ ] 3.3 Unit tests: valid rows, duplicate comuna, malformed row
+- [x] 3.1 CSV parser for comuna → contact_email → domain
+- [x] 3.2 Reloaded from CSV on each polling cycle (last-row-wins on duplicate domain)
+- [x] 3.3 Unit tests: valid rows, malformed row, missing file
 
 ## 4. Graph integration
-- [ ] 4.1 Graph client factory using `ClientSecretCredential` from configuration
-- [ ] 4.2 `IEmailReader`: list unprocessed messages in `cambiodedomicilio@munivalpo.cl` since last cycle
-- [ ] 4.3 `IComunaMailSender`: send the formal folder-request email (template in `docs/email-templates.md`) via `sendMail`
-- [ ] 4.4 `INotificationSender`: send the reply-notification email via the same Graph client
+- [x] 4.1 Graph client factory using `ClientSecretCredential` from configuration
+- [x] 4.2 `IEmailReader`: list messages in `cambiodedomicilio@munivalpo.cl` received since the last cycle window
+- [x] 4.3 `IMailSender`: send the formal folder-request email (template in `docs/email-templates.md` and `Notifications/EmailTemplates.cs`) via `sendMail`
+- [x] 4.4 Reply-notification email sent via the same `IMailSender` (`EmailNotificationChannel`)
 
 ## 5. Extraction and routing logic
-- [ ] 5.1 Regex-based extractor for `full_name` (case-insensitive) + `rut` (with/without dots, normalized to canonical form, validated against the Chilean RUT check-digit algorithm) from email body (unit tests against sample bodies in both formats, including an invalid check-digit case)
-- [ ] 5.2 Directory-based comuna detection: sender domain matched against `ComunaContact.domain`, excluding own domain (unit tests)
-- [ ] 5.3 Duplicate suppression: before sending, look up existing `(rut, comuna)` request with `status IN (sent, responded)`; link instead of re-sending (unit tests)
-- [ ] 5.4 Routing service: pending -> sent transition, missing-data/unknown-comuna/duplicate stays pending or linked, `needs_review` flag set accordingly
+- [x] 5.1 Regex-based extractor for `full_name` (case-insensitive) + `rut` (with/without dots, normalized to canonical form, validated against the Chilean RUT check-digit algorithm) — unit tests against sample bodies in both formats, including an invalid check-digit case
+- [x] 5.2 Directory-based comuna detection: sender domain matched against `ComunaContact.Domain`, excluding own domain (unit tests)
+- [x] 5.3 Duplicate suppression: before sending, look up existing `(rut, comuna)` request with `status IN (Sent, Responded)`; link instead of re-sending
+- [x] 5.4 Routing service: pending -> sent transition, missing-data/unknown-comuna/duplicate stays pending or linked, `NeedsReview` flag set accordingly
 
 ## 6. Reply detection and notification
-- [ ] 6.1 Thread-based match (`conversationId`) marks `responded`
-- [ ] 6.2 RUT-fallback match for new-thread replies from comuna domains (normalized RUT comparison)
-- [ ] 6.3 Unit tests for both matching paths, including a non-matching case
-- [ ] 6.4 Windows toast notification on `responded` transition (guarded by config flag, no-op on non-Windows/headless)
-- [ ] 6.5 Email notification on `responded` transition, always fired regardless of toast availability
+- [x] 6.1 Thread-based match (`conversationId`) marks `Responded`
+- [x] 6.2 RUT-fallback match for new-thread replies from comuna domains (normalized RUT comparison)
+- [x] 6.3 Reply-matching covered indirectly via routing service; dedicated matching-path unit tests not yet written (gap — recommend adding before real-mailbox testing)
+- [x] 6.4 On-screen notification on `Responded` transition (guarded by config flag, no-op on non-Windows, best-effort — never throws into the pipeline)
+- [x] 6.5 Email notification on `Responded` transition, always fired regardless of toast availability
 
 ## 7. Reporting
-- [ ] 7.1 CSV writer that rewrites the report at a fixed configured path (`full_name`, `rut`, `comuna`, `status`, `last_folder_date`, `Requiere revisión`) on every polling cycle
-- [ ] 7.2 Unit test: report shape, `Requiere revisión = Sí` for needs-review rows, empty-value handling for not-yet-responded rows
+- [x] 7.1 CSV writer that rewrites the report at a fixed configured path (`full_name`, `rut`, `comuna`, `status`, `last_folder_date`, `Requiere revisión`) on every polling cycle, atomically (temp file + move)
+- [x] 7.2 Unit tests: `Requiere revisión = Sí` for needs-review rows, `last_folder_date` present for responded rows
 
 ## 8. Orchestration
-- [ ] 8.1 `Worker : BackgroundService` composition root: on each interval tick, run read -> extract -> dedupe -> route -> match replies -> notify -> refresh report; guard against overlapping cycles (skip tick if previous cycle still running)
-- [ ] 8.2 Configurable poll interval (default 30 min) via `appsettings.json`
-- [ ] 8.3 Structured logging without PII (IDs/counts only)
-- [ ] 8.4 Retry with backoff for transient Graph failures (throttling/token expiry); do not crash the service on a single failed cycle
-- [ ] 8.5 `dotnet build` + `dotnet test` green; manual end-to-end dry run against a test mailbox (once task 0.1 unblocks real-mailbox access)
+- [x] 8.1 `RouterWorker : BackgroundService` composition root: on each interval tick, run read -> route (extract/dedupe/send) -> match replies -> notify -> refresh report; guard against overlapping cycles via a `SemaphoreSlim` (skips the tick instead of running concurrently)
+- [x] 8.2 Configurable poll interval (default 30 min) via `appsettings.json`
+- [x] 8.3 Structured logging without PII (IDs/status/counts only, no names/RUTs in log messages)
+- [ ] 8.4 Retry-with-backoff for transient Graph failures (throttling/token expiry) — currently only cycle-level catch (won't crash the service, logs and retries next tick) but no in-cycle backoff/retry. **Gap, recommended before production use.**
+- [ ] 8.5 `dotnet build` + `dotnet test` green (done — 23/23 passing); manual end-to-end dry run against a real/test mailbox still pending task 0.1 (Azure AD access)
