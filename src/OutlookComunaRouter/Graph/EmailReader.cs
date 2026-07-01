@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Graph.Models;
 using OutlookComunaRouter.Configuration;
 using OutlookComunaRouter.Domain;
@@ -9,19 +10,22 @@ public interface IEmailReader
     Task<IReadOnlyList<IncomingEmail>> GetRecentMessagesAsync(DateTimeOffset since, CancellationToken cancellationToken);
 }
 
-public sealed class EmailReader(IGraphClientFactory clientFactory, RouterOptions options) : IEmailReader
+public sealed class EmailReader(IGraphClientFactory clientFactory, RouterOptions options, ILogger<EmailReader> logger) : IEmailReader
 {
     public async Task<IReadOnlyList<IncomingEmail>> GetRecentMessagesAsync(DateTimeOffset since, CancellationToken cancellationToken)
     {
         var client = clientFactory.Create();
 
-        var response = await client.Users[options.MailboxAddress].Messages.GetAsync(config =>
-        {
-            config.QueryParameters.Filter = $"receivedDateTime ge {since:yyyy-MM-ddTHH:mm:ssZ}";
-            config.QueryParameters.Select = ["id", "conversationId", "subject", "from", "body", "receivedDateTime"];
-            config.QueryParameters.Top = 100;
-            config.QueryParameters.Orderby = ["receivedDateTime asc"];
-        }, cancellationToken);
+        var response = await GraphRetryPolicy.ExecuteAsync(
+            () => client.Users[options.MailboxAddress].Messages.GetAsync(config =>
+            {
+                config.QueryParameters.Filter = $"receivedDateTime ge {since:yyyy-MM-ddTHH:mm:ssZ}";
+                config.QueryParameters.Select = ["id", "conversationId", "subject", "from", "body", "receivedDateTime"];
+                config.QueryParameters.Top = 100;
+                config.QueryParameters.Orderby = ["receivedDateTime asc"];
+            }, cancellationToken),
+            logger,
+            cancellationToken);
 
         var messages = response?.Value ?? [];
         var results = new List<IncomingEmail>();

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Graph.Models;
 using OutlookComunaRouter.Configuration;
 
@@ -8,9 +9,9 @@ public interface IMailSender
     Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken);
 }
 
-public sealed class MailSender(IGraphClientFactory clientFactory, RouterOptions options) : IMailSender
+public sealed class MailSender(IGraphClientFactory clientFactory, RouterOptions options, ILogger<MailSender> logger) : IMailSender
 {
-    public async Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken)
+    public Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken)
     {
         var client = clientFactory.Create();
 
@@ -21,10 +22,13 @@ public sealed class MailSender(IGraphClientFactory clientFactory, RouterOptions 
             ToRecipients = [new Recipient { EmailAddress = new EmailAddress { Address = toAddress } }]
         };
 
-        await client.Users[options.MailboxAddress].SendMail.PostAsync(new()
-        {
-            Message = message,
-            SaveToSentItems = true
-        }, cancellationToken: cancellationToken);
+        return GraphRetryPolicy.ExecuteAsync(
+            () => client.Users[options.MailboxAddress].SendMail.PostAsync(new()
+            {
+                Message = message,
+                SaveToSentItems = true
+            }, cancellationToken: cancellationToken),
+            logger,
+            cancellationToken);
     }
 }

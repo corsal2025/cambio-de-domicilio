@@ -33,7 +33,7 @@
 ## 6. Reply detection and notification
 - [x] 6.1 Thread-based match (`conversationId`) marks `Responded`
 - [x] 6.2 RUT-fallback match for new-thread replies from comuna domains (normalized RUT comparison)
-- [x] 6.3 Reply-matching covered indirectly via routing service; dedicated matching-path unit tests not yet written (gap — recommend adding before real-mailbox testing)
+- [x] 6.3 Unit tests for both matching paths (`AddressChangeRoutingServiceTests`): same-thread match, RUT-fallback on a new thread, no-match case, unknown-domain case
 - [x] 6.4 On-screen notification on `Responded` transition (guarded by config flag, no-op on non-Windows, best-effort — never throws into the pipeline)
 - [x] 6.5 Email notification on `Responded` transition, always fired regardless of toast availability
 
@@ -45,5 +45,5 @@
 - [x] 8.1 `RouterWorker : BackgroundService` composition root: on each interval tick, run read -> route (extract/dedupe/send) -> match replies -> notify -> refresh report; guard against overlapping cycles via a `SemaphoreSlim` (skips the tick instead of running concurrently)
 - [x] 8.2 Configurable poll interval (default 30 min) via `appsettings.json`
 - [x] 8.3 Structured logging without PII (IDs/status/counts only, no names/RUTs in log messages)
-- [ ] 8.4 Retry-with-backoff for transient Graph failures (throttling/token expiry) — currently only cycle-level catch (won't crash the service, logs and retries next tick) but no in-cycle backoff/retry. **Gap, recommended before production use.**
-- [ ] 8.5 `dotnet build` + `dotnet test` green (done — 23/23 passing); manual end-to-end dry run against a real/test mailbox still pending task 0.1 (Azure AD access)
+- [x] 8.4 Retry-with-backoff for transient Graph failures: `GraphRetryPolicy` retries HTTP 401/429/500/502/503/504 with exponential backoff (honors `Retry-After` when present), applied to both `EmailReader` and `MailSender`. Non-transient errors (other 4xx) propagate immediately, still caught at cycle level so the service never crashes.
+- [x] 8.5 `dotnet build` + `dotnet test` green (29/29 passing, 0 warnings, no known vulnerabilities). Manual end-to-end dry run against a real/test mailbox still pending task 0.1 (Azure AD access — external, not something this implementation can unblock).
