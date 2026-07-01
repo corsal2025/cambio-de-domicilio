@@ -6,8 +6,10 @@ Single-tenant batch job, run once daily via Windows Task Scheduler (later cron/s
 
 ## Decisions
 
-### Runtime: .NET 10 console app, not a Worker Service
-The job runs once and exits per invocation — a long-lived polling Worker Service would add complexity (hosting, shutdown handling) with no benefit for a once-daily batch. Rejected: ASP.NET Worker Service (over-engineered for this cadence).
+### Runtime: .NET 10 Worker Service, polling every 30 minutes
+Revised after requirements gathering: the user needs to know about comuna replies "al momento" (same working day, near-real-time), which a once-daily batch cannot provide. The process now runs continuously as a `BackgroundService`, polling the mailbox on a configurable interval (default 30 minutes). Rejected: once-daily console job (too slow for the reply-detection requirement); polling every 1-5 minutes (unnecessary API load for a human-paced verification workflow — replies don't need sub-minute reaction).
+
+On Windows (current deployment), it runs as a Scheduled Task at logon that keeps running (or a Windows Service) rather than a one-shot task. On the future Linux VPS, it becomes a systemd service instead of a systemd timer.
 
 ### Auth: Azure AD app registration, application permissions
 Delegated auth would require an interactive user session at every scheduled run, which is incompatible with unattended execution. Application permissions (`Mail.Read`, `Mail.Send`) with `ClientSecretCredential`, scoped to the single target mailbox via an Exchange application access policy, avoid tenant-wide mail access.
@@ -21,8 +23,12 @@ The user maintains the comuna→email mapping in a spreadsheet. Importing it fre
 ### Reply matching: thread-first, RUT-fallback
 `conversationId` matching is reliable and cheap when comunas hit Reply. Confirmed in requirements gathering that some comunas send a new email instead — for that path, the system falls back to scanning the new email's body for a RUT already tracked as `sent` from a domain that is a known comuna's domain. No matching heuristic is 100% precise; ambiguous matches are surfaced for manual verification, not auto-resolved silently.
 
-### Notification of a new response: report-based, not push
-Given the batch nature (daily run, no long-lived process), "avisar para verificar" is satisfied by the `responded` status being visible in the exported CSV each run, rather than an active push notification. If real-time alerting is needed later, revisit as a separate change (e.g., emailing a daily summary to staff).
+### Notification of a new response: dual channel, environment-aware
+"Avisar para verificar" requires near-real-time delivery. Two channels, both fired on every newly-detected `responded` transition:
+- **Windows toast notification** (local, on-PC only) — immediate, visible while the operator is at their desk. Uses a native Windows toast API; has no effect on a headless VPS.
+- **Email notification** to a configured address (`raul.salazar1984@gmail.com` for now) via the same Graph `sendMail` capability already used for comuna requests — works identically on PC and on the future headless VPS, so no code change is needed at migration time, only configuration (toast channel can be disabled via config on the VPS).
+
+The CSV export remains as the batch-level source of truth for the full tracked list, independent of the real-time notification channels.
 
 ## Risks / Trade-offs
 
