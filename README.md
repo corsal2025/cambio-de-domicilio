@@ -51,7 +51,8 @@ dotnet test
 
 ### Windows (actual)
 
-Ejecutar como tarea de Programador de Tareas de Windows configurada para "Ejecutar sea que el usuario haya iniciado sesión o no", con reinicio automático si falla, apuntando al ejecutable publicado (`dotnet publish -c Release`). El proceso queda corriendo continuamente (no es una tarea de un solo disparo).
+Runbook completo, scripts de instalación/desinstalación de la Tarea Programada
+y checklist paso a paso en [`deploy/README.md`](deploy/README.md).
 
 ### VPS (futuro)
 

@@ -19,3 +19,4 @@ data/*
 
 # OpenSpec local workset
 openspec/.workset/
+publish/
