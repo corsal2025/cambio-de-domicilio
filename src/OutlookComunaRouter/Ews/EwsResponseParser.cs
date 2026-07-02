@@ -36,6 +36,25 @@ public static class EwsResponseParser
             .ToList();
     }
 
+    /// <summary>Returns the first matching folder's reference, or null when FindFolder found no match.</summary>
+    public static EwsFolderRef? ParseFindFolderResponse(XDocument document)
+    {
+        EnsureSuccess(document, "FindFolder");
+
+        var folderId = document.Descendants(T + "FolderId").FirstOrDefault();
+        if (folderId is null)
+        {
+            return null;
+        }
+
+        var id = folderId.Attribute("Id")?.Value;
+        var changeKey = folderId.Attribute("ChangeKey")?.Value;
+
+        return string.IsNullOrEmpty(id) || string.IsNullOrEmpty(changeKey)
+            ? null
+            : EwsFolderRef.ByFolderId(id, changeKey);
+    }
+
     public static IReadOnlyList<IncomingEmail> ParseGetItemResponse(XDocument document)
     {
         EnsureSuccess(document, "GetItem");

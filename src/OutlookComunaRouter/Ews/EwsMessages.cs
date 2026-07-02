@@ -13,7 +13,13 @@ public static class EwsMessages
     public static readonly XNamespace T = "http://schemas.microsoft.com/exchange/services/2006/types";
     public static readonly XNamespace M = "http://schemas.microsoft.com/exchange/services/2006/messages";
 
-    public static string BuildFindItemRequest(DateTimeOffset since, int maxEntries = 100) =>
+    /// <summary>
+    /// Lists items in <paramref name="folder"/> with no time-window restriction: the trigger
+    /// for this router is "the operator moved this item into the folder," and DateTimeReceived
+    /// does not change on move, so time-filtering it would silently drop manually-triaged mail.
+    /// Idempotency (see AddressChangeRoutingService) is what prevents reprocessing, not this filter.
+    /// </summary>
+    public static string BuildFindItemRequest(EwsFolderRef folder, int maxEntries = 200) =>
         Envelope(
             new XElement(M + "FindItem",
                 new XAttribute("Traversal", "Shallow"),
@@ -23,17 +29,33 @@ public static class EwsMessages
                     new XAttribute("MaxEntriesReturned", maxEntries),
                     new XAttribute("Offset", 0),
                     new XAttribute("BasePoint", "Beginning")),
-                new XElement(M + "Restriction",
-                    new XElement(T + "IsGreaterThanOrEqualTo",
-                        new XElement(T + "FieldURI", new XAttribute("FieldURI", "item:DateTimeReceived")),
-                        new XElement(T + "FieldURIOrConstant",
-                            new XElement(T + "Constant", new XAttribute("Value", since.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")))))),
                 new XElement(M + "SortOrder",
                     new XElement(T + "FieldOrder",
                         new XAttribute("Order", "Ascending"),
                         new XElement(T + "FieldURI", new XAttribute("FieldURI", "item:DateTimeReceived")))),
+                new XElement(M + "ParentFolderIds", ParentFolderElement(folder))));
+
+    /// <summary>Resolves a folder by display name (custom folders are not exposed as distinguished IDs).</summary>
+    public static string BuildFindFolderRequest(string displayName) =>
+        Envelope(
+            new XElement(M + "FindFolder",
+                new XAttribute("Traversal", "Deep"),
+                new XElement(M + "FolderShape",
+                    new XElement(T + "BaseShape", "IdOnly")),
+                new XElement(M + "Restriction",
+                    new XElement(T + "IsEqualTo",
+                        new XElement(T + "FieldURI", new XAttribute("FieldURI", "folder:DisplayName")),
+                        new XElement(T + "FieldURIOrConstant",
+                            new XElement(T + "Constant", new XAttribute("Value", displayName))))),
                 new XElement(M + "ParentFolderIds",
-                    new XElement(T + "DistinguishedFolderId", new XAttribute("Id", "inbox")))));
+                    new XElement(T + "DistinguishedFolderId", new XAttribute("Id", "msgfolderroot")))));
+
+    private static XElement ParentFolderElement(EwsFolderRef folder) =>
+        folder.DistinguishedId is not null
+            ? new XElement(T + "DistinguishedFolderId", new XAttribute("Id", folder.DistinguishedId))
+            : new XElement(T + "FolderId",
+                new XAttribute("Id", folder.Id!),
+                new XAttribute("ChangeKey", folder.ChangeKey!));
 
     public static string BuildGetItemRequest(IEnumerable<(string Id, string ChangeKey)> itemIds) =>
         Envelope(

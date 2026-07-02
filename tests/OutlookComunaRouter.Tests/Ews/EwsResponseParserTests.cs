@@ -102,6 +102,59 @@ public class EwsResponseParserTests
     }
 
     [Fact]
+    public void ParseFindFolderResponse_MatchFound_ReturnsFolderRef()
+    {
+        var xml = $"""
+            <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+              <soap:Body>
+                <m:FindFolderResponse>
+                  <m:ResponseMessages>
+                    <m:FindFolderResponseMessage ResponseClass="Success">
+                      <m:RootFolder TotalItemsInView="1">
+                        <t:Folders>
+                          <t:Folder>
+                            <t:FolderId Id="folder-abc" ChangeKey="ck-1"/>
+                            <t:DisplayName>Para pedir</t:DisplayName>
+                          </t:Folder>
+                        </t:Folders>
+                      </m:RootFolder>
+                    </m:FindFolderResponseMessage>
+                  </m:ResponseMessages>
+                </m:FindFolderResponse>
+              </soap:Body>
+            </soap:Envelope>
+            """;
+
+        var folder = EwsResponseParser.ParseFindFolderResponse(XDocument.Parse(xml));
+
+        Assert.NotNull(folder);
+        Assert.Equal("folder-abc", folder!.Id);
+        Assert.Equal("ck-1", folder.ChangeKey);
+    }
+
+    [Fact]
+    public void ParseFindFolderResponse_NoMatch_ReturnsNull()
+    {
+        var xml = $"""
+            <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+              <soap:Body>
+                <m:FindFolderResponse>
+                  <m:ResponseMessages>
+                    <m:FindFolderResponseMessage ResponseClass="Success">
+                      <m:RootFolder TotalItemsInView="0">
+                        <t:Folders/>
+                      </m:RootFolder>
+                    </m:FindFolderResponseMessage>
+                  </m:ResponseMessages>
+                </m:FindFolderResponse>
+              </soap:Body>
+            </soap:Envelope>
+            """;
+
+        Assert.Null(EwsResponseParser.ParseFindFolderResponse(XDocument.Parse(xml)));
+    }
+
+    [Fact]
     public void EnsureSuccess_ErrorResponse_Throws()
     {
         var xml = $"""

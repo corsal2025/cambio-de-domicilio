@@ -42,8 +42,7 @@ public sealed class RouterWorker(
         try
         {
             var contacts = routingService.LoadDirectory();
-            var since = DateTimeOffset.UtcNow - TimeSpan.FromMinutes(options.PollIntervalMinutes * 3);
-            var messages = await emailReader.GetRecentMessagesAsync(since, cancellationToken);
+            var messages = await emailReader.GetRecentMessagesAsync(cancellationToken);
 
             foreach (var email in messages)
             {

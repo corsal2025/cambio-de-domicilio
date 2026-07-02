@@ -7,15 +7,46 @@ namespace OutlookComunaRouter.Tests.Ews;
 public class EwsMessagesTests
 {
     [Fact]
-    public void BuildFindItemRequest_IncludesSinceDateInUtc()
+    public void BuildFindItemRequest_DistinguishedFolder_UsesDistinguishedFolderId()
     {
-        var since = new DateTimeOffset(2026, 7, 1, 12, 0, 0, TimeSpan.FromHours(-4));
+        var xml = EwsMessages.BuildFindItemRequest(EwsFolderRef.Distinguished("inbox"));
+        var document = XDocument.Parse(xml);
 
-        var xml = EwsMessages.BuildFindItemRequest(since);
+        var folderRef = document.Descendants(EwsMessages.T + "DistinguishedFolderId").Single();
+        Assert.Equal("inbox", folderRef.Attribute("Id")!.Value);
+    }
+
+    [Fact]
+    public void BuildFindItemRequest_ResolvedFolder_UsesFolderIdAndChangeKey()
+    {
+        var xml = EwsMessages.BuildFindItemRequest(EwsFolderRef.ByFolderId("folder-id-1", "change-key-1"));
+        var document = XDocument.Parse(xml);
+
+        var folderRef = document.Descendants(EwsMessages.T + "FolderId").Single();
+        Assert.Equal("folder-id-1", folderRef.Attribute("Id")!.Value);
+        Assert.Equal("change-key-1", folderRef.Attribute("ChangeKey")!.Value);
+    }
+
+    [Fact]
+    public void BuildFindItemRequest_HasNoTimeWindowRestriction()
+    {
+        // No Restriction element at all: trigger is "moved into the folder," not receipt time.
+        var xml = EwsMessages.BuildFindItemRequest(EwsFolderRef.Distinguished("inbox"));
+        var document = XDocument.Parse(xml);
+
+        Assert.Empty(document.Descendants(EwsMessages.M + "Restriction"));
+    }
+
+    [Fact]
+    public void BuildFindFolderRequest_SearchesByDisplayNameUnderMsgFolderRoot()
+    {
+        var xml = EwsMessages.BuildFindFolderRequest("Para pedir");
         var document = XDocument.Parse(xml);
 
         var constant = document.Descendants(EwsMessages.T + "Constant").Single();
-        Assert.Equal("2026-07-01T16:00:00Z", constant.Attribute("Value")!.Value);
+        Assert.Equal("Para pedir", constant.Attribute("Value")!.Value);
+        var parent = document.Descendants(EwsMessages.T + "DistinguishedFolderId").Single();
+        Assert.Equal("msgfolderroot", parent.Attribute("Id")!.Value);
     }
 
     [Fact]

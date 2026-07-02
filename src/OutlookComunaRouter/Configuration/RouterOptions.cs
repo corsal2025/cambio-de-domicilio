@@ -7,6 +7,7 @@ public sealed class RouterOptions
     public required EwsOptions Ews { get; set; }
     public required string MailboxAddress { get; set; }
     public required string OwnDomain { get; set; }
+    public string SourceFolderName { get; set; } = "Para pedir";
     public int PollIntervalMinutes { get; set; } = 30;
     public required string SqliteDbPath { get; set; }
     public required string ComunaDirectoryCsvPath { get; set; }
