@@ -1,5 +1,5 @@
 using OutlookComunaRouter.Configuration;
-using OutlookComunaRouter.Graph;
+using OutlookComunaRouter.Mail;
 
 namespace OutlookComunaRouter.Notifications;
 

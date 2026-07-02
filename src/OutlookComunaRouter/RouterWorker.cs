@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OutlookComunaRouter.Configuration;
-using OutlookComunaRouter.Graph;
+using OutlookComunaRouter.Mail;
 using OutlookComunaRouter.Persistence;
 using OutlookComunaRouter.Reporting;
 using OutlookComunaRouter.Routing;

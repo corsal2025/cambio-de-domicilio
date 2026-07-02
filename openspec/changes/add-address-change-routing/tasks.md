@@ -23,13 +23,13 @@
 - [x] 4.2 ~~Graph `IEmailReader`~~ (implemented, then superseded)
 - [x] 4.3 ~~Graph `IMailSender`~~ (implemented, then superseded)
 - [x] 4.4 Reply-notification email sent via the same `IMailSender` (`EmailNotificationChannel`) — interface-level, unaffected by the transport swap
-- [ ] 4.5 `EwsClient`: raw SOAP over `HttpClient`, Basic auth over TLS against `https://webmail.munivalpo.cl/EWS/Exchange.asmx`, credentials from configuration
-- [ ] 4.6 `EwsEmailReader : IEmailReader`: `FindItem` (inbox, `DateTimeReceived >= since`) + `GetItem` (text body, `InternetMessageId`, `ConversationId`, sender)
-- [ ] 4.7 `EwsMailSender : IMailSender`: `CreateItem` with `MessageDisposition="SendAndSaveCopy"`
-- [ ] 4.8 Switch idempotency key to `InternetMessageId` (EWS `ItemId` is not move-stable); `ConversationId` keeps thread matching working
-- [ ] 4.9 Remove `Microsoft.Graph` and `Azure.Identity` packages and the Graph-specific classes; update DI in `Program.cs`
-- [ ] 4.10 Unit tests for EWS SOAP request building and response parsing (recorded XML fixtures, no live server in tests)
-- [ ] 4.11 Live smoke test against the real mailbox (read-only: counts and classification only, no PII in output)
+- [x] 4.5 `EwsClient`: raw SOAP over `HttpClient`, Basic auth over TLS against `https://webmail.munivalpo.cl/EWS/Exchange.asmx`, credentials from configuration
+- [x] 4.6 `EwsEmailReader : IEmailReader`: `FindItem` (inbox, `DateTimeReceived >= since`) + `GetItem` (text body, `InternetMessageId`, `ConversationId`, sender)
+- [x] 4.7 `EwsMailSender : IMailSender`: `CreateItem` with `MessageDisposition="SendAndSaveCopy"`
+- [x] 4.8 Switch idempotency key to `InternetMessageId` (EWS `ItemId` is not move-stable); `ConversationId` keeps thread matching working
+- [x] 4.9 Remove `Microsoft.Graph` and `Azure.Identity` packages and the Graph-specific classes; update DI in `Program.cs`
+- [x] 4.10 Unit tests for EWS SOAP request building and response parsing (recorded XML fixtures, no live server in tests)
+- [x] 4.11 Live smoke test against the real mailbox (read-only: counts and domains only) — 16 messages read through the full EWS pipeline on 2026-07-02; sender domains confirmed the directory-driven detection decision (e.g. `colina.cl`, `municipalidadcasablanca.cl` do not follow the `muni<comuna>.cl` pattern). Endpoint switched to `mail.munivalpo.cl` because the TLS certificate SANs do not cover `webmail.munivalpo.cl`.
 
 ## 5. Extraction and routing logic
 - [x] 5.1 Regex-based extractor for `full_name` (case-insensitive) + `rut` (with/without dots, normalized to canonical form, validated against the Chilean RUT check-digit algorithm) — unit tests against sample bodies in both formats, including an invalid check-digit case

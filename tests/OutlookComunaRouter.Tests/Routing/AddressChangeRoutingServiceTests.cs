@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using OutlookComunaRouter.Configuration;
 using OutlookComunaRouter.Directories;
 using OutlookComunaRouter.Domain;
-using OutlookComunaRouter.Graph;
+using OutlookComunaRouter.Mail;
 using OutlookComunaRouter.Notifications;
 using OutlookComunaRouter.Persistence;
 using OutlookComunaRouter.Routing;
@@ -31,9 +31,12 @@ public class AddressChangeRoutingServiceTests : IDisposable
 
         var options = new RouterOptions
         {
-            TenantId = "tenant",
-            ClientId = "client",
-            ClientSecret = "secret",
+            Ews = new EwsOptions
+            {
+                Url = "https://ews.example.invalid/EWS/Exchange.asmx",
+                Username = "test-user",
+                Password = "test-password"
+            },
             MailboxAddress = "cambiodedomicilio@munivalpo.cl",
             OwnDomain = "munivalpo.cl",
             SqliteDbPath = dbPath,

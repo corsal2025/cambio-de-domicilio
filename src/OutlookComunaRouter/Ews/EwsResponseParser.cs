@@ -1,0 +1,72 @@
+using System.Xml.Linq;
+using OutlookComunaRouter.Domain;
+
+namespace OutlookComunaRouter.Ews;
+
+public sealed record EwsItemRef(string Id, string ChangeKey);
+
+public static class EwsResponseParser
+{
+    private static readonly XNamespace T = EwsMessages.T;
+    private static readonly XNamespace M = EwsMessages.M;
+
+    /// <summary>Throws if the SOAP response reports an error response class.</summary>
+    public static void EnsureSuccess(XDocument document, string operation)
+    {
+        var responseMessage = document.Descendants()
+            .FirstOrDefault(e => e.Name.Namespace == M && e.Name.LocalName.EndsWith("ResponseMessage"));
+
+        var responseClass = responseMessage?.Attribute("ResponseClass")?.Value;
+        if (responseClass == "Error")
+        {
+            var code = responseMessage?.Element(M + "ResponseCode")?.Value ?? "unknown";
+            throw new InvalidOperationException($"EWS {operation} failed with response code {code}");
+        }
+    }
+
+    public static IReadOnlyList<EwsItemRef> ParseFindItemResponse(XDocument document)
+    {
+        EnsureSuccess(document, "FindItem");
+
+        return document.Descendants(T + "ItemId")
+            .Select(e => new EwsItemRef(
+                e.Attribute("Id")?.Value ?? string.Empty,
+                e.Attribute("ChangeKey")?.Value ?? string.Empty))
+            .Where(r => r.Id.Length > 0)
+            .ToList();
+    }
+
+    public static IReadOnlyList<IncomingEmail> ParseGetItemResponse(XDocument document)
+    {
+        EnsureSuccess(document, "GetItem");
+
+        var results = new List<IncomingEmail>();
+        foreach (var message in document.Descendants(T + "Message"))
+        {
+            var internetMessageId = message.Element(T + "InternetMessageId")?.Value;
+            var sender = message.Element(T + "From")?
+                .Element(T + "Mailbox")?
+                .Element(T + "EmailAddress")?.Value;
+
+            if (string.IsNullOrWhiteSpace(internetMessageId) || string.IsNullOrWhiteSpace(sender))
+            {
+                continue;
+            }
+
+            var received = DateTimeOffset.TryParse(
+                message.Element(T + "DateTimeReceived")?.Value, out var parsed)
+                ? parsed
+                : DateTimeOffset.UtcNow;
+
+            results.Add(new IncomingEmail(
+                MessageId: internetMessageId,
+                ConversationId: message.Element(T + "ConversationId")?.Attribute("Id")?.Value ?? string.Empty,
+                Subject: message.Element(T + "Subject")?.Value ?? string.Empty,
+                SenderAddress: sender,
+                BodyText: message.Element(T + "Body")?.Value ?? string.Empty,
+                ReceivedAt: received));
+        }
+
+        return results;
+    }
+}

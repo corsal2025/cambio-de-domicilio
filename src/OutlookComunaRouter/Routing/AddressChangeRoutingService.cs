@@ -3,7 +3,7 @@ using OutlookComunaRouter.Configuration;
 using OutlookComunaRouter.Directories;
 using OutlookComunaRouter.Domain;
 using OutlookComunaRouter.Extraction;
-using OutlookComunaRouter.Graph;
+using OutlookComunaRouter.Mail;
 using OutlookComunaRouter.Notifications;
 using OutlookComunaRouter.Persistence;
 
