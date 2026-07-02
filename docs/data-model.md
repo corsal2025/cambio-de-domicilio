@@ -15,8 +15,8 @@ Represents one detected address-change notification for one person, and the life
 - `full_name`: Full name as extracted from the source email (e.g. `GUSTAVO ANDRÉS PEÑA CASTRO`), nullable if extraction failed
 - `rut`: Chilean RUT, normalized to canonical dotted form (e.g. `18.785.387-7`) regardless of source punctuation, nullable if extraction failed
 - `comuna`: Comuna name, resolved via the sender domain against `ComunaContact.domain` (not guessed from the domain string), nullable if the domain isn't in the directory
-- `source_message_id`: Graph message ID of the original address-change notification email
-- `source_conversation_id`: Graph conversation ID of the original email
+- `source_message_id`: `InternetMessageId` (RFC 5322 `Message-ID` header) of the original address-change notification email — chosen over the EWS `ItemId` because `ItemId` changes when an item is moved between folders, while `InternetMessageId` is immutable
+- `source_conversation_id`: Exchange `ConversationId` of the original email (available in EWS on Exchange 2010+)
 - `source_subject`: Subject of the original notification email, kept for manual-review reference when extraction fails
 - `source_sender`: Sender address of the original notification email, kept for manual-review reference
 - `needs_review`: `true` when `full_name`, `rut`, or `comuna` could not be resolved automatically

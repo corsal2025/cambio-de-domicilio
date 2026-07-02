@@ -11,8 +11,20 @@ Revised after requirements gathering: the user needs to know about comuna replie
 
 On Windows (current deployment), it runs as a Scheduled Task at logon that keeps running (or a Windows Service) rather than a one-shot task. On the future Linux VPS, it becomes a systemd service instead of a systemd timer.
 
-### Auth: Azure AD app registration, application permissions
-Delegated auth would require an interactive user session at every scheduled run, which is incompatible with unattended execution. Application permissions (`Mail.Read`, `Mail.Send`) with `ClientSecretCredential`, scoped to the single target mailbox via an Exchange application access policy, avoid tenant-wide mail access.
+### Mail integration: on-premises Exchange 2016 via EWS (supersedes the Azure AD / Graph decision)
+The original design assumed the mailbox lived in Exchange Online and required an Azure AD app registration with application permissions — an external blocker, since the operator has no tenant admin access. Live verification during implementation disproved the assumption:
+
+- `munivalpo.cl` MX points to Exchange Online Protection, **but** the target mailbox `cambiodedomicilio@munivalpo.cl` does not exist as an Entra ID sign-in (`GetCredentialType` → `IfExistsResult=1` for every plausible UPN variant): it is a hybrid deployment and this mailbox lives **on-premises**.
+- `webmail.munivalpo.cl` is an on-prem **Exchange Server 2016** (IIS 10, `X-FEServer` header, `/owa/` redirect) with a valid TLS certificate issued to the municipality (expires 2027-02-23).
+- Its EWS endpoint (`/EWS/Exchange.asmx`) is exposed and accepts **Basic and NTLM** auth; the mailbox's own AD credentials (`servervalpo\cambiodedomicilio`) authenticate successfully, and a `GetFolder(inbox)` SOAP call returns the real mailbox (verified live).
+
+Consequences:
+- Microsoft Graph **cannot** reach this mailbox (Graph only serves Exchange Online mailboxes; hybrid REST access was retired). The Graph integration layer is replaced by an EWS SOAP client.
+- **No Azure AD registration, no admin consent, no IT dependency** — the external blocker (former task 0.1) disappears entirely. Auth is the mailbox's own AD credentials over Basic auth on TLS (Basic chosen over NTLM as primary: guaranteed cross-platform for the future Linux VPS without GSSAPI/NTLM native libraries; the TLS channel and single-purpose credential bound the exposure).
+- EWS is implemented as **raw SOAP over `HttpClient`** (`FindItem` + `GetItem` for reading, `CreateItem` with `SendAndSaveCopy` for sending) instead of an EWS client package: the official `Microsoft.Exchange.WebServices` package is .NET Framework-only and unmaintained, and community .NET Standard forks are low-governance dependencies for what is three well-documented SOAP operations.
+- **Idempotency key changes from Graph message ID to `InternetMessageId`** (the RFC 5322 `Message-ID` header): EWS `ItemId` is not stable (it changes if an item is moved between folders), while `InternetMessageId` is immutable and globally unique. `ConversationId` remains available in EWS (Exchange 2010+) so thread-based reply matching is unchanged.
+- Credentials live in `appsettings.Development.json` (git-ignored) / environment variables in production, same handling the client secret would have had.
+- Deployment reach: the EWS endpoint resolves publicly and is reachable from inside the municipal network (verified); reachability from an external VPS must be re-verified at migration time — if it is firewalled externally, the VPS needs a VPN/tunnel into the municipal network or the service stays on an in-network machine.
 
 ### State: SQLite, no ORM
 A single-file embedded DB is sufficient for the expected volume (notifications per comuna per day, not high throughput) and needs zero infrastructure — it moves with the app to the VPS unchanged. Plain parameterized SQL over `Microsoft.Data.Sqlite` avoids pulling in EF Core for what is a handful of simple queries against one table plus a reference table.
@@ -32,7 +44,7 @@ A `source_message_id` uniqueness constraint only prevents reprocessing the exact
 ### Notification of a new response: dual channel, environment-aware
 "Avisar para verificar" requires near-real-time delivery. Two channels, both fired on every newly-detected `responded` transition:
 - **Windows toast notification** (local, on-PC only) — immediate, visible while the operator is at their desk. Implemented via a direct PowerShell/WinRT call (`Windows.UI.Notifications`) rather than the `Microsoft.Toolkit.Uwp.Notifications` NuGet package: that package pulled a **critical-severity CVE** (`System.Drawing.Common` 4.7.0, GHSA-rxg9-xrhp-64gj) and would have forced the whole project onto a Windows-only target framework (`net10.0-windows`), contradicting the planned Linux VPS migration. The native call keeps the main project cross-platform-buildable; the channel is still a runtime no-op on non-Windows and best-effort (wrapped in try/catch, never fails the polling cycle).
-- **Email notification** to a configured address (`raul.salazar1984@gmail.com` for now) via the same Graph `sendMail` capability already used for comuna requests — works identically on PC and on the future headless VPS, so no code change is needed at migration time, only configuration (toast channel can be disabled via config on the VPS).
+- **Email notification** to a configured address (`raul.salazar1984@gmail.com` for now) via the same mail-sending capability already used for comuna requests (EWS `CreateItem`) — works identically on PC and on the future headless VPS, so no code change is needed at migration time, only configuration (toast channel can be disabled via config on the VPS).
 
 The CSV export remains as the batch-level source of truth for the full tracked list, independent of the real-time notification channels.
 

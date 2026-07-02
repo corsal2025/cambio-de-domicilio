@@ -1,7 +1,7 @@
 # Tasks: Address Change Routing
 
 ## 0. Prerequisite (external, blocking real-mailbox testing)
-- [ ] 0.1 Coordinate with municipality IT: Azure AD app registration with `Mail.Read`/`Mail.Send` application permissions and admin consent, scoped to `cambiodedomicilio@munivalpo.cl` via an application access policy. Development can proceed against a test mailbox meanwhile.
+- [x] 0.1 ~~Coordinate with municipality IT: Azure AD app registration~~ **OBSOLETE — no longer needed.** Live verification showed the mailbox lives on the municipality's on-premises Exchange 2016 (`webmail.munivalpo.cl`), not in Exchange Online. Access is via EWS with the mailbox's own AD credentials (`servervalpo\cambiodedomicilio`), which the operator already holds. Authentication and a real `GetFolder(inbox)` call were verified live (2026-07-02). See the superseding decision in `design.md`.
 
 ## 1. Project scaffold
 - [x] 1.1 Create `.sln` + `src/OutlookComunaRouter` Worker Service project (net10.0, `Microsoft.Extensions.Hosting` `BackgroundService`)
@@ -18,11 +18,18 @@
 - [x] 3.2 Reloaded from CSV on each polling cycle (last-row-wins on duplicate domain)
 - [x] 3.3 Unit tests: valid rows, malformed row, missing file
 
-## 4. Graph integration
-- [x] 4.1 Graph client factory using `ClientSecretCredential` from configuration
-- [x] 4.2 `IEmailReader`: list messages in `cambiodedomicilio@munivalpo.cl` received since the last cycle window
-- [x] 4.3 `IMailSender`: send the formal folder-request email (template in `docs/email-templates.md` and `Notifications/EmailTemplates.cs`) via `sendMail`
-- [x] 4.4 Reply-notification email sent via the same `IMailSender` (`EmailNotificationChannel`)
+## 4. Mail server integration (Graph implementation superseded by EWS — see design.md)
+- [x] 4.1 ~~Graph client factory~~ (implemented, then superseded: the mailbox is on-prem, unreachable by Graph)
+- [x] 4.2 ~~Graph `IEmailReader`~~ (implemented, then superseded)
+- [x] 4.3 ~~Graph `IMailSender`~~ (implemented, then superseded)
+- [x] 4.4 Reply-notification email sent via the same `IMailSender` (`EmailNotificationChannel`) — interface-level, unaffected by the transport swap
+- [ ] 4.5 `EwsClient`: raw SOAP over `HttpClient`, Basic auth over TLS against `https://webmail.munivalpo.cl/EWS/Exchange.asmx`, credentials from configuration
+- [ ] 4.6 `EwsEmailReader : IEmailReader`: `FindItem` (inbox, `DateTimeReceived >= since`) + `GetItem` (text body, `InternetMessageId`, `ConversationId`, sender)
+- [ ] 4.7 `EwsMailSender : IMailSender`: `CreateItem` with `MessageDisposition="SendAndSaveCopy"`
+- [ ] 4.8 Switch idempotency key to `InternetMessageId` (EWS `ItemId` is not move-stable); `ConversationId` keeps thread matching working
+- [ ] 4.9 Remove `Microsoft.Graph` and `Azure.Identity` packages and the Graph-specific classes; update DI in `Program.cs`
+- [ ] 4.10 Unit tests for EWS SOAP request building and response parsing (recorded XML fixtures, no live server in tests)
+- [ ] 4.11 Live smoke test against the real mailbox (read-only: counts and classification only, no PII in output)
 
 ## 5. Extraction and routing logic
 - [x] 5.1 Regex-based extractor for `full_name` (case-insensitive) + `rut` (with/without dots, normalized to canonical form, validated against the Chilean RUT check-digit algorithm) — unit tests against sample bodies in both formats, including an invalid check-digit case
