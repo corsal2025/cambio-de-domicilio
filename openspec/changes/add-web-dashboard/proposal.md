@@ -22,4 +22,4 @@ The routing service (change `add-address-change-routing`) runs headless: its onl
 - Affected capability: `dashboard` (new), extends `routing` (classification field on tracked mail)
 - New systems touched: ASP.NET Core (Kestrel) listener on the LAN, local user store in SQLite, browser print CSS
 - Depends on: `add-address-change-routing` (EWS integration and SQLite store must exist first)
-- Security posture: personal data becomes visible over the network → authentication is mandatory, listener binds to LAN with per-user login, and the print/report views are behind the same session
+- Security posture: personal data becomes visible over the network → authentication is mandatory, the listener serves only over HTTPS on the LAN (plain HTTP redirects, never serves data), the print/report views are behind the same session, and every manual classification decision is attributed to the user and timestamp that made it

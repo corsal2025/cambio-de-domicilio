@@ -13,6 +13,24 @@ The dashboard SHALL require a per-user login (username + password) before showin
 - **WHEN** a user submits valid credentials
 - **THEN** a session cookie is issued and the dashboard is shown
 
+### Requirement: Encrypted transport
+The dashboard SHALL be served over HTTPS only; plain HTTP requests SHALL be redirected to HTTPS, never served with data.
+
+#### Scenario: HTTP request redirected
+- **WHEN** a browser requests `http://<host>:<port>/...`
+- **THEN** the response is a redirect to the equivalent `https://` URL, with no page content or session cookie issued over the plain connection
+
+### Requirement: Attributed classification decisions
+Every manual classification decision SHALL record which authenticated user made it and when.
+
+#### Scenario: User confirms or reclassifies an item
+- **WHEN** an authenticated user confirms or changes an item's classification
+- **THEN** the item stores `classified_by_user_id` and `classified_at` alongside `classification_source = manual`
+
+#### Scenario: Auto-classified item is not yet attributed
+- **WHEN** an item has only been auto-classified
+- **THEN** `classified_by_user_id` and `classified_at` remain null until a user acts on it
+
 ### Requirement: LAN real-time visibility
 The dashboard SHALL be reachable from other machines on the local network and reflect new data without manual page reloads.
 

@@ -39,9 +39,15 @@ The report view doubles as the printable document: print CSS hides navigation an
 ### Portability: self-contained single-file publish
 `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true` produces one `.exe` (~80–100 MB) requiring no installed runtime. Data (SQLite, CSV, config) stays in a sibling `data/` folder so copying the folder moves the whole installation. Code-copy protection is explicitly *not* promised beyond compiled distribution + private repository; obfuscators were rejected as snake oil that complicates debugging without stopping a determined decompiler.
 
+### Transport: HTTPS from day one, local certificate
+Revised after review: plaintext HTTP would carry both login passwords and PII (names, RUTs) unencrypted across the municipal LAN on every request — not just "data at rest" but credentials in transit, sniffable by anyone else on the same network segment. Kestrel is configured for HTTPS using a certificate generated once (`dotnet dev-certs https` for the host machine, or a self-signed cert with a long validity installed into the Trusted Root store on each viewer PC via the same deployment script that sets up the desktop shortcut). This is a few lines of Kestrel config and one extra deployment step, not a new architecture — no reason to defer it to a later change when the exposure exists from the first login. HTTP is kept only as a redirect-to-HTTPS listener, not a data-serving one.
+
+### Audit trail on classification decisions
+Revised after review: `classification_source` alone (`auto`/`manual`) says a human decided, but not *which* human or *when* — insufficient for accountability when several staff share access to personal data and a decision later needs to be justified or traced. Added `classified_by_user_id` (FK to `User`) and `classified_at` alongside `classification_source`, set on every manual confirm/reclassify action. Auto-classifications leave both null.
+
 ## Risks / Trade-offs
 
-- **HTTP (not HTTPS) on the LAN in v1**: session cookies and personal data travel unencrypted inside the municipal network. Acceptable only because the network is private and the alternative (self-signed certs on every viewer PC) has real operational cost; revisit before any exposure beyond the LAN — the VPS deployment MUST terminate TLS.
 - **Keyword-based classification is heuristic**: mitigated by design — every item is supervisable, manual decisions are sticky, and `Unclassified` items are surfaced rather than dropped.
 - **Single process serves UI and polls mail**: a UI crash takes down polling and vice versa. Accepted for v1 (systemd/Task Scheduler restarts cover it); split into two processes only if real interference appears.
-- **PBKDF2 without rate limiting**: login brute force on the LAN is possible; mitigated with a fixed small delay on failed logins and lockout after repeated failures (cheap to implement, included in tasks).
+- **PBKDF2 without rate limiting beyond lockout**: login brute force on the LAN is throttled by a fixed small delay on failed logins and lockout after repeated failures, not a full rate-limiter — acceptable for a small internal user base.
+- **Self-signed certificate trust is a manual step per viewer PC**: unlike a CA-issued cert, colleagues' browsers will warn until the cert is installed in their Trusted Root store once. Documented in the deployment checklist; revisit with a real internal CA or ACME-issued cert if the LAN grows beyond a handful of machines.
