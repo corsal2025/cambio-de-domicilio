@@ -20,48 +20,41 @@ The dashboard SHALL be served over HTTPS only; plain HTTP requests SHALL be redi
 - **WHEN** a browser requests `http://<host>:<port>/...`
 - **THEN** the response is a redirect to the equivalent `https://` URL, with no page content or session cookie issued over the plain connection
 
-### Requirement: Attributed classification decisions
-Every manual classification decision SHALL record which authenticated user made it and when.
+### Requirement: Case list reflecting the real lifecycle
+The dashboard SHALL show tracked cases (`PersonRequest`) with their current status (`Pending`/`Uploaded`/`Confirmed`), filterable by status and by "Requiere revisión."
 
-#### Scenario: User confirms or reclassifies an item
-- **WHEN** an authenticated user confirms or changes an item's classification
-- **THEN** the item stores `classified_by_user_id` and `classified_at` alongside `classification_source = manual`
+#### Scenario: Viewing cases
+- **WHEN** an authenticated user opens the case list
+- **THEN** every tracked case is shown with `full_name`, `rut`, `comuna`, `status`, `fecha_ultima_carpeta` (if set), and `sector` (if derivable)
 
-#### Scenario: Auto-classified item is not yet attributed
-- **WHEN** an item has only been auto-classified
-- **THEN** `classified_by_user_id` and `classified_at` remain null until a user acts on it
+#### Scenario: Filtering by review status
+- **WHEN** the user filters by "Requiere revisión"
+- **THEN** only cases with `needs_review = true` are shown
 
-### Requirement: LAN real-time visibility
-The dashboard SHALL be reachable from other machines on the local network and reflect new data without manual page reloads.
+### Requirement: Editable última-carpeta date
+The dashboard SHALL let an authenticated user set or change the `fecha_ultima_carpeta` for any case, and the derived `sector` SHALL update immediately for display.
 
-#### Scenario: Colleague views live state
-- **WHEN** an authenticated user has the dashboard open and a polling cycle ingests new mail
-- **THEN** the visible list updates within one polling cycle without the user pressing reload
+#### Scenario: Operator enters the date
+- **WHEN** a user sets `fecha_ultima_carpeta = 2024-01-10` on a case
+- **THEN** the case is saved with that date and its displayed sector becomes `Oficina 43`
 
-### Requirement: Supervised mail classification
-The system SHALL auto-classify every mail from a known comuna domain as `OutgoingReply`, `IncomingRequest`, `AddressChangeNotification`, or `Unclassified`, and SHALL let an authenticated user reclassify any item. A manual classification SHALL never be overwritten by the auto-classifier.
+### Requirement: Operator-triggered confirmation send
+The dashboard SHALL provide a "Enviar confirmación" action on cases with `status = Uploaded` and complete data, calling the existing `SendConfirmationAsync`. The action SHALL be unavailable (disabled or hidden) for cases that are not eligible, and the server SHALL enforce the same eligibility regardless of what the page displays.
 
-#### Scenario: Auto-classification proposed
-- **WHEN** a mail from a known comuna domain is ingested
-- **THEN** it appears in the dashboard with its proposed classification and a marker that it is unconfirmed
+#### Scenario: Sending a confirmation
+- **WHEN** an authenticated user triggers the action on an eligible `Uploaded` case
+- **THEN** the confirmation email is sent, the case becomes `Confirmed`, and `confirmed_by_user_id` / `confirmed_at` are recorded for that user and timestamp
 
-#### Scenario: User reclassifies
-- **WHEN** a user changes an item's classification
-- **THEN** the new classification is stored as manual, displayed as confirmed, and subsequent polling cycles do not change it
+#### Scenario: Attempting to confirm a non-eligible case
+- **WHEN** the action is attempted on a case that is `Pending`, already `Confirmed`, or missing required data
+- **THEN** the server refuses the action and returns the reason, without sending any email
 
-### Requirement: Separate reports for sent and received requests
-The dashboard SHALL provide two report views switchable by button: requests sent by Valparaíso (with reply status) and requests received from other comunas.
+### Requirement: Sector PDF generation
+The dashboard SHALL render a print-ready document per sector (Archivo / Oficina 43), containing `full_name`, `rut`, `comuna`, and `fecha_ultima_carpeta` for every case in that sector.
 
-#### Scenario: Switching reports
-- **WHEN** the user presses the "Solicitudes recibidas" button
-- **THEN** only mail classified as `IncomingRequest` is listed, and vice versa for "Solicitudes enviadas"
-
-### Requirement: Printable report document
-The dashboard SHALL render a print-ready document containing, per person: full name, RUT, date of last folder, and the comuna of origin when the case stems from an address change from another comuna.
-
-#### Scenario: Printing
-- **WHEN** the user invokes print on the report view
-- **THEN** the printed output contains only the document content (no navigation chrome) with the four required fields
+#### Scenario: Generating the Archivo sector document
+- **WHEN** the user requests the Archivo sector document
+- **THEN** the printed output contains only cases whose derived sector is `Archivo`, with no navigation chrome, ready to print or save as PDF via the browser
 
 ### Requirement: Portable distribution
 The application SHALL be publishable as a self-contained single-file executable that runs on another Windows PC without a pre-installed .NET runtime.
