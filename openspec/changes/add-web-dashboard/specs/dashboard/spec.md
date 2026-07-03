@@ -56,6 +56,17 @@ The dashboard SHALL render a print-ready document per sector (Archivo / Oficina 
 - **WHEN** the user requests the Archivo sector document
 - **THEN** the printed output contains only cases whose derived sector is `Archivo`, with no navigation chrome, ready to print or save as PDF via the browser
 
+### Requirement: Comuna directory management
+The dashboard SHALL provide a directory view listing every comuna (name, contact email, domain) and let an authenticated user correct a comuna's contact email. Changes SHALL persist to the same CSV file the polling cycle reads, so the next confirmation email uses the corrected address.
+
+#### Scenario: Operator corrects a changed email
+- **WHEN** a user edits the contact email of a comuna and saves
+- **THEN** the CSV directory is updated atomically, and subsequent confirmation sends for that comuna use the new address
+
+#### Scenario: Invalid email rejected
+- **WHEN** a user submits a contact value without a valid email shape
+- **THEN** the change is rejected with a message and the directory is not modified
+
 ### Requirement: Portable distribution
 The application SHALL be publishable as a self-contained single-file executable that runs on another Windows PC without a pre-installed .NET runtime.
 

@@ -1,0 +1,59 @@
+@page
+@model OutlookComunaRouter.Dashboard.Pages.ComunasModel
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Directorio de comunas — OutlookComunaRouter</title>
+    <link rel="stylesheet" href="~/css/dashboard.css" />
+</head>
+<body>
+    <header class="app-header">
+        <div class="brand">
+            OutlookComunaRouter
+            <small>Municipalidad de Valparaíso — Directorio de comunas</small>
+        </div>
+        <nav class="app-nav">
+            <a asp-page="/Index">Casos</a>
+            <a asp-page="/Comunas" class="active">Comunas</a>
+            <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
+        </nav>
+    </header>
+
+    <main>
+        @if (Model.Message is not null)
+        {
+            <p class="message-banner" style="@(Model.MessageIsError ? "background:#fbe4e8;border-color:#a11d33;color:#a11d33;" : "")">@Model.Message</p>
+        }
+
+        <div class="card">
+            <table class="cases">
+                <thead>
+                    <tr>
+                        <th>Comuna</th>
+                        <th>Dominio</th>
+                        <th>Correo de contacto</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var contact in Model.Contacts)
+                {
+                    <tr>
+                        <td>@contact.Comuna</td>
+                        <td>@contact.Domain</td>
+                        <td colspan="2">
+                            <form method="post" asp-page-handler="UpdateEmail" style="display:flex; gap:8px; align-items:center;">
+                                <input type="hidden" name="comuna" value="@contact.Comuna" />
+                                <input type="email" name="email" value="@contact.ContactEmail" required style="flex:1; min-width:280px; border:1px solid var(--color-border); border-radius:4px; padding:4px 6px; font-size:0.85rem;" />
+                                <button type="submit" class="btn-primary">Guardar</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>

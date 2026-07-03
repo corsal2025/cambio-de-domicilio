@@ -16,6 +16,30 @@ Reason: superseded by "Detect incoming folder request" below, which reads a spec
 
 ## MODIFIED Requirements
 
+### Requirement: Extract person data
+The system SHALL extract `full_name` and `rut` from the body of a detected request email, calibrated against the formats real comuna emails actually use (verified live 2026-07-03 against 38 production messages):
+
+- The Exchange external-mail banner ("CORREO EXTERNO: No haga clic...") SHALL be stripped before any extraction — it previously poisoned every name match.
+- The RUT SHALL be recognized with a `RUT`/`R.U.T.`/`RUN`/`R.U.N.` prefix, **or** bare in dotted form (`12.345.678-9`), **or** bare in undotted form (`12345678-9`), always validated against the check-digit algorithm and normalized to canonical dotted form.
+- The `full_name` SHALL be taken from the capitalized-word sequence adjacent to the RUT match (a window before it, falling back to after it), stripping honorifics (don/doña/Sr./Sra.) — never from "the first capitalized words anywhere in the body," which matches banners and forwarded-header sender names instead of the contributor.
+- If no valid RUT is found, both fields SHALL stay null and the case is flagged `needs_review` — a name found without an anchoring RUT is not trustworthy enough to auto-record.
+
+#### Scenario: Prefixed RUT
+- **WHEN** the body contains `GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7` (or `RUN`, `R.U.T.` variants)
+- **THEN** both fields are extracted, RUT normalized to `18.785.387-7`
+
+#### Scenario: Bare dotted RUT without prefix
+- **WHEN** the body contains `... la carpeta de GUSTAVO ANDRÉS PEÑA CASTRO 18.785.387-7 ...` with no RUT/RUN prefix
+- **THEN** the RUT is still recognized (dotted form is unambiguous) and the adjacent name is extracted
+
+#### Scenario: External-mail banner present
+- **WHEN** the body starts with the Exchange "CORREO EXTERNO" warning banner
+- **THEN** the banner text is never extracted as a person's name
+
+#### Scenario: No recognizable RUT
+- **WHEN** the body has no RUT in any recognized form (e.g. data only in an attachment)
+- **THEN** the record is created with null name/RUT and `needs_review = true`
+
 ### Requirement: Continuously-refreshed tracking report
 The system SHALL rewrite a CSV report to a fixed local file path on every polling cycle. The report SHALL include a `Requiere revisión` column, the manually-entered `fecha_ultima_carpeta`, the derived `sector` (Archivo for dates before July 2023, Oficina 43 from July 2023 onwards), and `confirmed_at`.
 

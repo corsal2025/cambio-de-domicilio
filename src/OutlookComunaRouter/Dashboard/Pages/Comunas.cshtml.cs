@@ -1,0 +1,39 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using OutlookComunaRouter.Configuration;
+using OutlookComunaRouter.Directories;
+using OutlookComunaRouter.Domain;
+
+namespace OutlookComunaRouter.Dashboard.Pages;
+
+[Authorize]
+public class ComunasModel(IComunaDirectory directory, RouterOptions options) : PageModel
+{
+    public IReadOnlyList<ComunaContact> Contacts { get; private set; } = [];
+    public string? Message { get; set; }
+    public bool MessageIsError { get; set; }
+
+    public void OnGet() => Load();
+
+    public IActionResult OnPostUpdateEmail(string comuna, string email)
+    {
+        if (directory.UpdateContactEmail(options.ComunaDirectoryCsvPath, comuna, email))
+        {
+            Message = $"Correo de {comuna} actualizado. Los próximos envíos usarán la nueva dirección.";
+        }
+        else
+        {
+            Message = $"No se pudo actualizar {comuna}: revise que el correo tenga un formato válido.";
+            MessageIsError = true;
+        }
+
+        Load();
+        return Page();
+    }
+
+    private void Load() =>
+        Contacts = directory.LoadFromCsv(options.ComunaDirectoryCsvPath)
+            .OrderBy(c => c.Comuna)
+            .ToList();
+}

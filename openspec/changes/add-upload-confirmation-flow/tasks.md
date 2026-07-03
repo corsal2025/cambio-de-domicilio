@@ -28,6 +28,13 @@ Revised 2026-07-03 after walking the full business process with the operator (se
 - [x] 5.2 `docs/email-templates.md`: upload-confirmation + operator-notification templates
 - [x] 5.3 README refresh (kept brief; the operator-facing UI itself remains scoped to add-web-dashboard)
 
-## 6. Pending / next change (dashboard)
-- [ ] 6.1 UI: editable fecha-última-carpeta per case, "Enviar confirmación" button wired to `SendConfirmationAsync`, PDF generation per sector — belongs to `add-web-dashboard`
-- [ ] 6.2 Live end-to-end verification against the real mailbox
+## 6. Extraction hardening (added 2026-07-03 after live calibration against 38 real messages)
+- [x] 6.1 Strip the Exchange "CORREO EXTERNO" banner before extraction (it was being matched as the person's name in every case)
+- [x] 6.2 RUT patterns: prefixed (`RUT`/`R.U.T.`/`RUN`/`R.U.N.`), bare dotted (`12.345.678-9`), bare undotted (`12345678-9`) — in that priority order, all check-digit-validated
+- [x] 6.3 Name from the capitalized-word window adjacent to the RUT match (before, falling back to after), honorifics stripped; no RUT → no name (needs_review)
+- [x] 6.4 Unit tests for each real-world format found in the calibration (banner, prefix variants, bare forms, attachment-only bodies)
+- [x] 6.5 Re-run verified live: 16/24 tracked cases fully extracted (vs 5/24 before); the remaining 8 have their data in attachments/empty forwards and stay in manual review by design
+
+## 7. Pending / next change (dashboard)
+- [ ] 7.1 UI: editable fecha-última-carpeta per case, "Enviar confirmación" button wired to `SendConfirmationAsync`, PDF generation per sector — belongs to `add-web-dashboard`
+- [ ] 7.2 Live end-to-end verification against the real mailbox

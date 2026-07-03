@@ -78,4 +78,52 @@ public class ComunaDirectoryTests
 
         Assert.Empty(result);
     }
+
+    [Fact]
+    public void UpdateContactEmail_ValidChange_PersistsAndKeepsOtherRows()
+    {
+        var path = Path.GetTempFileName();
+        File.WriteAllText(path,
+            "Comuna,ContactEmail,Domain\nCatemu,viejo@municatemu.cl,municatemu.cl\nColina,luis@colina.cl,colina.cl\n");
+        var directory = new ComunaDirectory();
+
+        var updated = directory.UpdateContactEmail(path, "Catemu", "nuevo@municatemu.cl");
+
+        Assert.True(updated);
+        var reloaded = directory.LoadFromCsv(path);
+        Assert.Equal("nuevo@municatemu.cl", reloaded.Single(c => c.Comuna == "Catemu").ContactEmail);
+        Assert.Equal("luis@colina.cl", reloaded.Single(c => c.Comuna == "Colina").ContactEmail);
+        File.Delete(path);
+    }
+
+    [Fact]
+    public void UpdateContactEmail_UnknownComuna_ReturnsFalseWithoutModifying()
+    {
+        var path = Path.GetTempFileName();
+        var original = "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n";
+        File.WriteAllText(path, original);
+        var directory = new ComunaDirectory();
+
+        var updated = directory.UpdateContactEmail(path, "NoExiste", "x@y.cl");
+
+        Assert.False(updated);
+        Assert.Equal(original, File.ReadAllText(path));
+        File.Delete(path);
+    }
+
+    [Theory]
+    [InlineData("sin-arroba")]
+    [InlineData("dos@arrobas@x.cl")]
+    [InlineData("con espacios@x.cl")]
+    [InlineData("con,coma@x.cl")]
+    [InlineData("sinpunto@dominio")]
+    public void UpdateContactEmail_InvalidEmailShape_IsRejected(string invalidEmail)
+    {
+        var path = Path.GetTempFileName();
+        File.WriteAllText(path, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
+        var directory = new ComunaDirectory();
+
+        Assert.False(directory.UpdateContactEmail(path, "Catemu", invalidEmail));
+        File.Delete(path);
+    }
 }

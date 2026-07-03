@@ -1,110 +1,164 @@
 # Reporte Técnico — OutlookComunaRouter
 
-**Fecha:** 2026-07-02
-**Fuente:** consolidado a partir de `openspec/changes/archive/2026-07-02-add-address-change-routing/` y `openspec/changes/add-web-dashboard/`
+**Última actualización:** 2026-07-03
+**Fuente:** consolidado desde los artefactos OpenSpec del proyecto (`openspec/specs/`, `openspec/changes/`) — la metodología del proyecto exige que toda decisión quede documentada ahí antes de implementarse.
 
 ---
 
 ## 1. Qué es el sistema
 
-`OutlookComunaRouter` es un servicio en segundo plano (.NET 10) que automatiza el trámite de "cambio de domicilio" del Municipio de Valparaíso: detecta notificaciones de cambio de domicilio recibidas de otras comunas, solicita automáticamente la última carpeta del contribuyente a la comuna correspondiente, y hace seguimiento hasta que esa comuna responde.
+`OutlookComunaRouter` es un servicio .NET 10 con dashboard web integrado que automatiza el trámite de solicitudes de carpeta de contribuyentes que **otras comunas le piden a Valparaíso** (ligado a Conaset): detecta las solicitudes que llegan por correo, extrae los datos de la persona, acompaña el trabajo manual del operador (buscar/escanear/subir la carpeta), y envía el aviso de "carpeta subida" a la comuna solicitante cuando el operador lo decide.
 
-## 2. Estado actual
+## 2. Estado de los cambios (OpenSpec)
 
-| Módulo | Estado |
+| Cambio | Estado |
 |---|---|
-| `add-address-change-routing` (motor de ruteo) | **Completo y archivado** — 37/37 tests, build limpio, sin vulnerabilidades conocidas |
-| `add-web-dashboard` (interfaz web) | Propuesta aprobada, 0/25 tareas — pendiente de implementación |
+| `add-address-change-routing` | Archivado (diseño original, superado — asumía el flujo en dirección inversa) |
+| `add-folder-based-triggering` | 10/11 — lectura por carpeta con nombre, sin filtro de fecha |
+| `add-upload-confirmation-flow` | Flujo vigente: Pendiente → Subido → Confirmado con botón manual |
+| `add-web-dashboard` | Dashboard web: login, lista de casos, fecha editable, botón de confirmación, PDF por sector, directorio de comunas editable, diseño institucional |
 
-## 3. Arquitectura de acceso al correo (por qué ya no se usa Azure)
-
-**Supuesto inicial (descartado):** se asumió que el buzón `cambiodedomicilio@munivalpo.cl` estaba en Exchange Online (Microsoft 365 nube), lo que habría requerido un registro de aplicación en Azure AD con permisos `Mail.Read`/`Mail.Send` y consentimiento de administrador del tenant — una dependencia externa de TI del municipio.
-
-**Verificación en vivo (2026-07-02):** se comprobó que:
-- El buzón **no existe** como identidad de inicio de sesión en Entra ID (Azure AD) — es una implementación híbrida.
-- El buzón vive en un **Exchange Server 2016 on-premise** (`mail.munivalpo.cl`), con endpoint EWS (`/EWS/Exchange.asmx`) accesible.
-- Las credenciales de Active Directory propias del buzón (`servervalpo\cambiodedomicilio`) autentican correctamente contra ese endpoint vía Basic Auth sobre TLS.
-
-**Consecuencia:** Microsoft Graph no puede alcanzar un buzón on-premise (solo sirve Exchange Online). Se reemplazó la integración por **EWS** (Exchange Web Services), el protocolo SOAP nativo de Exchange. Esto **elimina por completo la dependencia de Azure AD y de TI** — la autenticación es la misma credencial de AD que ya existe para ese buzón.
-
-Implementación: cliente EWS propio sobre `HttpClient` (SOAP crudo), sin paquete de terceros — el paquete oficial de Microsoft es solo para .NET Framework y está sin mantenimiento.
-
-## 4. Flujo funcional completo
+## 3. Diagrama de flujo general del sistema
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  Cada 30 minutos (configurable), RouterWorker (BackgroundService) │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-   1. Carga el directorio de comunas (CSV: comuna → correo → dominio)
-                              │
-                              ▼
-   2. EWS FindItem + GetItem: lista correos nuevos desde el último ciclo
-                              │
-                              ▼
-   3. Para cada correo:
-      a) ¿Dominio del remitente está en el directorio de comunas
-         y no es el dominio propio (munivalpo.cl)? → si no, se ignora
-      b) Extrae nombre completo y RUT (regex + validación de dígito
-         verificador chileno) del cuerpo del correo
-      c) ¿Datos incompletos? → queda "pendiente", visible en el
-         reporte con columna "Requiere revisión"
-      d) ¿Ya existe una solicitud activa (enviada/respondida) para
-         ese mismo RUT + comuna? → se vincula, no se reenvía
-         (evita duplicados aunque llegue en un correo distinto)
-      e) Caso nuevo y válido → envía correo formal solicitando la
-         última carpeta (EWS CreateItem) y marca "enviado"
-                              │
-                              ▼
-   4. Para cada correo, además se evalúa si es una RESPUESTA:
-      - Coincide el hilo (ConversationId) con una solicitud enviada → respondido
-      - Si no, pero el cuerpo contiene el mismo RUT de una solicitud
-        enviada desde ese dominio de comuna → respondido (fallback)
-      - Al marcar "respondido": notifica por pantalla (Windows toast)
-        + correo (siempre, funciona igual en PC o en un futuro VPS)
-                              │
-                              ▼
-   5. Reescribe el reporte CSV (data/reporte.csv) con el estado de
-      todas las personas: nombre, RUT, comuna, estado, fecha de
-      última carpeta, y si requiere revisión manual
+                        ┌─────────────────────────────┐
+                        │   Otra municipalidad envía   │
+                        │   correo pidiendo carpeta    │
+                        │   de un contribuyente        │
+                        └──────────────┬──────────────┘
+                                       │
+                                       ▼
+                        ┌─────────────────────────────┐
+                        │  Buzón Exchange on-premise   │
+                        │  cambiodedomicilio@          │
+                        │  munivalpo.cl                │
+                        └──────────────┬──────────────┘
+                                       │  el operador clasifica
+                                       │  manualmente (arrastra)
+                                       ▼
+                        ┌─────────────────────────────┐
+                        │   Carpeta Outlook:           │
+                        │   "CARP. PARA PEDIR"         │
+                        └──────────────┬──────────────┘
+                                       │  cada 30 min (EWS)
+                                       ▼
+        ┌──────────────────────────────────────────────────────┐
+        │              SERVICIO (RouterWorker)                  │
+        │                                                       │
+        │  ┌────────────┐   ┌────────────┐   ┌──────────────┐  │
+        │  │ ¿Dominio    │──►│ Extraer    │──►│ ¿Duplicado    │  │
+        │  │ de comuna   │no │ nombre+RUT │   │ (RUT+comuna)? │  │
+        │  │ conocida?   │─┐ │ del cuerpo │   └──────┬───────┘  │
+        │  └────────────┘ │ └─────┬──────┘          │no         │
+        │                 │       │¿falló?          ▼           │
+        │            (se ignora)  ▼            ┌──────────┐    │
+        │                 ┌──────────────┐     │ Registrar │    │
+        │                 │ PENDIENTE +  │     │ PENDIENTE │    │
+        │                 │ "Requiere    │     └──────────┘    │
+        │                 │  revisión"   │                      │
+        │                 └──────────────┘                      │
+        └──────────────────────────────┬───────────────────────┘
+                                       │
+                                       ▼
+                        ┌─────────────────────────────┐
+                        │   DASHBOARD WEB (HTTPS)      │
+                        │   https://<pc>:5001          │
+                        │   - login por usuario        │
+                        │   - lista de casos           │
+                        │   - fecha última carpeta ────┼──► deriva SECTOR:
+                        │     (la digita el operador)  │    < jul 2023 → Archivo
+                        │   - PDF por sector           │    ≥ jul 2023 → Oficina 43
+                        │   - directorio de comunas    │
+                        └─────────────────────────────┘
 ```
 
-## 5. Modelo de datos (SQLite, sin ORM)
+## 4. Diagrama del ciclo de vida de un caso
 
-**`PersonRequest`** — una fila por notificación de cambio de domicilio detectada:
-- Identificación de la persona: `full_name`, `rut` (normalizado, con dígito verificador validado), `comuna`
-- Trazabilidad del correo origen: `InternetMessageId` (clave de idempotencia — no cambia si el correo se mueve de carpeta, a diferencia del ID de EWS), `ConversationId`, asunto, remitente
-- Ciclo de vida: `status` (`pending` → `sent` → `responded`), timestamps y IDs de los correos de solicitud y respuesta
-- `needs_review`: marca los casos que no se pudieron procesar automáticamente
+```
+   correo llega a                  operador sube la          operador aprieta
+   CARP. PARA PEDIR                carpeta a Conaset y       "Enviar confirmación"
+        │                          mueve el correo a         en el dashboard
+        │                          CARP. YA PEDIDAS               │
+        ▼                               │                         ▼
+  ┌───────────┐   detección EWS   ┌────▼──────┐  botón   ┌──────────────┐
+  │ PENDIENTE │ ────────────────► │  SUBIDO   │ ───────► │  CONFIRMADO  │
+  └───────────┘   (sin enviar     └───────────┘  (envía  └──────────────┘
+        │          nada)                          correo a │
+        │                                         la comuna│ queda registrado:
+        ▼                                         + avisa  │ QUIÉN lo confirmó
+  "Requiere revisión"                             al       │ y CUÁNDO
+  si faltan nombre/RUT                            operador)│
+  (el operador los ve                                      
+   filtrados en el dashboard)                              
 
-**`ComunaContact`** — directorio importado desde CSV: comuna, correo de contacto, dominio (usado tanto para detectar notificaciones entrantes como para reconocer respuestas).
+  REGLAS CLAVE:
+  • Mover el correo a CARP. YA PEDIDAS NO envía nada — solo marca "Subido".
+  • El correo a la comuna sale ÚNICAMENTE con el clic del operador.
+  • Un caso Pendiente o ya Confirmado no puede confirmarse (el servidor lo rechaza
+    aunque la página esté desactualizada).
+  • Nunca hay dos filas para la misma persona+comuna (deduplicación).
+```
 
-## 6. Decisiones técnicas relevantes y por qué
+## 5. Diagrama del flujo de extracción de datos (calibrado con correos reales)
 
-| Decisión | Alternativa descartada | Razón |
+```
+   Cuerpo del correo
+        │
+        ▼
+   ¿Tiene el aviso "CORREO EXTERNO" de Exchange?
+        │ sí → se elimina antes de extraer (antes contaminaba
+        │      todos los nombres extraídos)
+        ▼
+   Buscar RUT, en este orden de prioridad:
+     1. Con prefijo:  RUT: / R.U.T. / RUN / R.U.N.   (16 de 38 reales)
+     2. Pelado con puntos:  12.345.678-9              ( 9 de 38 reales)
+     3. Pelado sin puntos:  12345678-9                ( 3 de 38 reales)
+   Siempre validado con el dígito verificador chileno.
+        │
+        ├── no hay RUT válido (10 de 38: adjuntos, reenvíos vacíos)
+        │        └──► caso queda "Requiere revisión" — sin inventar nombres
+        ▼
+   Buscar el NOMBRE en la ventana de texto pegada al RUT
+   (antes del RUT; si no, después), quitando don/doña/Sr./Sra.
+   — ÚNICA señal confiable: los correos reales no traen "Nombre:"
+        │
+        ▼
+   Caso registrado con nombre + RUT normalizado (12.345.678-9)
+```
+
+## 6. Arquitectura de acceso al correo (por qué no se usa Azure)
+
+El buzón `cambiodedomicilio@munivalpo.cl` vive en un **Exchange Server 2016 on-premise** (`mail.munivalpo.cl`), no en Exchange Online — verificado en vivo el 2026-07-02. Microsoft Graph no puede alcanzar buzones on-premise, así que la integración es **EWS** (SOAP) con las credenciales de Active Directory del propio buzón. **No se necesita Azure AD, ni registro de aplicación, ni aprobación de TI.** El cliente EWS es propio (SOAP crudo sobre `HttpClient`), porque el paquete oficial de Microsoft es solo .NET Framework y está abandonado.
+
+## 7. Componentes técnicos
+
+| Componente | Tecnología | Rol |
 |---|---|---|
-| Worker Service con sondeo cada 30 min | Tarea batch una vez al día | El usuario necesita enterarse de respuestas el mismo día, no al día siguiente |
-| Detección de comuna por directorio propio | Adivinar patrón `muni<comuna>.cl` en el dominio | El patrón no es universal (nombres de comuna con espacios/tildes); el directorio real es la única fuente confiable |
-| EWS con cliente SOAP propio | Microsoft Graph / paquete `Microsoft.Exchange.WebServices` | Graph no llega a buzones on-prem; el paquete oficial de EWS es .NET Framework-only y sin mantenimiento |
-| Notificación de respuesta por dos canales (toast + correo) | Solo reporte CSV del día siguiente | El correo funciona igual en el PC actual y en el futuro VPS headless; el toast es best-effort y no bloquea el ciclo si falla |
-| Notificación toast sin paquete NuGet (llamada nativa a PowerShell/WinRT) | `Microsoft.Toolkit.Uwp.Notifications` | Ese paquete traía una vulnerabilidad **crítica** (`System.Drawing.Common` 4.7.0) y forzaba el proyecto a un TFM exclusivo de Windows, incompatible con la migración futura a VPS Linux |
-| Retry con backoff exponencial en llamadas EWS/Graph | Sin reintento | Evita que fallas transitorias (5xx, throttling) tumben un ciclo completo de sondeo |
-| Deduplicación por (RUT, comuna) además de por ID de correo | Solo deduplicar por ID de correo | Un mismo trámite puede llegar notificado en dos correos distintos (reenvío); sin esto se enviarían solicitudes duplicadas a la misma comuna |
+| Servicio de sondeo | .NET 10 `BackgroundService` | Lee ambas carpetas Outlook cada 30 min vía EWS |
+| Dashboard | ASP.NET Core Razor Pages (mismo proceso) | UI del operador, HTTPS-only en puerto 5001 |
+| Autenticación | PBKDF2 + cookies (sin ASP.NET Identity) | Login por usuario, bloqueo tras 5 intentos fallidos |
+| Base de datos | SQLite (sin ORM) | Casos + usuarios, archivo único portable |
+| Directorio de comunas | CSV editable (263 comunas) | Dominio → comuna → correo de contacto; editable desde el dashboard |
+| Reporte | CSV regenerado cada ciclo | nombre, rut, comuna, estado, fecha, sector, confirmado |
+| Notificaciones | Toast Windows + correo al operador | Solo al confirmar (feedback del envío real) |
+| Distribución | `dotnet publish` self-contained single-file | Un .exe (~100 MB) copiable a otro PC sin instalar .NET |
 
-## 7. Riesgos documentados (no resueltos en código, a tener presente)
+## 8. Decisiones técnicas relevantes (resumen; detalle en cada `design.md`)
 
-- **PII en reposo sin cifrado propio**: la base SQLite y el CSV de reporte contienen nombres y RUTs en texto plano en el disco del equipo. Depende de que el cifrado de disco (BitLocker) del equipo esté activo — la aplicación no agrega su propia capa de cifrado.
-- **Matching por RUT-fallback es heurístico**: si una comuna responde en un hilo nuevo (no como "Responder"), se hace match por RUT — teóricamente podría haber una coincidencia errónea, mitigado porque toda respuesta queda para verificación manual antes de continuar el trámite.
-- **Alcance de red al migrar a VPS**: el endpoint EWS está verificado como accesible dentro de la red municipal; su alcance desde un VPS externo aún no está verificado — podría requerir VPN/túnel si el firewall del municipio bloquea el acceso externo.
+- **Confirmación por botón, nunca automática**: mover el correo de carpeta solo marca "Subido"; el envío del aviso a la comuna requiere el clic explícito del operador, con registro de quién y cuándo.
+- **Detección por directorio, no por patrón**: los dominios municipales chilenos no siguen ningún patrón (`litueche.cl`, `munisanfelipe.cl`, `maho.cl`...); la fuente de verdad es el CSV de 263 comunas.
+- **Extracción anclada al RUT**: calibrada contra los 38 correos reales de producción; sin RUT válido no se inventa nombre (queda para revisión manual).
+- **Sector derivado de la fecha**: la fecha de última carpeta la digita el operador (no viene en los correos); el sistema deriva Archivo (< julio 2023) u Oficina 43 (≥ julio 2023) y genera el listado imprimible por sector.
+- **HTTPS obligatorio en la LAN**: contraseñas y RUTs nunca viajan en claro; el puerto HTTP solo redirige.
+- **Sin frameworks innecesarios**: sin EF Core, sin ASP.NET Identity, sin framework CSS/JS — la superficie del sistema no los justifica.
 
-## 8. Lo que viene (`add-web-dashboard`, no implementado aún)
+## 9. Incidentes de seguridad detectados y corregidos durante el desarrollo
 
-Interfaz web embebida en el mismo proceso (ASP.NET Core + Kestrel) para que varios funcionarios vean el estado en tiempo real desde el navegador, con:
-- Login por usuario (obligatorio — hay datos personales de por medio)
-- **HTTPS obligatorio** (se corrigió en la propuesta: HTTP plano exponía contraseñas y RUTs sin cifrar en la red)
-- Clasificación supervisada de correos entrantes/salientes, con **auditoría de quién reclasificó qué y cuándo** (se agregó en la revisión de la propuesta)
-- Vistas separadas de solicitudes enviadas vs. recibidas, documento imprimible
-- Publicación como ejecutable único portable (copiar a otro PC sin instalar el runtime de .NET)
+- **`.gitignore` mal anclado**: el patrón `data/*` no protegía carpetas `data/` anidadas; una llegó a contener PII real. Corregido a `**/data/*`, carpeta eliminada, nunca llegó a git.
+- **Fuga de credenciales al publicar**: `appsettings.Development.json` (contraseña EWS real) se copiaba al `publish/`. Corregido con `CopyToPublishDirectory="Never"`.
 
-Detalle completo en `openspec/changes/add-web-dashboard/`.
+## 10. Riesgos vigentes documentados
+
+- **PII en reposo sin cifrado propio**: SQLite y CSV contienen nombres y RUTs en texto plano — depende del cifrado de disco (BitLocker) del equipo.
+- **Extracción heurística**: ~26% de los correos reales no traen el RUT en el cuerpo (viene en adjuntos) — esos casos quedan siempre en "Requiere revisión" para gestión manual, por diseño.
+- **Alcance de red del VPS futuro**: el endpoint EWS no está verificado desde fuera de la red municipal.

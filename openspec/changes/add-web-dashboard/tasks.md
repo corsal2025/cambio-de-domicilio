@@ -44,3 +44,9 @@ Depends on: `add-address-change-routing` (EWS) and `add-upload-confirmation-flow
 ## 8. Visual design (added after first live review with the operator)
 - [x] 8.1 `wwwroot/css/dashboard.css`: institutional color palette via CSS custom properties, status badges (Pendiente/Subido/Confirmado colored distinctly), zebra-striped table, consistent spacing/typography — shared by `Login` and `Index`; `Sector` keeps its separate minimal print stylesheet
 - [ ] 8.2 Verify visually in the browser against real data (the 38 live cases already loaded) — pending operator confirmation
+
+## 9. Comuna directory management (added 2026-07-03, operator request)
+- [x] 9.1 `ComunaDirectory.UpdateContactEmail(csvPath, comuna, newEmail)`: atomic CSV rewrite (temp + move), preserving all other rows
+- [x] 9.2 `/Comunas` page: table of comuna/email/domain with inline email edit per row, `[Authorize]`, nav link from the header
+- [x] 9.3 Server-side email-shape validation, rejection message surfaced on the page
+- [x] 9.4 Unit tests: update round-trip, unknown comuna no-op, invalid email rejected, other rows untouched

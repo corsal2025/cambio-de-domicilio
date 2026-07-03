@@ -23,6 +23,7 @@
             <a asp-page="/Index" asp-route-needsReview="true" class="@(Model.OnlyNeedsReview ? "active" : "")">Requiere revisión</a>
             <a asp-page="/Sector" asp-route-sector="Archivo">PDF Archivo</a>
             <a asp-page="/Sector" asp-route-sector="Oficina43">PDF Oficina 43</a>
+            <a asp-page="/Comunas">Comunas</a>
             <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
         </nav>
     </header>

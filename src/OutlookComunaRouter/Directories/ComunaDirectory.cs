@@ -9,6 +9,13 @@ public interface IComunaDirectory
     /// <summary>Resolves a sender email domain to a known comuna, or null if not in the directory
     /// or if it equals the organization's own domain.</summary>
     ComunaContact? ResolveByDomain(string senderDomain, string ownDomain, IReadOnlyList<ComunaContact> contacts);
+
+    /// <summary>
+    /// Persists a corrected contact email for a comuna back to the CSV (the same file the
+    /// polling cycle reads, so the next confirmation send uses the new address).
+    /// Returns false when the comuna is not in the directory or the email is not valid.
+    /// </summary>
+    bool UpdateContactEmail(string csvPath, string comuna, string newEmail);
 }
 
 public sealed class ComunaDirectory : IComunaDirectory
@@ -66,5 +73,41 @@ public sealed class ComunaDirectory : IComunaDirectory
 
         return contacts.FirstOrDefault(c =>
             string.Equals(c.Domain, normalizedSender, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public bool UpdateContactEmail(string csvPath, string comuna, string newEmail)
+    {
+        newEmail = newEmail.Trim();
+        if (!IsValidEmailShape(newEmail))
+        {
+            return false;
+        }
+
+        var contacts = LoadFromCsv(csvPath);
+        var target = contacts.FirstOrDefault(c =>
+            string.Equals(c.Comuna, comuna, StringComparison.OrdinalIgnoreCase));
+        if (target is null)
+        {
+            return false;
+        }
+
+        var updated = contacts
+            .Select(c => c == target ? c with { ContactEmail = newEmail } : c)
+            .ToList();
+
+        // Write to a temp file then move, so the polling cycle never reads a half-written directory.
+        var tempPath = csvPath + ".tmp";
+        var lines = new List<string> { "Comuna,ContactEmail,Domain" };
+        lines.AddRange(updated.Select(c => $"{c.Comuna},{c.ContactEmail},{c.Domain}"));
+        File.WriteAllLines(tempPath, lines);
+        File.Move(tempPath, csvPath, overwrite: true);
+        return true;
+    }
+
+    private static bool IsValidEmailShape(string email)
+    {
+        var at = email.IndexOf('@');
+        return at > 0 && at < email.Length - 3 && email.IndexOf('@', at + 1) < 0
+            && email[(at + 1)..].Contains('.') && !email.Contains(',') && !email.Contains(' ');
     }
 }
