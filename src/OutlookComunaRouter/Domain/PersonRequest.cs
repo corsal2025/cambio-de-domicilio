@@ -40,6 +40,10 @@ public sealed class PersonRequest
 
     public DateTimeOffset? UploadedAt { get; set; }
     public DateTimeOffset? ConfirmedAt { get; set; }
+
+    /// <summary>Who pressed "Enviar confirmación" — a real email goes out to another municipality, so this is attributed.</summary>
+    public long? ConfirmedByUserId { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>Physical location of the folder, derived from the última-carpeta date. Null until the date is entered.</summary>

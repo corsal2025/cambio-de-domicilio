@@ -1,18 +1,14 @@
 # Despliegue en producción (Windows, PC actual)
 
-Runbook completo, en orden. Los pasos 1 y 2 son el único bloqueo real hoy —
-todo lo demás ya está preparado y probado.
+Runbook completo, en orden.
 
-## 1. Azure AD (bloqueante — requiere TI del municipio)
+## 1. Credenciales EWS (no requiere TI ni Azure AD)
 
-Coordinar el registro de la app siguiendo los pasos de la sección
-"Registro de la app en Azure AD" del `README.md` raíz. Obtener:
-- `TenantId`
-- `ClientId`
-- `ClientSecret`
-
-Sin esto, el servicio arranca pero cada ciclo de sondeo falla la autenticación
-contra Graph (no se cae el proceso, pero tampoco procesa correos reales).
+El buzón vive en Exchange Server 2016 on-premise (`mail.munivalpo.cl`), no en
+Exchange Online — Microsoft Graph no puede alcanzarlo, y por eso no hace
+falta ningún registro de aplicación en Azure AD. Basta con la contraseña de
+la propia cuenta de Active Directory del buzón (`servervalpo\cambiodedomicilio`
+o equivalente).
 
 ## 2. Directorio real de comunas
 
@@ -23,21 +19,52 @@ con el formato de `data/comunas.example.csv`.
 
 Copiar `src/OutlookComunaRouter/appsettings.Example.json` a
 `publish/appsettings.json` (sobrescribiendo el que generó `dotnet publish`) y
-completar `TenantId`, `ClientId`, `ClientSecret`, y verificar `MailboxAddress`.
+completar `Router:Ews:Username` / `Router:Ews:Password`, y verificar `MailboxAddress`.
 
 **Alternativa recomendada para no dejar el secreto en texto plano en el disco**:
-usar variables de entorno (`Router__ClientSecret`, etc. — `Microsoft.Extensions.Configuration`
+usar variables de entorno (`Router__Ews__Password`, etc. — `Microsoft.Extensions.Configuration`
 las lee automáticamente por el `__` como separador de sección) definidas como
 variables de entorno de sistema, en vez de escribirlas en el JSON.
 
-## 4. Publicar
+## 4. Certificado HTTPS para el dashboard
+
+El dashboard web solo sirve datos por HTTPS (el puerto HTTP solo redirige,
+nunca entrega contenido) — esto protege tanto las contraseñas de login como
+los nombres/RUTs que viajan por la red municipal.
+
+En el equipo donde corre el servicio:
+```powershell
+dotnet dev-certs https --trust
+```
+
+Para que los colegas que entren desde otro PC de la red no vean advertencia
+de certificado no confiable, hay que exportar el certificado e instalarlo en
+el almacén "Entidades de certificación raíz de confianza" de cada PC que
+vaya a mirar el dashboard:
+```powershell
+dotnet dev-certs https --export-path .\dev-cert.pfx --password <clave-temporal>
+# copiar dev-cert.pfx al otro PC e importarlo con certmgr.msc, o:
+Import-PfxCertificate -FilePath .\dev-cert.pfx -CertStoreLocation Cert:\LocalMachine\Root -Password (ConvertTo-SecureString "<clave-temporal>" -AsPlainText -Force)
+```
+
+## 5. Crear el primer usuario del dashboard
+
+```powershell
+cd publish
+.\OutlookComunaRouter.exe --add-user operador
+```
+Pide la contraseña por consola (no se muestra en pantalla). Repetir con
+`--add-user <nombre>` por cada colega que necesite acceso; `--remove-user <nombre>`
+para dar de baja a alguien.
+
+## 6. Publicar
 
 Desde la raíz del repo:
 ```powershell
-dotnet publish src/OutlookComunaRouter -c Release -o publish
+dotnet publish src/OutlookComunaRouter -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
 ```
 
-## 5. Copiar los datos de runtime junto al publicado
+## 7. Copiar los datos de runtime junto al publicado
 
 El ejecutable corre con `publish/` como directorio de trabajo (ver
 `install-task.ps1`), y las rutas en `appsettings.json` (`data/router.db`,
@@ -47,14 +74,14 @@ Copy-Item -Recurse -Force ..\data publish\data
 ```
 (o edita las rutas en `publish/appsettings.json` para que sean absolutas).
 
-## 6. Instalar la tarea programada
+## 8. Instalar la tarea programada
 
 Como Administrador:
 ```powershell
 .\deploy\install-task.ps1
 ```
 
-## 7. Iniciar y verificar
+## 9. Iniciar y verificar
 
 ```powershell
 Start-ScheduledTask -TaskName OutlookComunaRouter
@@ -62,10 +89,20 @@ Get-ScheduledTask -TaskName OutlookComunaRouter | Get-ScheduledTaskInfo
 ```
 
 Confirmar que `data/reporte.csv` se crea/actualiza tras el primer ciclo
-(hasta `PollIntervalMinutes` minutos después de iniciar).
+(hasta `PollIntervalMinutes` minutos después de iniciar), y que
+`https://localhost:5001` (o `https://<nombre-del-pc>:5001` desde otro equipo
+de la red) muestra la pantalla de ingreso del dashboard.
 
 ## Desinstalar
 
 ```powershell
 .\deploy\uninstall-task.ps1
 ```
+
+## Copiar la instalación a otro PC
+
+Con el publish self-contained (`--self-contained -p:PublishSingleFile=true`),
+basta con copiar la carpeta `publish/` completa (incluida `data/`) al otro
+equipo y ejecutar `OutlookComunaRouter.exe` — no requiere tener el runtime de
+.NET instalado. El certificado HTTPS local sigue siendo necesario ahí también
+si ese equipo va a servir el dashboard (paso 4).

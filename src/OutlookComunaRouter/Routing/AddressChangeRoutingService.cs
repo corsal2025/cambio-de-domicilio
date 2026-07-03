@@ -91,7 +91,7 @@ public sealed class AddressChangeRoutingService(
     }
 
     /// <summary>Operator-triggered (button): sends the confirmation email for an Uploaded case.</summary>
-    public async Task<ConfirmationResult> SendConfirmationAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken)
+    public async Task<ConfirmationResult> SendConfirmationAsync(long requestId, long confirmedByUserId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken)
     {
         var request = repository.FindById(requestId);
         if (request is null)
@@ -117,7 +117,7 @@ public sealed class AddressChangeRoutingService(
 
         var (subject, body) = EmailTemplates.UploadConfirmation(request.FullName, request.Rut);
         await mailSender.SendAsync(comunaContact.ContactEmail, subject, body, cancellationToken);
-        repository.UpdateStatusToConfirmed(request.Id, DateTimeOffset.UtcNow);
+        repository.UpdateStatusToConfirmed(request.Id, DateTimeOffset.UtcNow, confirmedByUserId);
         logger.LogInformation("Confirmación de subida enviada a la comuna correspondiente");
 
         foreach (var channel in notificationChannels)

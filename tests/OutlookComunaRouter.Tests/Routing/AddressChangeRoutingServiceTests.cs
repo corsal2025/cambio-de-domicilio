@@ -114,7 +114,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         var id = InsertPending();
         sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
 
-        var result = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
+        var result = await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
 
         Assert.True(result.Sent);
         Assert.Single(mailSender.SentMessages);
@@ -128,7 +128,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
     {
         var id = InsertPending(); // never moved to CARP. YA PEDIDAS
 
-        var result = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
+        var result = await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
 
         Assert.False(result.Sent);
         Assert.Empty(mailSender.SentMessages);
@@ -140,9 +140,9 @@ public class AddressChangeRoutingServiceTests : IDisposable
     {
         var id = InsertPending();
         sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
-        await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
+        await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
 
-        var second = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
+        var second = await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
 
         Assert.False(second.Sent);
         Assert.Single(mailSender.SentMessages); // only the first send happened
@@ -151,7 +151,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
     [Fact]
     public async Task SendConfirmationAsync_UnknownCase_ReturnsNotSent()
     {
-        var result = await sut.SendConfirmationAsync(999, Contacts, CancellationToken.None);
+        var result = await sut.SendConfirmationAsync(999, confirmedByUserId: 1, Contacts, CancellationToken.None);
 
         Assert.False(result.Sent);
     }

@@ -12,9 +12,12 @@ src/OutlookComunaRouter/appsettings.Development.json
 .env
 
 # Runtime data (SQLite DB, reports, comuna directory with real contact emails)
-data/*
-!data/*.example.csv
-!data/README.md
+# Double-starred so this applies at any depth, not just repo root — a stray
+# `data/` created by running the app from a different working directory must
+# stay excluded too, since it can contain real PII (names, RUTs) once the app runs.
+**/data/*
+!**/data/*.example.csv
+!**/data/README.md
 *.db
 
 # OpenSpec local workset

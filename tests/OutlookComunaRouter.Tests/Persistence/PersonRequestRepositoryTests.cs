@@ -90,7 +90,7 @@ public class PersonRequestRepositoryTests : IDisposable
         var id = repository.Insert(NewRequest("msg-1"));
         var confirmedAt = DateTimeOffset.UtcNow;
 
-        repository.UpdateStatusToConfirmed(id, confirmedAt);
+        repository.UpdateStatusToConfirmed(id, confirmedAt, confirmedByUserId: 1);
 
         var stored = repository.FindById(id);
         Assert.Equal(RequestStatus.Confirmed, stored!.Status);

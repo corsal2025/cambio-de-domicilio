@@ -33,7 +33,17 @@ Modo de verificación sin efectos secundarios (solo lee y cuenta, no envía nada
 dotnet run --project src/OutlookComunaRouter -- --smoke-test
 ```
 
-Hoy el envío de la confirmación (`SendConfirmationAsync`) y la edición de la fecha de última carpeta no tienen interfaz propia — se invocan programáticamente; la interfaz para el operador (botón, celda editable, PDF por sector) es el alcance de `add-web-dashboard`.
+## Dashboard web
+
+El mismo proceso sirve un dashboard en `https://localhost:5001` (el puerto HTTP 5000 solo redirige, nunca entrega datos). Requiere login por usuario:
+
+```powershell
+dotnet run --project src/OutlookComunaRouter -- --add-user operador
+```
+
+Desde el dashboard (`/Index`) el operador puede: ver los casos con su estado (Pendiente/Subido/Confirmado), filtrar por estado o por "Requiere revisión", editar la fecha de última carpeta por caso (recalcula el sector al instante), y presionar "Enviar confirmación" en los casos Subidos — que llama a `SendConfirmationAsync` y queda registrado con el usuario y la hora exacta que lo confirmó. Desde `/Sector/Archivo` o `/Sector/Oficina43` se genera el documento imprimible (imprimir del navegador → PDF) con los casos de ese sector.
+
+Ver `deploy/README.md` para el detalle de certificado HTTPS y creación de usuarios en producción.
 
 ## Pruebas
 

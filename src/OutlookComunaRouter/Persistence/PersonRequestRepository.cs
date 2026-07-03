@@ -13,7 +13,7 @@ public interface IPersonRequestRepository
     long Insert(PersonRequest request);
     void MarkUploaded(long id, DateTimeOffset uploadedAt);
     void SetFechaUltimaCarpeta(long id, DateOnly fecha);
-    void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt);
+    void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long confirmedByUserId);
     IReadOnlyList<PersonRequest> GetAll();
 }
 
@@ -39,6 +39,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 FechaUltimaCarpeta TEXT NULL,
                 UploadedAt TEXT NULL,
                 ConfirmedAt TEXT NULL,
+                ConfirmedByUserId INTEGER NULL,
                 CreatedAt TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS IX_PersonRequest_RutComuna ON PersonRequest (Rut, Comuna);
@@ -149,16 +150,17 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.ExecuteNonQuery();
     }
 
-    public void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt)
+    public void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long confirmedByUserId)
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
         command.CommandText = """
             UPDATE PersonRequest
-            SET Status = 'Confirmed', ConfirmedAt = $confirmedAt
+            SET Status = 'Confirmed', ConfirmedAt = $confirmedAt, ConfirmedByUserId = $confirmedByUserId
             WHERE Id = $id
             """;
         command.Parameters.AddWithValue("$confirmedAt", confirmedAt.ToString("O"));
+        command.Parameters.AddWithValue("$confirmedByUserId", confirmedByUserId);
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
@@ -199,6 +201,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         FechaUltimaCarpeta = reader.IsDBNull(reader.GetOrdinal("FechaUltimaCarpeta")) ? null : DateOnly.Parse(reader.GetString(reader.GetOrdinal("FechaUltimaCarpeta"))),
         UploadedAt = reader.IsDBNull(reader.GetOrdinal("UploadedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("UploadedAt"))),
         ConfirmedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmedAt"))),
+        ConfirmedByUserId = reader.IsDBNull(reader.GetOrdinal("ConfirmedByUserId")) ? null : reader.GetInt64(reader.GetOrdinal("ConfirmedByUserId")),
         CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt")))
     };
 }

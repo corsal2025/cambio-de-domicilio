@@ -1,0 +1,49 @@
+@page "{sector?}"
+@model OutlookComunaRouter.Dashboard.Pages.SectorModel
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Documento — @Model.SelectedSector</title>
+    <style>
+        body { font-family: sans-serif; margin: 24px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #333; padding: 6px 10px; text-align: left; font-size: 13px; }
+        .no-print { margin-bottom: 16px; }
+        @@media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <a asp-page="/Index">&larr; Volver</a> —
+        <button onclick="window.print()">Imprimir / Guardar como PDF</button>
+    </div>
+
+    <h2>Listado de carpetas — Sector @Model.SelectedSector</h2>
+    <p>Generado: @DateTimeOffset.Now.ToString("dd-MM-yyyy HH:mm")</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre completo</th>
+                <th>RUT</th>
+                <th>Comuna</th>
+                <th>Fecha última carpeta</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Model.Cases)
+        {
+            <tr>
+                <td>@item.FullName</td>
+                <td>@item.Rut</td>
+                <td>@item.Comuna</td>
+                <td>@item.FechaUltimaCarpeta?.ToString("dd-MM-yyyy")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</body>
+</html>

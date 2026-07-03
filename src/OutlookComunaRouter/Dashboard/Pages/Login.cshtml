@@ -1,0 +1,27 @@
+@page
+@model OutlookComunaRouter.Dashboard.Pages.LoginModel
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Ingresar — OutlookComunaRouter</title>
+    <style>
+        body { font-family: sans-serif; max-width: 320px; margin: 80px auto; }
+        input { display: block; width: 100%; margin-bottom: 12px; padding: 8px; box-sizing: border-box; }
+        button { padding: 8px 16px; }
+        .error { color: #b00020; }
+    </style>
+</head>
+<body>
+    <h2>OutlookComunaRouter</h2>
+    <form method="post">
+        <input asp-for="Username" placeholder="Usuario" autofocus />
+        <input asp-for="Password" type="password" placeholder="Contraseña" />
+        <button type="submit">Ingresar</button>
+        @if (Model.ErrorMessage is not null)
+        {
+            <p class="error">@Model.ErrorMessage</p>
+        }
+    </form>
+</body>
+</html>
