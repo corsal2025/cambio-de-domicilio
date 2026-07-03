@@ -19,17 +19,25 @@ public sealed class CsvReportWriter : ICsvReportWriter
         }
 
         var builder = new StringBuilder();
-        builder.AppendLine("full_name,rut,comuna,status,last_folder_date,Requiere revisión");
+        builder.AppendLine("full_name,rut,comuna,status,fecha_ultima_carpeta,sector,confirmed_at,Requiere revisión");
 
         foreach (var request in requests)
         {
             var requiresReview = request.NeedsReview ? "Sí" : "No";
+            var sector = request.Sector switch
+            {
+                FolderSector.Archivo => "Archivo",
+                FolderSector.Oficina43 => "Oficina 43",
+                _ => string.Empty
+            };
             builder.AppendLine(string.Join(',',
                 Escape(request.FullName),
                 Escape(request.Rut),
                 Escape(request.Comuna),
                 Escape(request.Status.ToString()),
-                Escape(request.LastFolderDate),
+                Escape(request.FechaUltimaCarpeta?.ToString("yyyy-MM-dd")),
+                Escape(sector),
+                Escape(request.ConfirmedAt?.ToString("yyyy-MM-dd HH:mm")),
                 Escape(requiresReview)));
         }
 

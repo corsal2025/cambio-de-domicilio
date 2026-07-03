@@ -34,7 +34,7 @@ public class CsvReportWriterTests : IDisposable
     }
 
     [Fact]
-    public void Write_RespondedRecord_IncludesLastFolderDateAndNoColumnFlag()
+    public void Write_ConfirmedRecord_IncludesFechaSectorAndConfirmedAt()
     {
         var writer = new CsvReportWriter();
         var requests = new List<PersonRequest>
@@ -45,11 +45,12 @@ public class CsvReportWriterTests : IDisposable
                 Rut = "18.785.387-7",
                 Comuna = "Catemu",
                 SourceMessageId = "msg-1",
-                SourceSubject = "Cambio de domicilio",
+                SourceSubject = "Solicitud de carpeta",
                 SourceSender = "rfloresc@municatemu.cl",
                 NeedsReview = false,
-                Status = RequestStatus.Responded,
-                LastFolderDate = "2026-06-01"
+                Status = RequestStatus.Confirmed,
+                FechaUltimaCarpeta = new DateOnly(2022, 3, 15),
+                ConfirmedAt = new DateTimeOffset(2026, 6, 1, 10, 30, 0, TimeSpan.Zero)
             }
         };
 
@@ -57,8 +58,36 @@ public class CsvReportWriterTests : IDisposable
         var lines = File.ReadAllLines(outputPath);
 
         Assert.Equal(2, lines.Length); // header + 1 row
-        Assert.Contains("2026-06-01", lines[1]);
+        Assert.Contains("2022-03-15", lines[1]);
+        Assert.Contains("Archivo", lines[1]); // fecha anterior a julio 2023 → Archivo
+        Assert.Contains("2026-06-01 10:30", lines[1]);
         Assert.EndsWith(",No", lines[1]);
+    }
+
+    [Fact]
+    public void Write_FechaAfterJuly2023_SectorIsOficina43()
+    {
+        var writer = new CsvReportWriter();
+        var requests = new List<PersonRequest>
+        {
+            new()
+            {
+                FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",
+                Rut = "18.785.387-7",
+                Comuna = "Catemu",
+                SourceMessageId = "msg-1",
+                SourceSubject = "Solicitud de carpeta",
+                SourceSender = "rfloresc@municatemu.cl",
+                NeedsReview = false,
+                Status = RequestStatus.Pending,
+                FechaUltimaCarpeta = new DateOnly(2024, 1, 10)
+            }
+        };
+
+        writer.Write(requests, outputPath);
+        var lines = File.ReadAllLines(outputPath);
+
+        Assert.Contains("Oficina 43", lines[1]);
     }
 
     public void Dispose()

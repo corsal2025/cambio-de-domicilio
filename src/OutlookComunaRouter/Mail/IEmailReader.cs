@@ -5,8 +5,8 @@ namespace OutlookComunaRouter.Mail;
 public interface IEmailReader
 {
     /// <summary>
-    /// Lists items currently in the configured source folder. No time filtering: the trigger
-    /// is the operator moving an item into the folder, not when it was originally received.
+    /// Lists items currently in the named folder. No time filtering: the trigger is folder
+    /// membership (the operator moving an item in), not when it was originally received.
     /// </summary>
-    Task<IReadOnlyList<IncomingEmail>> GetRecentMessagesAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<IncomingEmail>> GetMessagesInFolderAsync(string folderDisplayName, CancellationToken cancellationToken);
 }

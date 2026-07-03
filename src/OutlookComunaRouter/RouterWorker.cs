@@ -42,23 +42,37 @@ public sealed class RouterWorker(
         try
         {
             var contacts = routingService.LoadDirectory();
-            var messages = await emailReader.GetRecentMessagesAsync(cancellationToken);
 
-            foreach (var email in messages)
+            var incoming = await emailReader.GetMessagesInFolderAsync(options.SourceFolderName, cancellationToken);
+            foreach (var email in incoming)
             {
                 try
                 {
-                    await routingService.ProcessNotificationAsync(email, contacts, cancellationToken);
-                    routingService.ProcessPotentialReply(email, contacts);
+                    routingService.ProcessIncomingRequest(email, contacts);
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Error procesando un correo, se continúa con el resto del lote");
+                    logger.LogError(ex, "Error procesando un correo de '{Folder}', se continúa con el resto del lote", options.SourceFolderName);
+                }
+            }
+
+            var confirmations = await emailReader.GetMessagesInFolderAsync(options.ConfirmationFolderName, cancellationToken);
+            foreach (var email in confirmations)
+            {
+                try
+                {
+                    routingService.ProcessUploadedCase(email);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error procesando un correo de '{Folder}', se continúa con el resto del lote", options.ConfirmationFolderName);
                 }
             }
 
             reportWriter.Write(repository.GetAll(), options.ReportCsvPath);
-            logger.LogInformation("Ciclo completado: {Count} correos revisados", messages.Count);
+            logger.LogInformation(
+                "Ciclo completado: {IncomingCount} en '{SourceFolder}', {ConfirmationCount} en '{ConfirmationFolder}'",
+                incoming.Count, options.SourceFolderName, confirmations.Count, options.ConfirmationFolderName);
         }
         catch (Exception ex)
         {

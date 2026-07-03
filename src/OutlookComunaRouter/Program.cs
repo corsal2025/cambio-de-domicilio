@@ -35,9 +35,9 @@ var host = builder.Build();
 if (args.Contains("--smoke-test"))
 {
     var reader = host.Services.GetRequiredService<IEmailReader>();
-    var messages = await reader.GetRecentMessagesAsync(CancellationToken.None);
+    var messages = await reader.GetMessagesInFolderAsync(routerOptions.SourceFolderName, CancellationToken.None);
 
-    Console.WriteLine($"Smoke test OK: {messages.Count} message(s) in the source folder");
+    Console.WriteLine($"Smoke test OK: {messages.Count} message(s) in '{routerOptions.SourceFolderName}'");
     foreach (var group in messages.GroupBy(m => m.SenderAddress[(m.SenderAddress.LastIndexOf('@') + 1)..]))
     {
         Console.WriteLine($"  {group.Key}: {group.Count()} message(s)");

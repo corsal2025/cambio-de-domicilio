@@ -1,42 +1,38 @@
 # Email Templates
 
-Templates used by OutlookComunaRouter. Not hardcoded in source — loaded from configuration/resources so they can be edited without a code change.
+Templates used by OutlookComunaRouter. Not hardcoded in source — mirrored here (and in `Notifications/EmailTemplates.cs`) so they can be reviewed/edited without digging through code.
 
-## Folder request (sent to comuna contact)
+## Upload confirmation (sent to the requesting comuna's contact)
+
+Sent automatically once the operator moves the source email from "CARP. PARA PEDIR" to "CARP. YA PEDIDAS" and the configured grace period (default 30 min) has elapsed.
 
 **Subject:**
 ```
-Solicitud de última carpeta – Cambio de Domicilio – {{FullName}}, RUT {{Rut}}
+Carpeta subida a Conaset – {{FullName}}, RUT {{Rut}}
 ```
 
 **Body:**
 ```
 Junto con saludar,
 
-Por medio del presente correo, se solicita a Uds. tengan a bien remitir la última
-carpeta tributaria/municipal correspondiente al contribuyente {{FullName}},
-RUT {{Rut}}, quien registra un cambio de domicilio hacia la comuna de Valparaíso.
-
-Agradecemos remitir la documentación a la brevedad a este mismo correo, indicando
-la fecha de la última carpeta emitida.
+Se informa que la carpeta del contribuyente {{FullName}}, RUT {{Rut}},
+solicitada por su comuna, ya fue subida al sistema de Conaset.
 
 Saluda atentamente,
 Municipalidad de Valparaíso
 ```
 
-Placeholders: `{{FullName}}`, `{{Rut}}` — substituted at send time from the extracted `PersonRequest`.
+Placeholders: `{{FullName}}`, `{{Rut}}` — substituted at send time from the tracked `PersonRequest`.
 
-## Reply notification (sent to the operator's configured address)
+## Confirmation-sent notification (sent to the operator's configured address)
 
 **Subject:**
 ```
-[OutlookComunaRouter] Respuesta recibida – {{FullName}}, RUT {{Rut}} ({{Comuna}})
+[OutlookComunaRouter] Confirmación enviada – {{FullName}}, RUT {{Rut}} ({{Comuna}})
 ```
 
 **Body:**
 ```
-Se recibió respuesta de la comuna de {{Comuna}} para el contribuyente
-{{FullName}}, RUT {{Rut}}.
-
-Verificar la carpeta recibida antes de continuar con la tramitación.
+Se envió el correo de confirmación de subida a Conaset a la comuna de {{Comuna}}
+para el contribuyente {{FullName}}, RUT {{Rut}}.
 ```

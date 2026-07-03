@@ -31,14 +31,11 @@ public class AddressChangeRoutingServiceTests : IDisposable
 
         var options = new RouterOptions
         {
-            Ews = new EwsOptions
-            {
-                Url = "https://ews.example.invalid/EWS/Exchange.asmx",
-                Username = "test-user",
-                Password = "test-password"
-            },
+            Ews = new EwsOptions { Url = "https://mail.munivalpo.cl/EWS/Exchange.asmx", Username = "u", Password = "p" },
             MailboxAddress = "cambiodedomicilio@munivalpo.cl",
             OwnDomain = "munivalpo.cl",
+            SourceFolderName = "CARP. PARA PEDIR",
+            ConfirmationFolderName = "CARP. YA PEDIDAS",
             SqliteDbPath = dbPath,
             ComunaDirectoryCsvPath = "unused.csv",
             ReportCsvPath = "unused-report.csv",
@@ -55,104 +52,118 @@ public class AddressChangeRoutingServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task ProcessNotificationAsync_KnownComunaValidData_SendsAndMarksSent()
+    public void ProcessIncomingRequest_KnownComunaValidData_RecordsAsPendingWithoutSending()
     {
-        var email = NewNotification("msg-1", "conv-1", "rfloresc@municatemu.cl",
-            "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7");
+        sut.ProcessIncomingRequest(NewEmail("msg-1", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7"), Contacts);
 
-        await sut.ProcessNotificationAsync(email, Contacts, CancellationToken.None);
-
-        Assert.Single(mailSender.SentMessages);
+        Assert.Empty(mailSender.SentMessages); // nothing is ever sent from this path
         var stored = repository.GetAll().Single();
-        Assert.Equal(RequestStatus.Sent, stored.Status);
+        Assert.Equal(RequestStatus.Pending, stored.Status);
+        Assert.Equal("Catemu", stored.Comuna);
     }
 
     [Fact]
-    public async Task ProcessNotificationAsync_SecondNotificationSameRutComuna_DoesNotSendAgain()
+    public void ProcessIncomingRequest_UnknownDomain_IsIgnored()
     {
-        var first = NewNotification("msg-1", "conv-1", "rfloresc@municatemu.cl",
-            "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7");
-        var duplicate = NewNotification("msg-2", "conv-2", "rfloresc@municatemu.cl",
-            "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7");
+        sut.ProcessIncomingRequest(
+            NewEmail("msg-1", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7", sender: "alguien@otracomuna.cl"),
+            Contacts);
 
-        await sut.ProcessNotificationAsync(first, Contacts, CancellationToken.None);
-        await sut.ProcessNotificationAsync(duplicate, Contacts, CancellationToken.None);
-
-        Assert.Single(mailSender.SentMessages); // only the first one was sent
-        Assert.Equal(2, repository.GetAll().Count); // both source emails recorded
+        Assert.Empty(repository.GetAll());
     }
 
     [Fact]
-    public void ProcessPotentialReply_SameThread_MarksRespondedAndNotifies()
+    public void ProcessIncomingRequest_MissingData_RecordedAsNeedsReview()
     {
-        var sent = InsertSentRequest(conversationId: "conv-1");
-        var reply = NewNotification("reply-1", "conv-1", "rfloresc@municatemu.cl", "Se adjunta la última carpeta.");
+        sut.ProcessIncomingRequest(NewEmail("msg-1", "Correo sin datos reconocibles."), Contacts);
 
-        sut.ProcessPotentialReply(reply, Contacts);
+        Assert.True(repository.GetAll().Single().NeedsReview);
+    }
 
-        var updated = repository.GetAll().Single(r => r.Id == sent.Id);
-        Assert.Equal(RequestStatus.Responded, updated.Status);
+    [Fact]
+    public void ProcessIncomingRequest_DuplicatePersonAndComuna_DoesNotCreateSecondRow()
+    {
+        sut.ProcessIncomingRequest(NewEmail("msg-1", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7"), Contacts);
+        sut.ProcessIncomingRequest(NewEmail("msg-2", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7"), Contacts);
+
+        Assert.Single(repository.GetAll()); // no duplicate row in the tracking table / report
+    }
+
+    [Fact]
+    public void ProcessUploadedCase_MatchingPending_MarksUploadedWithoutSending()
+    {
+        var id = InsertPending();
+
+        sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
+
+        Assert.Empty(mailSender.SentMessages); // moving the email never sends anything by itself
+        Assert.Equal(RequestStatus.Uploaded, repository.FindById(id)!.Status);
+    }
+
+    [Fact]
+    public void ProcessUploadedCase_NoMatchingPending_IsNoOp()
+    {
+        sut.ProcessUploadedCase(NewEmail("unrelated-msg", "irrelevante"));
+
+        Assert.Empty(repository.GetAll());
+    }
+
+    [Fact]
+    public async Task SendConfirmationAsync_UploadedCase_SendsAndMarksConfirmed()
+    {
+        var id = InsertPending();
+        sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
+
+        var result = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
+
+        Assert.True(result.Sent);
+        Assert.Single(mailSender.SentMessages);
+        Assert.Equal("rfloresc@municatemu.cl", mailSender.SentMessages[0].To);
+        Assert.Equal(RequestStatus.Confirmed, repository.FindById(id)!.Status);
         Assert.Single(notificationChannel.Notified);
     }
 
     [Fact]
-    public void ProcessPotentialReply_NewThreadWithMatchingRut_MarksRespondedAndNotifies()
+    public async Task SendConfirmationAsync_StillPending_RefusesToSend()
     {
-        var sent = InsertSentRequest(conversationId: "conv-original");
-        var reply = NewNotification("reply-1", "conv-different", "rfloresc@municatemu.cl",
-            "Junto con saludar, se adjunta carpeta de RUT: 18.785.387-7");
+        var id = InsertPending(); // never moved to CARP. YA PEDIDAS
 
-        sut.ProcessPotentialReply(reply, Contacts);
+        var result = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
 
-        var updated = repository.GetAll().Single(r => r.Id == sent.Id);
-        Assert.Equal(RequestStatus.Responded, updated.Status);
-        Assert.Single(notificationChannel.Notified);
+        Assert.False(result.Sent);
+        Assert.Empty(mailSender.SentMessages);
+        Assert.Equal(RequestStatus.Pending, repository.FindById(id)!.Status);
     }
 
     [Fact]
-    public void ProcessPotentialReply_NoMatch_DoesNotNotify()
+    public async Task SendConfirmationAsync_AlreadyConfirmed_DoesNotSendTwice()
     {
-        InsertSentRequest(conversationId: "conv-1");
-        var unrelated = NewNotification("reply-1", "conv-other", "rfloresc@municatemu.cl", "Correo sin relación.");
+        var id = InsertPending();
+        sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
+        await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
 
-        sut.ProcessPotentialReply(unrelated, Contacts);
+        var second = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
 
-        Assert.Empty(notificationChannel.Notified);
+        Assert.False(second.Sent);
+        Assert.Single(mailSender.SentMessages); // only the first send happened
     }
 
     [Fact]
-    public void ProcessPotentialReply_UnknownDomain_IsIgnored()
+    public async Task SendConfirmationAsync_UnknownCase_ReturnsNotSent()
     {
-        InsertSentRequest(conversationId: "conv-1");
-        var fromUnknownDomain = NewNotification("reply-1", "conv-1", "alguien@otracomuna.cl", "Respuesta.");
+        var result = await sut.SendConfirmationAsync(999, Contacts, CancellationToken.None);
 
-        sut.ProcessPotentialReply(fromUnknownDomain, Contacts);
-
-        Assert.Empty(notificationChannel.Notified);
+        Assert.False(result.Sent);
     }
 
-    private PersonRequest InsertSentRequest(string conversationId)
+    private long InsertPending()
     {
-        var request = new PersonRequest
-        {
-            FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",
-            Rut = "18.785.387-7",
-            Comuna = "Catemu",
-            SourceMessageId = $"original-{Guid.NewGuid():N}",
-            SourceConversationId = conversationId,
-            SourceSubject = "Cambio de domicilio",
-            SourceSender = "rfloresc@municatemu.cl",
-            NeedsReview = false,
-            Status = RequestStatus.Pending
-        };
-        var id = repository.Insert(request);
-        repository.UpdateStatusToSent(id, "n/a", DateTimeOffset.UtcNow);
-        request.Id = id;
-        return request;
+        sut.ProcessIncomingRequest(NewEmail("msg-1", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7"), Contacts);
+        return repository.GetAll().Single().Id;
     }
 
-    private static IncomingEmail NewNotification(string messageId, string conversationId, string sender, string body) =>
-        new(messageId, conversationId, "Cambio de domicilio", sender, body, DateTimeOffset.UtcNow);
+    private static IncomingEmail NewEmail(string messageId, string body, string sender = "rfloresc@municatemu.cl") =>
+        new(messageId, "conv-1", "Solicitud de carpeta", sender, body, DateTimeOffset.UtcNow);
 
     public void Dispose()
     {
@@ -178,7 +189,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
     {
         public List<(string FullName, string Rut, string Comuna)> Notified { get; } = [];
 
-        public void NotifyResponded(string fullName, string rut, string comuna) =>
+        public void NotifyConfirmationSent(string fullName, string rut, string comuna) =>
             Notified.Add((fullName, rut, comuna));
     }
 }

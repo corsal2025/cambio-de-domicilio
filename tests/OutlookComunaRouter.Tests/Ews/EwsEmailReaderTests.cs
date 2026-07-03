@@ -1,6 +1,5 @@
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
-using OutlookComunaRouter.Configuration;
 using OutlookComunaRouter.Ews;
 using Xunit;
 
@@ -59,41 +58,42 @@ public class EwsEmailReaderTests
         """;
 
     [Fact]
-    public async Task GetRecentMessagesAsync_ResolvesFolderOnceAndReusesCache()
+    public async Task GetMessagesInFolderAsync_ResolvesFolderOnceAndReusesCache()
     {
         var client = new RecordingClient([FindFolderFoundXml, EmptyFindItemXml, EmptyFindItemXml]);
-        var reader = new EwsEmailReader(client, NewOptions(), NullLogger<EwsEmailReader>.Instance);
+        var reader = new EwsEmailReader(client, NullLogger<EwsEmailReader>.Instance);
 
-        await reader.GetRecentMessagesAsync(CancellationToken.None);
-        await reader.GetRecentMessagesAsync(CancellationToken.None);
+        await reader.GetMessagesInFolderAsync("CARP. PARA PEDIR", CancellationToken.None);
+        await reader.GetMessagesInFolderAsync("CARP. PARA PEDIR", CancellationToken.None);
 
         var findFolderCalls = client.Requests.Count(r => r.Contains("FindFolder"));
         Assert.Equal(1, findFolderCalls); // resolved once, cached for the second call
     }
 
     [Fact]
-    public async Task GetRecentMessagesAsync_FolderNotFound_ReturnsEmptyWithoutCallingFindItem()
+    public async Task GetMessagesInFolderAsync_DifferentFolderNames_ResolvedIndependently()
+    {
+        var client = new RecordingClient([FindFolderFoundXml, EmptyFindItemXml, FindFolderFoundXml, EmptyFindItemXml]);
+        var reader = new EwsEmailReader(client, NullLogger<EwsEmailReader>.Instance);
+
+        await reader.GetMessagesInFolderAsync("CARP. PARA PEDIR", CancellationToken.None);
+        await reader.GetMessagesInFolderAsync("CARP. YA PEDIDAS", CancellationToken.None);
+
+        var findFolderCalls = client.Requests.Count(r => r.Contains("FindFolder"));
+        Assert.Equal(2, findFolderCalls); // each distinct folder name resolved once
+    }
+
+    [Fact]
+    public async Task GetMessagesInFolderAsync_FolderNotFound_ReturnsEmptyWithoutCallingFindItem()
     {
         var client = new RecordingClient([FindFolderNotFoundXml]);
-        var reader = new EwsEmailReader(client, NewOptions(), NullLogger<EwsEmailReader>.Instance);
+        var reader = new EwsEmailReader(client, NullLogger<EwsEmailReader>.Instance);
 
-        var result = await reader.GetRecentMessagesAsync(CancellationToken.None);
+        var result = await reader.GetMessagesInFolderAsync("Carpeta Inexistente", CancellationToken.None);
 
         Assert.Empty(result);
         Assert.DoesNotContain(client.Requests, r => r.Contains("FindItem"));
     }
-
-    private static RouterOptions NewOptions() => new()
-    {
-        Ews = new EwsOptions { Url = "https://mail.munivalpo.cl/EWS/Exchange.asmx", Username = "u", Password = "p" },
-        MailboxAddress = "cambiodedomicilio@munivalpo.cl",
-        OwnDomain = "munivalpo.cl",
-        SourceFolderName = "Para pedir",
-        SqliteDbPath = "unused.db",
-        ComunaDirectoryCsvPath = "unused.csv",
-        ReportCsvPath = "unused-report.csv",
-        NotificationEmailAddress = "raul.salazar1984@gmail.com"
-    };
 
     private sealed class RecordingClient(IReadOnlyList<string> responses) : IEwsClient
     {

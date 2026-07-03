@@ -2,11 +2,26 @@ namespace OutlookComunaRouter.Domain;
 
 public enum RequestStatus
 {
+    /// <summary>Request registered from CARP. PARA PEDIR; folder not uploaded yet.</summary>
     Pending,
-    Sent,
-    Responded
+
+    /// <summary>The operator moved the email to CARP. YA PEDIDAS: folder uploaded to Conaset, confirmation not sent yet.</summary>
+    Uploaded,
+
+    /// <summary>Confirmation email sent to the requesting comuna (operator pressed the send button).</summary>
+    Confirmed
 }
 
+public enum FolderSector
+{
+    /// <summary>Última carpeta before July 2023 — stored in Archivo.</summary>
+    Archivo,
+
+    /// <summary>Última carpeta from July 2023 onwards — stored in Oficina 43.</summary>
+    Oficina43
+}
+
+/// <summary>A folder request another comuna made to Valparaíso for a contributor's file.</summary>
 public sealed class PersonRequest
 {
     public long Id { get; set; }
@@ -19,10 +34,16 @@ public sealed class PersonRequest
     public required string SourceSender { get; set; }
     public bool NeedsReview { get; set; }
     public RequestStatus Status { get; set; } = RequestStatus.Pending;
-    public DateTimeOffset? RequestSentAt { get; set; }
-    public string? RequestMessageId { get; set; }
-    public DateTimeOffset? ResponseReceivedAt { get; set; }
-    public string? ResponseMessageId { get; set; }
-    public string? LastFolderDate { get; set; }
+
+    /// <summary>Date of the contributor's última carpeta, typed in manually by the operator (paso 4).</summary>
+    public DateOnly? FechaUltimaCarpeta { get; set; }
+
+    public DateTimeOffset? UploadedAt { get; set; }
+    public DateTimeOffset? ConfirmedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>Physical location of the folder, derived from the última-carpeta date. Null until the date is entered.</summary>
+    public FolderSector? Sector => FechaUltimaCarpeta is { } fecha
+        ? fecha < new DateOnly(2023, 7, 1) ? FolderSector.Archivo : FolderSector.Oficina43
+        : null;
 }

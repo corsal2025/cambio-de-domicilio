@@ -19,57 +19,92 @@ public class PersonRequestRepositoryTests : IDisposable
     [Fact]
     public void ExistsBySourceMessageId_AfterInsert_ReturnsTrue()
     {
-        var request = NewRequest("msg-1");
-        repository.Insert(request);
+        repository.Insert(NewRequest("msg-1"));
 
         Assert.True(repository.ExistsBySourceMessageId("msg-1"));
         Assert.False(repository.ExistsBySourceMessageId("msg-unknown"));
     }
 
     [Fact]
-    public void FindActiveByRutAndComuna_AfterSent_ReturnsRecord()
-    {
-        var request = NewRequest("msg-1");
-        var id = repository.Insert(request);
-        repository.UpdateStatusToSent(id, "n/a", DateTimeOffset.UtcNow);
-
-        var found = repository.FindActiveByRutAndComuna("18.785.387-7", "Catemu");
-
-        Assert.NotNull(found);
-        Assert.Equal(RequestStatus.Sent, found!.Status);
-    }
-
-    [Fact]
-    public void FindActiveByRutAndComuna_OnlyPending_ReturnsNull()
+    public void FindByRutAndComuna_ExistingPending_ReturnsRecord()
     {
         repository.Insert(NewRequest("msg-1"));
 
-        var found = repository.FindActiveByRutAndComuna("18.785.387-7", "Catemu");
+        var found = repository.FindByRutAndComuna("18.785.387-7", "Catemu");
 
-        Assert.Null(found);
+        Assert.NotNull(found);
+        Assert.Equal(RequestStatus.Pending, found!.Status);
     }
 
     [Fact]
-    public void UpdateStatusToResponded_SetsStatusAndTimestamps()
+    public void FindByRutAndComuna_NoRecord_ReturnsNull()
     {
-        var id = repository.Insert(NewRequest("msg-1"));
-        repository.UpdateStatusToSent(id, "n/a", DateTimeOffset.UtcNow);
-
-        repository.UpdateStatusToResponded(id, "reply-msg", DateTimeOffset.UtcNow, "2026-06-01");
-
-        var all = repository.GetAll();
-        Assert.Equal(RequestStatus.Responded, all[0].Status);
-        Assert.Equal("2026-06-01", all[0].LastFolderDate);
+        Assert.Null(repository.FindByRutAndComuna("18.785.387-7", "Catemu"));
     }
 
-    private static PersonRequest NewRequest(string sourceMessageId) => new()
+    [Fact]
+    public void MarkUploaded_PendingCase_TransitionsToUploaded()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+
+        var stored = repository.FindById(id);
+        Assert.Equal(RequestStatus.Uploaded, stored!.Status);
+        Assert.NotNull(stored.UploadedAt);
+    }
+
+    [Fact]
+    public void FindPendingBySourceMessageId_AfterUploaded_ReturnsNull()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+
+        Assert.Null(repository.FindPendingBySourceMessageId("msg-1"));
+    }
+
+    [Fact]
+    public void SetFechaUltimaCarpeta_StoresDateAndDerivesSector()
+    {
+        var idArchivo = repository.Insert(NewRequest("msg-1"));
+        var idOficina = repository.Insert(NewRequest("msg-2", rut: "10.000.013-K"));
+
+        repository.SetFechaUltimaCarpeta(idArchivo, new DateOnly(2022, 3, 15));
+        repository.SetFechaUltimaCarpeta(idOficina, new DateOnly(2024, 1, 10));
+
+        Assert.Equal(FolderSector.Archivo, repository.FindById(idArchivo)!.Sector);
+        Assert.Equal(FolderSector.Oficina43, repository.FindById(idOficina)!.Sector);
+    }
+
+    [Fact]
+    public void Sector_WithoutFecha_IsNull()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        Assert.Null(repository.FindById(id)!.Sector);
+    }
+
+    [Fact]
+    public void UpdateStatusToConfirmed_SetsStatusAndTimestamp()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        var confirmedAt = DateTimeOffset.UtcNow;
+
+        repository.UpdateStatusToConfirmed(id, confirmedAt);
+
+        var stored = repository.FindById(id);
+        Assert.Equal(RequestStatus.Confirmed, stored!.Status);
+        Assert.Equal(confirmedAt, stored.ConfirmedAt);
+    }
+
+    private static PersonRequest NewRequest(string sourceMessageId, string rut = "18.785.387-7") => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",
-        Rut = "18.785.387-7",
+        Rut = rut,
         Comuna = "Catemu",
         SourceMessageId = sourceMessageId,
         SourceConversationId = "conv-1",
-        SourceSubject = "Cambio de domicilio",
+        SourceSubject = "Solicitud de carpeta",
         SourceSender = "rfloresc@municatemu.cl",
         NeedsReview = false,
         Status = RequestStatus.Pending

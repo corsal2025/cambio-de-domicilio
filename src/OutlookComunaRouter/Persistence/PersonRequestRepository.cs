@@ -7,12 +7,13 @@ public interface IPersonRequestRepository
 {
     void EnsureSchema();
     bool ExistsBySourceMessageId(string sourceMessageId);
-    PersonRequest? FindActiveByRutAndComuna(string rut, string comuna);
+    PersonRequest? FindByRutAndComuna(string rut, string comuna);
+    PersonRequest? FindPendingBySourceMessageId(string sourceMessageId);
+    PersonRequest? FindById(long id);
     long Insert(PersonRequest request);
-    void UpdateStatusToSent(long id, string requestMessageId, DateTimeOffset sentAt);
-    void UpdateStatusToResponded(long id, string responseMessageId, DateTimeOffset receivedAt, string? lastFolderDate);
-    PersonRequest? FindSentByConversationId(string conversationId);
-    IReadOnlyList<PersonRequest> FindAllSent();
+    void MarkUploaded(long id, DateTimeOffset uploadedAt);
+    void SetFechaUltimaCarpeta(long id, DateOnly fecha);
+    void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt);
     IReadOnlyList<PersonRequest> GetAll();
 }
 
@@ -35,15 +36,12 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 SourceSender TEXT NOT NULL,
                 NeedsReview INTEGER NOT NULL,
                 Status TEXT NOT NULL,
-                RequestSentAt TEXT NULL,
-                RequestMessageId TEXT NULL,
-                ResponseReceivedAt TEXT NULL,
-                ResponseMessageId TEXT NULL,
-                LastFolderDate TEXT NULL,
+                FechaUltimaCarpeta TEXT NULL,
+                UploadedAt TEXT NULL,
+                ConfirmedAt TEXT NULL,
                 CreatedAt TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS IX_PersonRequest_RutComuna ON PersonRequest (Rut, Comuna);
-            CREATE INDEX IF NOT EXISTS IX_PersonRequest_ConversationId ON PersonRequest (SourceConversationId);
             """;
         command.ExecuteNonQuery();
     }
@@ -57,17 +55,42 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         return command.ExecuteScalar() is not null;
     }
 
-    public PersonRequest? FindActiveByRutAndComuna(string rut, string comuna)
+    /// <summary>Any existing record for this (rut, comuna) — the operator only needs to see a person tracked once.</summary>
+    public PersonRequest? FindByRutAndComuna(string rut, string comuna)
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT * FROM PersonRequest
-            WHERE Rut = $rut AND Comuna = $comuna AND Status IN ('Sent', 'Responded')
+            WHERE Rut = $rut AND Comuna = $comuna
             ORDER BY Id DESC LIMIT 1
             """;
         command.Parameters.AddWithValue("$rut", rut);
         command.Parameters.AddWithValue("$comuna", comuna);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? Map(reader) : null;
+    }
+
+    public PersonRequest? FindPendingBySourceMessageId(string sourceMessageId)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT * FROM PersonRequest
+            WHERE SourceMessageId = $id AND Status = 'Pending'
+            LIMIT 1
+            """;
+        command.Parameters.AddWithValue("$id", sourceMessageId);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? Map(reader) : null;
+    }
+
+    public PersonRequest? FindById(long id)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM PersonRequest WHERE Id = $id LIMIT 1";
+        command.Parameters.AddWithValue("$id", id);
         using var reader = command.ExecuteReader();
         return reader.Read() ? Map(reader) : null;
     }
@@ -79,12 +102,10 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.CommandText = """
             INSERT INTO PersonRequest
                 (FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
-                 NeedsReview, Status, RequestSentAt, RequestMessageId, ResponseReceivedAt, ResponseMessageId,
-                 LastFolderDate, CreatedAt)
+                 NeedsReview, Status, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, CreatedAt)
             VALUES
                 ($fullName, $rut, $comuna, $sourceMessageId, $sourceConversationId, $sourceSubject, $sourceSender,
-                 $needsReview, $status, $requestSentAt, $requestMessageId, $responseReceivedAt, $responseMessageId,
-                 $lastFolderDate, $createdAt);
+                 $needsReview, $status, $fechaUltimaCarpeta, $uploadedAt, $confirmedAt, $createdAt);
             SELECT last_insert_rowid();
             """;
         command.Parameters.AddWithValue("$fullName", (object?)request.FullName ?? DBNull.Value);
@@ -96,74 +117,50 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.Parameters.AddWithValue("$sourceSender", request.SourceSender);
         command.Parameters.AddWithValue("$needsReview", request.NeedsReview ? 1 : 0);
         command.Parameters.AddWithValue("$status", request.Status.ToString());
-        command.Parameters.AddWithValue("$requestSentAt", (object?)request.RequestSentAt?.ToString("O") ?? DBNull.Value);
-        command.Parameters.AddWithValue("$requestMessageId", (object?)request.RequestMessageId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$responseReceivedAt", (object?)request.ResponseReceivedAt?.ToString("O") ?? DBNull.Value);
-        command.Parameters.AddWithValue("$responseMessageId", (object?)request.ResponseMessageId ?? DBNull.Value);
-        command.Parameters.AddWithValue("$lastFolderDate", (object?)request.LastFolderDate ?? DBNull.Value);
+        command.Parameters.AddWithValue("$fechaUltimaCarpeta", (object?)request.FechaUltimaCarpeta?.ToString("yyyy-MM-dd") ?? DBNull.Value);
+        command.Parameters.AddWithValue("$uploadedAt", (object?)request.UploadedAt?.ToString("O") ?? DBNull.Value);
+        command.Parameters.AddWithValue("$confirmedAt", (object?)request.ConfirmedAt?.ToString("O") ?? DBNull.Value);
         command.Parameters.AddWithValue("$createdAt", request.CreatedAt.ToString("O"));
 
         return (long)command.ExecuteScalar()!;
     }
 
-    public void UpdateStatusToSent(long id, string requestMessageId, DateTimeOffset sentAt)
+    public void MarkUploaded(long id, DateTimeOffset uploadedAt)
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
         command.CommandText = """
             UPDATE PersonRequest
-            SET Status = 'Sent', RequestMessageId = $requestMessageId, RequestSentAt = $sentAt
-            WHERE Id = $id
+            SET Status = 'Uploaded', UploadedAt = $uploadedAt
+            WHERE Id = $id AND Status = 'Pending'
             """;
-        command.Parameters.AddWithValue("$requestMessageId", requestMessageId);
-        command.Parameters.AddWithValue("$sentAt", sentAt.ToString("O"));
+        command.Parameters.AddWithValue("$uploadedAt", uploadedAt.ToString("O"));
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
 
-    public void UpdateStatusToResponded(long id, string responseMessageId, DateTimeOffset receivedAt, string? lastFolderDate)
+    public void SetFechaUltimaCarpeta(long id, DateOnly fecha)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET FechaUltimaCarpeta = $fecha WHERE Id = $id";
+        command.Parameters.AddWithValue("$fecha", fecha.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt)
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
         command.CommandText = """
             UPDATE PersonRequest
-            SET Status = 'Responded', ResponseMessageId = $responseMessageId,
-                ResponseReceivedAt = $receivedAt, LastFolderDate = $lastFolderDate
+            SET Status = 'Confirmed', ConfirmedAt = $confirmedAt
             WHERE Id = $id
             """;
-        command.Parameters.AddWithValue("$responseMessageId", responseMessageId);
-        command.Parameters.AddWithValue("$receivedAt", receivedAt.ToString("O"));
-        command.Parameters.AddWithValue("$lastFolderDate", (object?)lastFolderDate ?? DBNull.Value);
+        command.Parameters.AddWithValue("$confirmedAt", confirmedAt.ToString("O"));
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
-    }
-
-    public PersonRequest? FindSentByConversationId(string conversationId)
-    {
-        using var connection = Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT * FROM PersonRequest
-            WHERE SourceConversationId = $conversationId AND Status = 'Sent'
-            ORDER BY Id DESC LIMIT 1
-            """;
-        command.Parameters.AddWithValue("$conversationId", conversationId);
-        using var reader = command.ExecuteReader();
-        return reader.Read() ? Map(reader) : null;
-    }
-
-    public IReadOnlyList<PersonRequest> FindAllSent()
-    {
-        using var connection = Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM PersonRequest WHERE Status = 'Sent'";
-        using var reader = command.ExecuteReader();
-        var results = new List<PersonRequest>();
-        while (reader.Read())
-        {
-            results.Add(Map(reader));
-        }
-        return results;
     }
 
     public IReadOnlyList<PersonRequest> GetAll()
@@ -199,11 +196,9 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         SourceSender = reader.GetString(reader.GetOrdinal("SourceSender")),
         NeedsReview = reader.GetInt32(reader.GetOrdinal("NeedsReview")) == 1,
         Status = Enum.Parse<RequestStatus>(reader.GetString(reader.GetOrdinal("Status"))),
-        RequestSentAt = reader.IsDBNull(reader.GetOrdinal("RequestSentAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("RequestSentAt"))),
-        RequestMessageId = reader.IsDBNull(reader.GetOrdinal("RequestMessageId")) ? null : reader.GetString(reader.GetOrdinal("RequestMessageId")),
-        ResponseReceivedAt = reader.IsDBNull(reader.GetOrdinal("ResponseReceivedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ResponseReceivedAt"))),
-        ResponseMessageId = reader.IsDBNull(reader.GetOrdinal("ResponseMessageId")) ? null : reader.GetString(reader.GetOrdinal("ResponseMessageId")),
-        LastFolderDate = reader.IsDBNull(reader.GetOrdinal("LastFolderDate")) ? null : reader.GetString(reader.GetOrdinal("LastFolderDate")),
+        FechaUltimaCarpeta = reader.IsDBNull(reader.GetOrdinal("FechaUltimaCarpeta")) ? null : DateOnly.Parse(reader.GetString(reader.GetOrdinal("FechaUltimaCarpeta"))),
+        UploadedAt = reader.IsDBNull(reader.GetOrdinal("UploadedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("UploadedAt"))),
+        ConfirmedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmedAt"))),
         CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt")))
     };
 }

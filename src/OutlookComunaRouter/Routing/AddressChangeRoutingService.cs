@@ -9,6 +9,14 @@ using OutlookComunaRouter.Persistence;
 
 namespace OutlookComunaRouter.Routing;
 
+public sealed record ConfirmationResult(bool Sent, string Reason);
+
+/// <summary>
+/// Tracks folder requests other comunas make to Valparaíso: registers incoming requests found in
+/// "CARP. PARA PEDIR", marks them as uploaded when the operator moves the email to
+/// "CARP. YA PEDIDAS", and sends the confirmation email only when the operator explicitly
+/// triggers it (button) — never automatically.
+/// </summary>
 public sealed class AddressChangeRoutingService(
     IPersonRequestRepository repository,
     IComunaDirectory directory,
@@ -19,12 +27,12 @@ public sealed class AddressChangeRoutingService(
 {
     public IReadOnlyList<ComunaContact> LoadDirectory() => directory.LoadFromCsv(options.ComunaDirectoryCsvPath);
 
-    /// <summary>Processes one incoming email: detect, extract, dedupe, and send the folder request if eligible.</summary>
-    public async Task ProcessNotificationAsync(IncomingEmail email, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken)
+    /// <summary>Processes one email found in the source folder ("CARP. PARA PEDIR").</summary>
+    public void ProcessIncomingRequest(IncomingEmail email, IReadOnlyList<ComunaContact> contacts)
     {
         if (repository.ExistsBySourceMessageId(email.MessageId))
         {
-            return; // already processed this exact message
+            return; // already tracked
         }
 
         var senderDomain = ExtractDomain(email.SenderAddress);
@@ -36,6 +44,14 @@ public sealed class AddressChangeRoutingService(
 
         var extracted = PersonDataExtractor.Extract(email.BodyText);
         var needsReview = extracted.FullName is null || extracted.Rut is null;
+
+        if (!needsReview && repository.FindByRutAndComuna(extracted.Rut!, comunaContact.Comuna) is not null)
+        {
+            // Same person already tracked for this comuna (e.g. a resend) — do not create a
+            // second row, which would otherwise duplicate this person in the report.
+            logger.LogInformation("Solicitud ya registrada para esta persona y comuna, se omite duplicado");
+            return;
+        }
 
         var request = new PersonRequest
         {
@@ -50,72 +66,66 @@ public sealed class AddressChangeRoutingService(
             Status = RequestStatus.Pending
         };
 
-        if (needsReview)
-        {
-            repository.Insert(request);
-            logger.LogInformation("Notificación insertada como pendiente de revisión (datos incompletos)");
-            return;
-        }
-
-        var existingActive = repository.FindActiveByRutAndComuna(request.Rut!, request.Comuna!);
-        if (existingActive is not null)
-        {
-            request.NeedsReview = false;
-            repository.Insert(request); // linked record, kept pending, no new outgoing email
-            logger.LogInformation("Solicitud duplicada detectada para RUT/comuna ya {Status}, no se reenvía", existingActive.Status);
-            return;
-        }
-
-        var id = repository.Insert(request);
-
-        var (subject, body) = EmailTemplates.FolderRequest(request.FullName!, request.Rut!);
-        await mailSender.SendAsync(comunaContact.ContactEmail, subject, body, cancellationToken);
-        // Graph's sendMail endpoint returns 202 Accepted with no message ID, so the outgoing
-        // message ID cannot be captured here; the sent timestamp is what idempotency relies on.
-        repository.UpdateStatusToSent(id, requestMessageId: "n/a", sentAt: DateTimeOffset.UtcNow);
-        logger.LogInformation("Solicitud de carpeta enviada a la comuna correspondiente");
+        repository.Insert(request);
+        logger.LogInformation(
+            needsReview
+                ? "Solicitud entrante registrada como pendiente de revisión (datos incompletos)"
+                : "Solicitud entrante registrada como pendiente");
     }
 
-    /// <summary>Processes one incoming email as a potential reply from a comuna to a previously-sent request.</summary>
-    public void ProcessPotentialReply(IncomingEmail email, IReadOnlyList<ComunaContact> contacts)
+    /// <summary>
+    /// Processes one email found in the confirmation folder ("CARP. YA PEDIDAS"): marks the
+    /// matching pending case as Uploaded. Does NOT send anything — sending is an explicit
+    /// operator action via <see cref="SendConfirmationAsync"/>.
+    /// </summary>
+    public void ProcessUploadedCase(IncomingEmail email)
     {
-        var senderDomain = ExtractDomain(email.SenderAddress);
-        var comunaContact = directory.ResolveByDomain(senderDomain, options.OwnDomain, contacts);
+        var pending = repository.FindPendingBySourceMessageId(email.MessageId);
+        if (pending is null)
+        {
+            return; // not a tracked request, or already uploaded/confirmed
+        }
+
+        repository.MarkUploaded(pending.Id, DateTimeOffset.UtcNow);
+        logger.LogInformation("Caso marcado como subido a Conaset, a la espera de confirmación manual");
+    }
+
+    /// <summary>Operator-triggered (button): sends the confirmation email for an Uploaded case.</summary>
+    public async Task<ConfirmationResult> SendConfirmationAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken)
+    {
+        var request = repository.FindById(requestId);
+        if (request is null)
+        {
+            return new ConfirmationResult(false, "El caso no existe");
+        }
+
+        if (request.Status != RequestStatus.Uploaded)
+        {
+            return new ConfirmationResult(false, $"El caso está en estado {request.Status}, solo se confirman casos subidos");
+        }
+
+        if (request.NeedsReview || request.Rut is null || request.FullName is null || request.Comuna is null)
+        {
+            return new ConfirmationResult(false, "El caso tiene datos incompletos, corregir antes de confirmar");
+        }
+
+        var comunaContact = contacts.FirstOrDefault(c => c.Comuna == request.Comuna);
         if (comunaContact is null)
         {
-            return;
+            return new ConfirmationResult(false, $"La comuna {request.Comuna} no está en el directorio de contactos");
         }
 
-        var byThread = string.IsNullOrEmpty(email.ConversationId)
-            ? null
-            : repository.FindSentByConversationId(email.ConversationId);
-
-        var match = byThread ?? FindByRutFallback(email, comunaContact);
-        if (match is null)
-        {
-            return;
-        }
-
-        repository.UpdateStatusToResponded(match.Id, email.MessageId, email.ReceivedAt, lastFolderDate: null);
-        logger.LogInformation("Respuesta detectada y vinculada a la solicitud original");
+        var (subject, body) = EmailTemplates.UploadConfirmation(request.FullName, request.Rut);
+        await mailSender.SendAsync(comunaContact.ContactEmail, subject, body, cancellationToken);
+        repository.UpdateStatusToConfirmed(request.Id, DateTimeOffset.UtcNow);
+        logger.LogInformation("Confirmación de subida enviada a la comuna correspondiente");
 
         foreach (var channel in notificationChannels)
         {
-            channel.NotifyResponded(match.FullName!, match.Rut!, match.Comuna!);
-        }
-    }
-
-    private PersonRequest? FindByRutFallback(IncomingEmail email, ComunaContact comunaContact)
-    {
-        var extracted = PersonDataExtractor.Extract(email.BodyText);
-        if (extracted.Rut is null)
-        {
-            return null;
+            channel.NotifyConfirmationSent(request.FullName, request.Rut, request.Comuna);
         }
 
-        return repository.FindActiveByRutAndComuna(extracted.Rut, comunaContact.Comuna) is { Status: RequestStatus.Sent } candidate
-            ? candidate
-            : null;
+        return new ConfirmationResult(true, "Confirmación enviada");
     }
 
     private static string ExtractDomain(string emailAddress)

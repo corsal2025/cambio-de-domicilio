@@ -12,7 +12,7 @@ namespace OutlookComunaRouter.Notifications;
 /// </summary>
 public sealed class WindowsToastNotificationChannel(RouterOptions options, ILogger<WindowsToastNotificationChannel> logger) : INotificationChannel
 {
-    public void NotifyResponded(string fullName, string rut, string comuna)
+    public void NotifyConfirmationSent(string fullName, string rut, string comuna)
     {
         if (!options.ToastNotificationsEnabled || !OperatingSystem.IsWindows())
         {
@@ -21,7 +21,7 @@ public sealed class WindowsToastNotificationChannel(RouterOptions options, ILogg
 
         try
         {
-            var title = Escape("Respuesta de comuna recibida");
+            var title = Escape("Confirmación de subida enviada");
             var message = Escape($"{fullName} (RUT {rut}) - {comuna}");
 
             var script = $$"""

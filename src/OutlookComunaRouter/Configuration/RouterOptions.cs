@@ -7,7 +7,8 @@ public sealed class RouterOptions
     public required EwsOptions Ews { get; set; }
     public required string MailboxAddress { get; set; }
     public required string OwnDomain { get; set; }
-    public string SourceFolderName { get; set; } = "Para pedir";
+    public string SourceFolderName { get; set; } = "CARP. PARA PEDIR";
+    public string ConfirmationFolderName { get; set; } = "CARP. YA PEDIDAS";
     public int PollIntervalMinutes { get; set; } = 30;
     public required string SqliteDbPath { get; set; }
     public required string ComunaDirectoryCsvPath { get; set; }

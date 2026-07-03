@@ -1,22 +1,21 @@
 using Microsoft.Extensions.Logging;
-using OutlookComunaRouter.Configuration;
 using OutlookComunaRouter.Domain;
 using OutlookComunaRouter.Mail;
 
 namespace OutlookComunaRouter.Ews;
 
-public sealed class EwsEmailReader(IEwsClient client, RouterOptions options, ILogger<EwsEmailReader> logger) : IEmailReader
+public sealed class EwsEmailReader(IEwsClient client, ILogger<EwsEmailReader> logger) : IEmailReader
 {
-    private EwsFolderRef? cachedFolder;
+    private readonly Dictionary<string, EwsFolderRef> folderCache = new(StringComparer.OrdinalIgnoreCase);
 
-    public async Task<IReadOnlyList<IncomingEmail>> GetRecentMessagesAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<IncomingEmail>> GetMessagesInFolderAsync(string folderDisplayName, CancellationToken cancellationToken)
     {
-        var folder = await ResolveFolderAsync(cancellationToken);
+        var folder = await ResolveFolderAsync(folderDisplayName, cancellationToken);
         if (folder is null)
         {
             logger.LogWarning(
                 "No se pudo resolver la carpeta '{FolderName}'; se omite este ciclo de lectura",
-                options.SourceFolderName);
+                folderDisplayName);
             return [];
         }
 
@@ -35,15 +34,20 @@ public sealed class EwsEmailReader(IEwsClient client, RouterOptions options, ILo
         return EwsResponseParser.ParseGetItemResponse(getResponse);
     }
 
-    private async Task<EwsFolderRef?> ResolveFolderAsync(CancellationToken cancellationToken)
+    private async Task<EwsFolderRef?> ResolveFolderAsync(string folderDisplayName, CancellationToken cancellationToken)
     {
-        if (cachedFolder is not null)
+        if (folderCache.TryGetValue(folderDisplayName, out var cached))
         {
-            return cachedFolder;
+            return cached;
         }
 
-        var response = await client.SendAsync(EwsMessages.BuildFindFolderRequest(options.SourceFolderName), cancellationToken);
-        cachedFolder = EwsResponseParser.ParseFindFolderResponse(response);
-        return cachedFolder;
+        var response = await client.SendAsync(EwsMessages.BuildFindFolderRequest(folderDisplayName), cancellationToken);
+        var resolved = EwsResponseParser.ParseFindFolderResponse(response);
+        if (resolved is not null)
+        {
+            folderCache[folderDisplayName] = resolved;
+        }
+
+        return resolved;
     }
 }
