@@ -33,6 +33,9 @@ A per-sector view (Archivo / Oficina 43) lists `full_name`, `rut`, `comuna`, `fe
 - **Navigation as configuration**: nav renders from a registered module list.
 - **Deliberately rejected**: a runtime plugin system — modules arrive by adding code and recompiling, not dynamic assembly loading.
 
+### Visual design: shared institutional stylesheet, no CSS/UI framework
+Revised after the operator saw the first live version (unstyled HTML tables) and asked for something that reads as a municipal system, not a debug page. A single `wwwroot/css/dashboard.css` (institutional blue header, status badges colored by lifecycle state, zebra-striped table, consistent spacing/typography) is shared by `Login` and `Index`; `Sector` keeps its own minimal print-focused styling since its whole purpose is a clean printed document, not a themed screen. Rejected: a CSS framework (Bootstrap/Tailwind) — the surface area here is one table, one form, and a handful of buttons; a framework would be more markup and a build step for no real benefit at this size. Plain CSS custom properties (`:root { --color-primary: ... }`) keep the palette centralized and easy for the operator's team to adjust later (e.g. matching the municipality's actual brand colors) without touching page markup.
+
 ### Portability: self-contained single-file publish
 `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true` produces one `.exe` requiring no installed runtime. Data (SQLite, CSV, config) stays in a sibling `data/` folder so copying the folder moves the whole installation.
 

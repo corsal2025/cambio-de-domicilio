@@ -39,4 +39,8 @@ Depends on: `add-address-change-routing` (EWS) and `add-upload-confirmation-flow
 ## 7. Verification
 - [x] 7.1 `dotnet build` + full test suite green (70/70)
 - [ ] 7.2 Live end-to-end verification — pending access to a real/test session with the production mailbox and real dashboard users
-- [x] 7.3 Root `README.md` — updated in the previous change (`add-upload-confirmation-flow`) for the flow itself; dashboard-specific usage section still to add
+- [x] 7.3 Root `README.md` — dashboard usage section added ("## Dashboard web": login, filters, editable date, confirmation button with attribution, sector PDF)
+
+## 8. Visual design (added after first live review with the operator)
+- [x] 8.1 `wwwroot/css/dashboard.css`: institutional color palette via CSS custom properties, status badges (Pendiente/Subido/Confirmado colored distinctly), zebra-striped table, consistent spacing/typography — shared by `Login` and `Index`; `Sector` keeps its separate minimal print stylesheet
+- [ ] 8.2 Verify visually in the browser against real data (the 38 live cases already loaded) — pending operator confirmation

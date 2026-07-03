@@ -7,77 +7,96 @@
     <meta charset="utf-8" />
     <meta http-equiv="refresh" content="120" />
     <title>Casos — OutlookComunaRouter</title>
-    <style>
-        body { font-family: sans-serif; margin: 24px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; font-size: 14px; }
-        th { background: #f0f0f0; }
-        .nav { margin-bottom: 16px; }
-        .nav a { margin-right: 12px; }
-        .badge-review { background: #fdecea; color: #b00020; padding: 2px 6px; border-radius: 4px; }
-        form.inline { display: inline; }
-        .message { background: #eef7ee; padding: 8px; margin-bottom: 12px; }
-    </style>
+    <link rel="stylesheet" href="~/css/dashboard.css" />
 </head>
 <body>
-    <div class="nav">
-        <strong>OutlookComunaRouter</strong> —
-        <a asp-page="/Index">Todos</a>
-        <a asp-page="/Index" asp-route-status="Pending">Pendientes</a>
-        <a asp-page="/Index" asp-route-status="Uploaded">Subidos</a>
-        <a asp-page="/Index" asp-route-status="Confirmed">Confirmados</a>
-        <a asp-page="/Index" asp-route-needsReview="true">Requiere revisión</a>
-        <a asp-page="/Sector" asp-route-sector="Archivo">PDF Archivo</a>
-        <a asp-page="/Sector" asp-route-sector="Oficina43">PDF Oficina 43</a>
-        <form asp-page="/Logout" method="post" class="inline"><button type="submit">Salir</button></form>
-    </div>
+    <header class="app-header">
+        <div class="brand">
+            OutlookComunaRouter
+            <small>Municipalidad de Valparaíso — Solicitudes de carpeta</small>
+        </div>
+        <nav class="app-nav">
+            <a asp-page="/Index" class="@(Model.StatusFilter is null && !Model.OnlyNeedsReview ? "active" : "")">Todos</a>
+            <a asp-page="/Index" asp-route-status="Pending" class="@(Model.StatusFilter == "Pending" ? "active" : "")">Pendientes</a>
+            <a asp-page="/Index" asp-route-status="Uploaded" class="@(Model.StatusFilter == "Uploaded" ? "active" : "")">Subidos</a>
+            <a asp-page="/Index" asp-route-status="Confirmed" class="@(Model.StatusFilter == "Confirmed" ? "active" : "")">Confirmados</a>
+            <a asp-page="/Index" asp-route-needsReview="true" class="@(Model.OnlyNeedsReview ? "active" : "")">Requiere revisión</a>
+            <a asp-page="/Sector" asp-route-sector="Archivo">PDF Archivo</a>
+            <a asp-page="/Sector" asp-route-sector="Oficina43">PDF Oficina 43</a>
+            <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
+        </nav>
+    </header>
 
-    @if (Model.Message is not null)
-    {
-        <p class="message">@Model.Message</p>
-    }
-
-    <table>
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>RUT</th>
-                <th>Comuna</th>
-                <th>Estado</th>
-                <th>Fecha última carpeta</th>
-                <th>Sector</th>
-                <th>Requiere revisión</th>
-                <th>Acción</th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach (var item in Model.Cases)
+    <main>
+        @if (Model.Message is not null)
         {
-            <tr>
-                <td>@item.FullName</td>
-                <td>@item.Rut</td>
-                <td>@item.Comuna</td>
-                <td>@item.Status</td>
-                <td>
-                    <form method="post" asp-page-handler="SetFecha" class="inline">
-                        <input type="hidden" name="id" value="@item.Id" />
-                        <input type="date" name="fecha" value="@item.FechaUltimaCarpeta?.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
-                    </form>
-                </td>
-                <td>@(item.Sector?.ToString() ?? "—")</td>
-                <td>@(item.NeedsReview ? Html.Raw("<span class='badge-review'>Sí</span>") : "No")</td>
-                <td>
-                    @if (item.Status == RequestStatus.Uploaded && !item.NeedsReview)
-                    {
-                        <form method="post" asp-page-handler="Confirm" class="inline">
-                            <input type="hidden" name="id" value="@item.Id" />
-                            <button type="submit">Enviar confirmación</button>
-                        </form>
-                    }
-                </td>
-            </tr>
+            <p class="message-banner">@Model.Message</p>
         }
-        </tbody>
-    </table>
+
+        <div class="card">
+            <table class="cases">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>RUT</th>
+                        <th>Comuna</th>
+                        <th>Estado</th>
+                        <th>Fecha última carpeta</th>
+                        <th>Sector</th>
+                        <th>Requiere revisión</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Cases)
+                {
+                    <tr>
+                        <td>@item.FullName</td>
+                        <td>@item.Rut</td>
+                        <td>@item.Comuna</td>
+                        <td>
+                            @{
+                                var (badgeClass, badgeText) = item.Status switch
+                                {
+                                    RequestStatus.Pending => ("badge-pending", "Pendiente"),
+                                    RequestStatus.Uploaded => ("badge-uploaded", "Subido"),
+                                    RequestStatus.Confirmed => ("badge-confirmed", "Confirmado"),
+                                    _ => ("badge-pending", item.Status.ToString())
+                                };
+                            }
+                            <span class="badge @badgeClass">@badgeText</span>
+                        </td>
+                        <td>
+                            <form method="post" asp-page-handler="SetFecha">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="date" name="fecha" value="@item.FechaUltimaCarpeta?.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
+                            </form>
+                        </td>
+                        <td>@(item.Sector?.ToString() ?? "—")</td>
+                        <td>
+                            @if (item.NeedsReview)
+                            {
+                                <span class="badge badge-review">Sí</span>
+                            }
+                            else
+                            {
+                                <text>No</text>
+                            }
+                        </td>
+                        <td>
+                            @if (item.Status == RequestStatus.Uploaded && !item.NeedsReview)
+                            {
+                                <form method="post" asp-page-handler="Confirm">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-primary">Enviar confirmación</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </main>
 </body>
 </html>

@@ -5,23 +5,23 @@
 <head>
     <meta charset="utf-8" />
     <title>Ingresar — OutlookComunaRouter</title>
-    <style>
-        body { font-family: sans-serif; max-width: 320px; margin: 80px auto; }
-        input { display: block; width: 100%; margin-bottom: 12px; padding: 8px; box-sizing: border-box; }
-        button { padding: 8px 16px; }
-        .error { color: #b00020; }
-    </style>
+    <link rel="stylesheet" href="~/css/dashboard.css" />
 </head>
 <body>
-    <h2>OutlookComunaRouter</h2>
-    <form method="post">
-        <input asp-for="Username" placeholder="Usuario" autofocus />
-        <input asp-for="Password" type="password" placeholder="Contraseña" />
-        <button type="submit">Ingresar</button>
-        @if (Model.ErrorMessage is not null)
-        {
-            <p class="error">@Model.ErrorMessage</p>
-        }
-    </form>
+    <div class="login-shell">
+        <div class="login-card">
+            <h1>OutlookComunaRouter</h1>
+            <p class="subtitle">Municipalidad de Valparaíso — Solicitudes de carpeta</p>
+            <form method="post">
+                <input asp-for="Username" placeholder="Usuario" autofocus />
+                <input asp-for="Password" type="password" placeholder="Contraseña" />
+                <button type="submit">Ingresar</button>
+                @if (Model.ErrorMessage is not null)
+                {
+                    <p class="error">@Model.ErrorMessage</p>
+                }
+            </form>
+        </div>
+    </div>
 </body>
 </html>
