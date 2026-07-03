@@ -26,7 +26,7 @@ Revised 2026-07-03 after walking the full business process with the operator (se
 ## 5. Docs
 - [x] 5.1 `docs/flujo-proceso.md`: step-by-step business-process diagram agreed with the operator
 - [x] 5.2 `docs/email-templates.md`: upload-confirmation + operator-notification templates
-- [ ] 5.3 README refresh (pending — will do together with the dashboard change, which changes usage substantially)
+- [x] 5.3 README refresh (kept brief; the operator-facing UI itself remains scoped to add-web-dashboard)
 
 ## 6. Pending / next change (dashboard)
 - [ ] 6.1 UI: editable fecha-última-carpeta per case, "Enviar confirmación" button wired to `SendConfirmationAsync`, PDF generation per sector — belongs to `add-web-dashboard`

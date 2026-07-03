@@ -1,21 +1,21 @@
 # OutlookComunaRouter
 
-Servicio en segundo plano (.NET 10, `BackgroundService`) que:
+Servicio en segundo plano (.NET 10, `BackgroundService`) que ayuda a tramitar las solicitudes de carpeta de contribuyentes que otras comunas le hacen a Valparaíso, ligadas a Conaset. El flujo de negocio completo está diagramado en [`docs/flujo-proceso.md`](docs/flujo-proceso.md) — acá el resumen técnico:
 
-1. Revisa cada 30 minutos (configurable) la carpeta **"Para pedir"** del buzón `cambiodedomicilio@munivalpo.cl` en Exchange on-premise (vía EWS). No lee la bandeja de entrada completa: el disparador es que el operador mueve manualmente los correos a esa carpeta. La carpeta **"Carpetas subidas a Conaset"** (archivo de casos ya cerrados) queda fuera de alcance a propósito — el sistema nunca la lee ni la modifica.
-2. Detecta notificaciones de "cambio de domicilio" según el dominio del remitente (comparado contra tu directorio de comunas, no una suposición de patrón).
-3. Extrae nombre completo y RUT (mayúscula/minúscula, con o sin puntos, valida el dígito verificador).
-4. Envía una solicitud formal de "última carpeta" a la comuna correspondiente, evitando duplicados por RUT+comuna.
-5. Detecta la respuesta de la comuna (mismo hilo, o correo nuevo con el mismo RUT) y avisa por notificación en pantalla (Windows) + correo.
-6. Mantiene un reporte CSV siempre actualizado en `data/reporte.csv`, incluyendo los casos que requieren revisión manual.
+1. Cada 30 minutos (configurable) revisa la carpeta **"CARP. PARA PEDIR"** del buzón `cambiodedomicilio@munivalpo.cl` en Exchange on-premise (vía EWS). El operador clasifica manualmente los correos entrantes moviéndolos a esa carpeta — el sistema no escanea la bandeja de entrada completa.
+2. Por cada correo nuevo de una comuna conocida (dominio comparado contra el directorio, no un patrón adivinado): extrae **nombre del contribuyente, RUT** (valida el dígito verificador, acepta mayúscula/minúscula y con/sin puntos) **y la comuna solicitante**. Lo registra como **Pendiente** — no envía ningún correo en este paso.
+3. El operador digita manualmente la **fecha de última carpeta** por caso; el sistema deriva el **sector** (Archivo si es anterior a julio 2023, Oficina 43 si es igual o posterior) y puede generar un PDF con los casos de un sector para ir a buscar las carpetas físicas.
+4. Cuando el operador sube la carpeta a Conaset y mueve el correo a **"CARP. YA PEDIDAS"**, el sistema lo detecta y marca el caso como **Subida** — sin enviar nada todavía.
+5. El operador decide cuándo confirmar: con un botón ("Enviar confirmación", hoy expuesto vía `SendConfirmationAsync`, próximamente en el dashboard web) envía el correo estándar a la comuna avisando que la carpeta ya se subió, y el caso pasa a **Confirmado**. Nada se envía automáticamente por el solo hecho de mover el correo.
+6. Mantiene un reporte CSV siempre actualizado en `data/reporte.csv` (nombre, RUT, comuna, estado, fecha de última carpeta, sector, fecha de confirmación, y una columna "Requiere revisión" para los casos con datos incompletos) — sin filas duplicadas por persona+comuna.
 
-Ver el diseño completo en `openspec/specs/routing/` (spec vigente) y en los cambios documentados: [`openspec/changes/archive/2026-07-02-add-address-change-routing/`](openspec/changes/archive/2026-07-02-add-address-change-routing/) (diseño original), [`openspec/changes/add-folder-based-triggering/`](openspec/changes/add-folder-based-triggering/) (disparo por carpeta), [`openspec/changes/add-web-dashboard/`](openspec/changes/add-web-dashboard/) (próximo: interfaz web). Reporte técnico consolidado en [`docs/reporte-tecnico.md`](docs/reporte-tecnico.md).
+Diseño y decisiones documentadas en `openspec/specs/routing/` (spec vigente) y en los cambios: [`openspec/changes/archive/2026-07-02-add-address-change-routing/`](openspec/changes/archive/2026-07-02-add-address-change-routing/) (diseño original, superado), [`openspec/changes/add-folder-based-triggering/`](openspec/changes/add-folder-based-triggering/) (disparo por carpeta), [`openspec/changes/add-upload-confirmation-flow/`](openspec/changes/add-upload-confirmation-flow/) (flujo vigente: subida + confirmación por botón), [`openspec/changes/add-web-dashboard/`](openspec/changes/add-web-dashboard/) (próximo: interfaz web con el botón de confirmación y generación de PDF). Reporte técnico consolidado en [`docs/reporte-tecnico.md`](docs/reporte-tecnico.md).
 
 ## Requisitos
 
 - .NET 10 SDK
-- Credenciales de Active Directory del propio buzón (`servervalpo\cambiodedomicilio` o equivalente) para autenticarse contra el endpoint EWS on-premise (`https://mail.munivalpo.cl/EWS/Exchange.asmx`). **No se necesita Azure AD ni aprobación de TI** — el buzón vive en Exchange Server 2016 on-premise, no en Exchange Online (ver `docs/reporte-tecnico.md`, sección 3, para el detalle de esta verificación).
-- Una carpeta llamada **"Para pedir"** debe existir en el buzón (el nombre es configurable vía `Router:SourceFolderName`).
+- Credenciales de Active Directory del propio buzón (`servervalpo\cambiodedomicilio` o equivalente) para autenticarse contra el endpoint EWS on-premise (`https://mail.munivalpo.cl/EWS/Exchange.asmx`). **No se necesita Azure AD ni aprobación de TI** — el buzón vive en Exchange Server 2016 on-premise, no en Exchange Online (ver `docs/reporte-tecnico.md`, sección 3).
+- Dos carpetas deben existir en el buzón: **"CARP. PARA PEDIR"** y **"CARP. YA PEDIDAS"** (nombres configurables vía `Router:SourceFolderName` y `Router:ConfirmationFolderName`).
 
 ## Configuración local
 
@@ -32,6 +32,8 @@ Modo de verificación sin efectos secundarios (solo lee y cuenta, no envía nada
 ```bash
 dotnet run --project src/OutlookComunaRouter -- --smoke-test
 ```
+
+Hoy el envío de la confirmación (`SendConfirmationAsync`) y la edición de la fecha de última carpeta no tienen interfaz propia — se invocan programáticamente; la interfaz para el operador (botón, celda editable, PDF por sector) es el alcance de `add-web-dashboard`.
 
 ## Pruebas
 
@@ -57,7 +59,7 @@ y checklist paso a paso en [`deploy/README.md`](deploy/README.md).
 
 ```
 src/OutlookComunaRouter/
-  Domain/            # PersonRequest, ComunaContact, IncomingEmail
+  Domain/            # PersonRequest (Pending/Uploaded/Confirmed), ComunaContact, IncomingEmail
   Configuration/      # RouterOptions (bind de appsettings)
   Extraction/         # Regex de nombre/RUT + validación de dígito verificador
   Directories/         # Import de directorio de comunas (CSV) + resolución por dominio
@@ -65,8 +67,8 @@ src/OutlookComunaRouter/
   Mail/               # Interfaces de transporte de correo (IEmailReader, IMailSender)
   Notifications/      # Plantillas de correo, canal de toast (Windows) y canal de correo
   Persistence/        # Repositorio SQLite (sin ORM)
-  Reporting/           # Escritor del reporte CSV
-  Routing/             # Servicio central: detección, extracción, dedup, ruteo, matching de respuestas
-  RouterWorker.cs      # BackgroundService: orquesta el ciclo de sondeo
+  Reporting/           # Escritor del reporte CSV (incluye sector derivado)
+  Routing/             # Servicio central: detección, extracción, dedup, marcado de subida, confirmación por botón
+  RouterWorker.cs      # BackgroundService: orquesta el ciclo de sondeo de ambas carpetas
 tests/OutlookComunaRouter.Tests/
 ```
