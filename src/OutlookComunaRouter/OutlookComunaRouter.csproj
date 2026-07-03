@@ -11,4 +11,10 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Real EWS credentials live here for local dev (git-ignored) — never copy them into
+         bin/, obj/, or a publish/ output, since those get shared or deployed as a whole folder. -->
+    <Content Update="appsettings.Development.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+  </ItemGroup>
 </Project>

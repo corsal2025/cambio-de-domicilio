@@ -93,6 +93,15 @@ Confirmar que `data/reporte.csv` se crea/actualiza tras el primer ciclo
 `https://localhost:5001` (o `https://<nombre-del-pc>:5001` desde otro equipo
 de la red) muestra la pantalla de ingreso del dashboard.
 
+## 10. Acceso directo de escritorio (opcional)
+
+Para que el operador tenga un ícono que abra el dashboard directamente:
+```powershell
+.\deploy\create-desktop-shortcut.ps1
+```
+Crea "OutlookComunaRouter - Dashboard" en el Escritorio: al hacer doble clic,
+inicia el proceso si no está corriendo y abre el dashboard en el navegador.
+
 ## Desinstalar
 
 ```powershell

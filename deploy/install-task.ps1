@@ -5,14 +5,17 @@
 
 .DESCRIPTION
     Requiere ejecutarse como Administrador. Antes de correr este script:
-      1. Publicar la app:  dotnet publish src/OutlookComunaRouter -c Release -o publish
+      1. Publicar la app:  dotnet publish src/OutlookComunaRouter -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
       2. Completar publish/appsettings.json (o crear appsettings.Development.json) con
-         TenantId, ClientId, ClientSecret reales del registro en Azure AD (ver README.md).
+         Router:Ews:Username / Router:Ews:Password reales de la cuenta de AD del buzón
+         (no requiere Azure AD ni aprobación de TI — ver README.md).
       3. Completar data/comunas.csv con el directorio real de comunas.
+      4. Confiar el certificado HTTPS local (dotnet dev-certs https --trust) y crear al
+         menos un usuario del dashboard (publish\OutlookComunaRouter.exe --add-user <nombre>).
 
-    Sin las credenciales reales de Azure AD, la tarea se instalará pero el servicio
-    fallará su ciclo de autenticación en cada intento (queda reintentando, no crashea
-    el proceso, pero tampoco procesará correos reales).
+    Sin las credenciales EWS reales, la tarea se instalará pero el servicio fallará su
+    ciclo de lectura en cada intento (queda reintentando, no crashea el proceso, pero
+    tampoco procesará correos reales).
 #>
 
 param(

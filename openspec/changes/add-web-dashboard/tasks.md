@@ -32,9 +32,9 @@ Depends on: `add-address-change-routing` (EWS) and `add-upload-confirmation-flow
 - [x] 5.2 `SectorModelTests`: filters correctly by derived sector, excludes cases without a fecha
 
 ## 6. Portability and packaging
-- [ ] 6.1 Publish profile — documented in `deploy/README.md` (`dotnet publish ... --self-contained -p:PublishSingleFile=true`), not yet verified by actually running it
-- [ ] 6.2 Desktop shortcut script — not written yet
-- [ ] 6.3 Copy-to-second-PC scenario — documented in `deploy/README.md`, not yet verified live
+- [x] 6.1 Publish profile verified for real: `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true` produces a working single ~100MB exe; fixed a real leak found in the process — `appsettings.Development.json` (real EWS password) was being copied into the publish output by default, now excluded via `CopyToPublishDirectory="Never"` in the csproj. Ran the published exe standalone (`--smoke-test`) and confirmed it starts, loads config, and reaches the EWS endpoint.
+- [x] 6.2 `deploy/create-desktop-shortcut.ps1`: creates a Desktop shortcut that starts the exe if not already running and opens the dashboard URL in the browser
+- [ ] 6.3 Copy-to-second-PC scenario — documented in `deploy/README.md`, not yet verified live (needs an actual second machine)
 
 ## 7. Verification
 - [x] 7.1 `dotnet build` + full test suite green (70/70)

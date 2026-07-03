@@ -1,0 +1,57 @@
+<#
+.SYNOPSIS
+    Crea un acceso directo en el Escritorio que abre el dashboard de
+    OutlookComunaRouter en el navegador, iniciando el proceso si no está corriendo.
+
+.DESCRIPTION
+    El servicio normalmente corre como Tarea Programada (ver install-task.ps1) y
+    ya está activo en segundo plano. Este acceso directo es para el caso en que el
+    operador quiera abrir el dashboard sin depender de que la tarea programada esté
+    corriendo (por ejemplo, en un equipo donde el servicio se inicia manualmente).
+
+.PARAMETER PublishPath
+    Carpeta donde está publicado OutlookComunaRouter.exe.
+
+.PARAMETER DashboardUrl
+    URL del dashboard a abrir. Por defecto usa localhost:5001 (HTTPS, ver appsettings.json).
+#>
+
+param(
+    [string]$PublishPath = (Join-Path $PSScriptRoot "..\publish"),
+    [string]$DashboardUrl = "https://localhost:5001"
+)
+
+$ErrorActionPreference = "Stop"
+
+$exePath = Join-Path $PublishPath "OutlookComunaRouter.exe"
+if (-not (Test-Path $exePath)) {
+    throw "No se encontró $exePath. Ejecuta primero: dotnet publish src/OutlookComunaRouter -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish"
+}
+
+# Script intermedio que el acceso directo ejecuta: inicia el proceso solo si no está
+# corriendo (evita instancias duplicadas escuchando el mismo puerto), y siempre abre
+# el navegador en la URL del dashboard.
+$launcherPath = Join-Path $PublishPath "abrir-dashboard.ps1"
+$launcherContent = @"
+`$running = Get-Process -Name "OutlookComunaRouter" -ErrorAction SilentlyContinue
+if (-not `$running) {
+    Start-Process -FilePath "$exePath" -WorkingDirectory "$PublishPath" -WindowStyle Hidden
+    Start-Sleep -Seconds 3
+}
+Start-Process "$DashboardUrl"
+"@
+Set-Content -Path $launcherPath -Value $launcherContent -Encoding UTF8
+
+$desktopPath = [Environment]::GetFolderPath("Desktop")
+$shortcutPath = Join-Path $desktopPath "OutlookComunaRouter - Dashboard.lnk"
+
+$shell = New-Object -ComObject WScript.Shell
+$shortcut = $shell.CreateShortcut($shortcutPath)
+$shortcut.TargetPath = "powershell.exe"
+$shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$launcherPath`""
+$shortcut.WorkingDirectory = $PublishPath
+$shortcut.Description = "Abrir el dashboard de OutlookComunaRouter"
+$shortcut.Save()
+
+Write-Host "Acceso directo creado en: $shortcutPath"
+Write-Host "Al hacer doble clic: inicia el servicio si no está corriendo, y abre $DashboardUrl en el navegador."
