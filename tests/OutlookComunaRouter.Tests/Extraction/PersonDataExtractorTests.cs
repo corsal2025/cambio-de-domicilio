@@ -83,6 +83,19 @@ public class PersonDataExtractorTests
     }
 
     [Fact]
+    public void Extract_SpaceSeparatedCheckDigit_VinaFormat_IsRecognized()
+    {
+        // Verbatim shape of Viña del Mar's system output: undotted body, check digit after a
+        // run of spaces, name AFTER the RUT padded with space runs and CRLFs, then filler text.
+        var body = "solicitar los antecedentes correspondientes a:\r\n\r\n18785387        7       CARVAJAL        LUCERO  MATIAS JORGE\r\n\r\nQuien posee una licencia de conducir emitida en ese municipio.";
+
+        var result = PersonDataExtractor.Extract(body);
+
+        Assert.Equal("18.785.387-7", result.Rut);
+        Assert.Equal("CARVAJAL LUCERO MATIAS JORGE", result.FullName);
+    }
+
+    [Fact]
     public void Extract_NoRut_ReturnsBothNull()
     {
         var body = "CORREO EXTERNO : No haga clic. Estimados, adjunto la solicitud en el archivo. Saludos Cordiales.";

@@ -63,7 +63,8 @@ public sealed class AddressChangeRoutingService(
             SourceSubject = email.Subject,
             SourceSender = email.SenderAddress,
             NeedsReview = needsReview,
-            Status = RequestStatus.Pending
+            Status = RequestStatus.Pending,
+            ReceivedAt = email.ReceivedAt
         };
 
         repository.Insert(request);

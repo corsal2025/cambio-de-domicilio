@@ -13,6 +13,7 @@ public interface IPersonRequestRepository
     long Insert(PersonRequest request);
     void MarkUploaded(long id, DateTimeOffset uploadedAt);
     void SetFechaUltimaCarpeta(long id, DateOnly fecha);
+    void SetPersonData(long id, string fullName, string normalizedRut);
     void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long confirmedByUserId);
     IReadOnlyList<PersonRequest> GetAll();
 }
@@ -36,6 +37,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 SourceSender TEXT NOT NULL,
                 NeedsReview INTEGER NOT NULL,
                 Status TEXT NOT NULL,
+                ReceivedAt TEXT NOT NULL,
                 FechaUltimaCarpeta TEXT NULL,
                 UploadedAt TEXT NULL,
                 ConfirmedAt TEXT NULL,
@@ -103,10 +105,10 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.CommandText = """
             INSERT INTO PersonRequest
                 (FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
-                 NeedsReview, Status, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, CreatedAt)
+                 NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, CreatedAt)
             VALUES
                 ($fullName, $rut, $comuna, $sourceMessageId, $sourceConversationId, $sourceSubject, $sourceSender,
-                 $needsReview, $status, $fechaUltimaCarpeta, $uploadedAt, $confirmedAt, $createdAt);
+                 $needsReview, $status, $receivedAt, $fechaUltimaCarpeta, $uploadedAt, $confirmedAt, $createdAt);
             SELECT last_insert_rowid();
             """;
         command.Parameters.AddWithValue("$fullName", (object?)request.FullName ?? DBNull.Value);
@@ -118,6 +120,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.Parameters.AddWithValue("$sourceSender", request.SourceSender);
         command.Parameters.AddWithValue("$needsReview", request.NeedsReview ? 1 : 0);
         command.Parameters.AddWithValue("$status", request.Status.ToString());
+        command.Parameters.AddWithValue("$receivedAt", request.ReceivedAt.ToString("O"));
         command.Parameters.AddWithValue("$fechaUltimaCarpeta", (object?)request.FechaUltimaCarpeta?.ToString("yyyy-MM-dd") ?? DBNull.Value);
         command.Parameters.AddWithValue("$uploadedAt", (object?)request.UploadedAt?.ToString("O") ?? DBNull.Value);
         command.Parameters.AddWithValue("$confirmedAt", (object?)request.ConfirmedAt?.ToString("O") ?? DBNull.Value);
@@ -146,6 +149,22 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         using var command = connection.CreateCommand();
         command.CommandText = "UPDATE PersonRequest SET FechaUltimaCarpeta = $fecha WHERE Id = $id";
         command.Parameters.AddWithValue("$fecha", fecha.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>Operator-entered person data for cases the extractor couldn't parse; clears the review flag.</summary>
+    public void SetPersonData(long id, string fullName, string normalizedRut)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE PersonRequest
+            SET FullName = $fullName, Rut = $rut, NeedsReview = 0
+            WHERE Id = $id
+            """;
+        command.Parameters.AddWithValue("$fullName", fullName);
+        command.Parameters.AddWithValue("$rut", normalizedRut);
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
@@ -198,6 +217,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         SourceSender = reader.GetString(reader.GetOrdinal("SourceSender")),
         NeedsReview = reader.GetInt32(reader.GetOrdinal("NeedsReview")) == 1,
         Status = Enum.Parse<RequestStatus>(reader.GetString(reader.GetOrdinal("Status"))),
+        ReceivedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ReceivedAt"))),
         FechaUltimaCarpeta = reader.IsDBNull(reader.GetOrdinal("FechaUltimaCarpeta")) ? null : DateOnly.Parse(reader.GetString(reader.GetOrdinal("FechaUltimaCarpeta"))),
         UploadedAt = reader.IsDBNull(reader.GetOrdinal("UploadedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("UploadedAt"))),
         ConfirmedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmedAt"))),

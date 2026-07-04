@@ -35,6 +35,9 @@ public sealed class PersonRequest
     public bool NeedsReview { get; set; }
     public RequestStatus Status { get; set; } = RequestStatus.Pending;
 
+    /// <summary>When the request email was received in the mailbox — the legal upload deadline counts from this date.</summary>
+    public DateTimeOffset ReceivedAt { get; set; }
+
     /// <summary>Date of the contributor's última carpeta, typed in manually by the operator (paso 4).</summary>
     public DateOnly? FechaUltimaCarpeta { get; set; }
 

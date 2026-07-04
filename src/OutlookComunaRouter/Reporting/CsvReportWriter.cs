@@ -19,7 +19,7 @@ public sealed class CsvReportWriter : ICsvReportWriter
         }
 
         var builder = new StringBuilder();
-        builder.AppendLine("full_name,rut,comuna,status,fecha_ultima_carpeta,sector,confirmed_at,Requiere revisión");
+        builder.AppendLine("full_name,rut,comuna,fecha_recibido,status,fecha_ultima_carpeta,sector,confirmed_at,Requiere revisión");
 
         foreach (var request in requests)
         {
@@ -34,6 +34,7 @@ public sealed class CsvReportWriter : ICsvReportWriter
                 Escape(request.FullName),
                 Escape(request.Rut),
                 Escape(request.Comuna),
+                Escape(request.ReceivedAt.LocalDateTime.ToString("yyyy-MM-dd")),
                 Escape(request.Status.ToString()),
                 Escape(request.FechaUltimaCarpeta?.ToString("yyyy-MM-dd")),
                 Escape(sector),

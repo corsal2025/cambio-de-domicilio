@@ -40,7 +40,7 @@
                 <td>@item.FullName</td>
                 <td>@item.Rut</td>
                 <td>@item.Comuna</td>
-                <td>@item.FechaUltimaCarpeta?.ToString("dd-MM-yyyy")</td>
+                <td>@(item.FechaUltimaCarpeta is { } f ? OutlookComunaRouter.Domain.SpanishDate.Format(f) : "")</td>
             </tr>
         }
         </tbody>

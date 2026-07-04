@@ -29,13 +29,20 @@ public static partial class PersonDataExtractor
     [GeneratedRegex(@"\b(\d{7,8}\s?-\s?[\dkK])\b")]
     private static partial Regex BareUndottedRutPattern();
 
+    // Priority 4: check digit separated only by whitespace (Viña del Mar's system pads with
+    // runs of spaces/tabs: "19328001        3"). Safe because the check-digit validation
+    // rejects random digit pairs.
+    [GeneratedRegex(@"\b(\d{7,8}[ \t\r\n]{1,10}[\dkK])\b")]
+    private static partial Regex SpaceSeparatedRutPattern();
+
     // 2-5 capitalized words (all-caps or title case), used only in the window adjacent to the RUT.
     [GeneratedRegex(@"([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+){1,4})")]
     private static partial Regex NameSequencePattern();
 
-    // Honorifics and connectors stripped from the edges of a name candidate.
+    // Honorifics, connectors and filler words stripped from the edges of a name candidate
+    // ("Quien posee una licencia..." follows the name in Viña del Mar's template).
     private static readonly string[] EdgeStopWords =
-        ["DON", "DOÑA", "SR", "SRA", "SEÑOR", "SEÑORA", "DE", "DEL", "RUT", "RUN", "CI", "CÉDULA"];
+        ["DON", "DOÑA", "SR", "SRA", "SEÑOR", "SEÑORA", "DE", "DEL", "RUT", "RUN", "CI", "CÉDULA", "QUIEN"];
 
     private const int NameWindowChars = 90;
 
@@ -58,7 +65,7 @@ public static partial class PersonDataExtractor
 
     private static (string Rut, int Index, int Length)? FindRut(string text)
     {
-        foreach (var pattern in (ReadOnlySpan<Regex>)[PrefixedRutPattern(), BareDottedRutPattern(), BareUndottedRutPattern()])
+        foreach (var pattern in (ReadOnlySpan<Regex>)[PrefixedRutPattern(), BareDottedRutPattern(), BareUndottedRutPattern(), SpaceSeparatedRutPattern()])
         {
             foreach (Match match in pattern.Matches(text))
             {
@@ -97,7 +104,8 @@ public static partial class PersonDataExtractor
 
     private static string? CleanName(string raw)
     {
-        var words = raw.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
+        // Split on ANY whitespace: real bodies pad names with tab/space runs and line breaks.
+        var words = raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).ToList();
 
         while (words.Count > 0 && EdgeStopWords.Contains(Normalize(words[0])))
         {

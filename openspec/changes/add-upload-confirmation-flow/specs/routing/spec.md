@@ -20,7 +20,7 @@ Reason: superseded by "Detect incoming folder request" below, which reads a spec
 The system SHALL extract `full_name` and `rut` from the body of a detected request email, calibrated against the formats real comuna emails actually use (verified live 2026-07-03 against 38 production messages):
 
 - The Exchange external-mail banner ("CORREO EXTERNO: No haga clic...") SHALL be stripped before any extraction — it previously poisoned every name match.
-- The RUT SHALL be recognized with a `RUT`/`R.U.T.`/`RUN`/`R.U.N.` prefix, **or** bare in dotted form (`12.345.678-9`), **or** bare in undotted form (`12345678-9`), always validated against the check-digit algorithm and normalized to canonical dotted form.
+- The RUT SHALL be recognized with a `RUT`/`R.U.T.`/`RUN`/`R.U.N.` prefix, **or** bare in dotted form (`12.345.678-9`), **or** bare in undotted form (`12345678-9`), **or** with the check digit separated only by whitespace runs (`19328001        3` — Viña del Mar's system pads with multiple spaces/tabs), always validated against the check-digit algorithm and normalized to canonical dotted form. The check-digit validation is what makes the space-separated form safe: arbitrary digit pairs almost never pass mod-11.
 - The `full_name` SHALL be taken from the capitalized-word sequence adjacent to the RUT match (a window before it, falling back to after it), stripping honorifics (don/doña/Sr./Sra.) — never from "the first capitalized words anywhere in the body," which matches banners and forwarded-header sender names instead of the contributor.
 - If no valid RUT is found, both fields SHALL stay null and the case is flagged `needs_review` — a name found without an anchoring RUT is not trustworthy enough to auto-record.
 
@@ -31,6 +31,10 @@ The system SHALL extract `full_name` and `rut` from the body of a detected reque
 #### Scenario: Bare dotted RUT without prefix
 - **WHEN** the body contains `... la carpeta de GUSTAVO ANDRÉS PEÑA CASTRO 18.785.387-7 ...` with no RUT/RUN prefix
 - **THEN** the RUT is still recognized (dotted form is unambiguous) and the adjacent name is extracted
+
+#### Scenario: Space-separated check digit (Viña del Mar format)
+- **WHEN** the body contains `... correspondientes a: 19328001 3 CARVAJAL LUCERO MATIAS JORGE Quien posee ...`
+- **THEN** the RUT is recognized and normalized (`19.328.001-3`) and the name following it is extracted without trailing filler words like "Quien"
 
 #### Scenario: External-mail banner present
 - **WHEN** the body starts with the Exchange "CORREO EXTERNO" warning banner
@@ -45,7 +49,7 @@ The system SHALL rewrite a CSV report to a fixed local file path on every pollin
 
 #### Scenario: Report refreshed each cycle
 - **WHEN** a polling cycle completes
-- **THEN** the CSV file at the configured path is rewritten with one row per tracked case, containing `full_name`, `rut`, `comuna`, `status`, `fecha_ultima_carpeta`, `sector`, `confirmed_at`, and `Requiere revisión` — with no duplicate rows per person+comuna
+- **THEN** the CSV file at the configured path is rewritten with one row per tracked case, containing `full_name`, `rut`, `comuna`, `fecha_recibido` (when the request email arrived — the legal deadline counts from it), `status`, `fecha_ultima_carpeta`, `sector`, `confirmed_at`, and `Requiere revisión` — with no duplicate rows per person+comuna
 
 ## ADDED Requirements
 

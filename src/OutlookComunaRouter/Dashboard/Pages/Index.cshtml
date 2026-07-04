@@ -31,7 +31,7 @@
     <main>
         @if (Model.Message is not null)
         {
-            <p class="message-banner">@Model.Message</p>
+            <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
         }
 
         <div class="card">
@@ -41,10 +41,11 @@
                         <th>Nombre</th>
                         <th>RUT</th>
                         <th>Comuna</th>
+                        <th>Recibido</th>
+                        <th>Plazo (15 días hábiles)</th>
                         <th>Estado</th>
                         <th>Fecha última carpeta</th>
                         <th>Sector</th>
-                        <th>Requiere revisión</th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -52,9 +53,40 @@
                 @foreach (var item in Model.Cases)
                 {
                     <tr>
-                        <td>@item.FullName</td>
-                        <td>@item.Rut</td>
+                        @if (item.NeedsReview)
+                        {
+                            <td colspan="2">
+                                <form method="post" asp-page-handler="SetPersonData" style="display:flex; gap:6px; align-items:center;">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <input type="text" name="nombre" value="@item.FullName" placeholder="Nombre completo" required style="flex:2; min-width:180px;" class="input-inline" />
+                                    <input type="text" name="rut" value="@item.Rut" placeholder="RUT" required style="flex:1; min-width:110px;" class="input-inline" />
+                                    <button type="submit" class="btn-primary">Guardar</button>
+                                </form>
+                                <div class="review-hint">Requiere revisión — datos no extraíbles del correo (asunto: @item.SourceSubject)</div>
+                            </td>
+                        }
+                        else
+                        {
+                            <td>@item.FullName</td>
+                            <td>@item.Rut</td>
+                        }
                         <td>@item.Comuna</td>
+                        <td>@item.ReceivedAt.LocalDateTime.ToString("dd-MM-yyyy")</td>
+                        <td>
+                            @if (item.Status == RequestStatus.Pending)
+                            {
+                                var restantes = Model.DiasHabilesRestantes(item);
+                                var plazoClass = restantes <= 3 ? "badge-review" : restantes <= 7 ? "badge-uploaded" : "badge-ok";
+                                var plazoText = restantes < 0
+                                    ? $"VENCIDO hace {-restantes} días hábiles"
+                                    : $"quedan {restantes} días hábiles";
+                                <span class="badge @plazoClass">@plazoText</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-confirmed">cumplido</span>
+                            }
+                        </td>
                         <td>
                             @{
                                 var (badgeClass, badgeText) = item.Status switch
@@ -68,22 +100,15 @@
                             <span class="badge @badgeClass">@badgeText</span>
                         </td>
                         <td>
-                            <form method="post" asp-page-handler="SetFecha">
+                            <form method="post" asp-page-handler="SetFecha" style="display:flex; gap:6px; align-items:center;">
                                 <input type="hidden" name="id" value="@item.Id" />
-                                <input type="date" name="fecha" value="@item.FechaUltimaCarpeta?.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
+                                <input type="text" name="fecha" class="input-inline" style="min-width:140px;"
+                                       placeholder="ej: 15 marzo 2024"
+                                       value="@(item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")" />
+                                <button type="submit" class="btn-primary">OK</button>
                             </form>
                         </td>
                         <td>@(item.Sector?.ToString() ?? "—")</td>
-                        <td>
-                            @if (item.NeedsReview)
-                            {
-                                <span class="badge badge-review">Sí</span>
-                            }
-                            else
-                            {
-                                <text>No</text>
-                            }
-                        </td>
                         <td>
                             @if (item.Status == RequestStatus.Uploaded && !item.NeedsReview)
                             {

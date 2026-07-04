@@ -48,7 +48,7 @@ public class IndexModelTests : IDisposable
             options,
             NullLogger<AddressChangeRoutingService>.Instance);
 
-        model = new IndexModel(repository, routingService)
+        model = new IndexModel(repository, routingService, options)
         {
             PageContext = new PageContext
             {
@@ -107,14 +107,70 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
+    public void OnPostSetPersonData_ValidData_ClearsReviewFlagAndNormalizesRut()
+    {
+        var incomplete = new PersonRequest
+        {
+            SourceMessageId = "msg-review",
+            SourceSubject = "Solicitud de carpeta",
+            SourceSender = "rfloresc@municatemu.cl",
+            Comuna = "Catemu",
+            NeedsReview = true,
+            Status = RequestStatus.Pending
+        };
+        var id = repository.Insert(incomplete);
+
+        model.OnPostSetPersonData(id, "Gustavo Peña Castro", "18785387-7");
+
+        var stored = repository.GetAll().Single(c => c.Id == id);
+        Assert.False(stored.NeedsReview);
+        Assert.Equal("18.785.387-7", stored.Rut);
+        Assert.Equal("Gustavo Peña Castro", stored.FullName);
+    }
+
+    [Fact]
+    public void OnPostSetPersonData_InvalidRut_IsRejectedAndFlagKept()
+    {
+        var incomplete = new PersonRequest
+        {
+            SourceMessageId = "msg-review",
+            SourceSubject = "Solicitud de carpeta",
+            SourceSender = "rfloresc@municatemu.cl",
+            Comuna = "Catemu",
+            NeedsReview = true,
+            Status = RequestStatus.Pending
+        };
+        var id = repository.Insert(incomplete);
+
+        model.OnPostSetPersonData(id, "Gustavo Peña Castro", "18785387-6"); // wrong check digit
+
+        var stored = repository.GetAll().Single(c => c.Id == id);
+        Assert.True(stored.NeedsReview);
+        Assert.Null(stored.Rut);
+        Assert.True(model.MessageIsError);
+    }
+
+    [Fact]
     public void OnPostSetFecha_UpdatesDate()
     {
         var id = repository.Insert(NewRequest("msg-1"));
 
-        model.OnPostSetFecha(id, new DateOnly(2024, 5, 1));
+        model.OnPostSetFecha(id, "1 mayo 2024");
 
         var stored = repository.GetAll().Single(c => c.Id == id);
         Assert.Equal(new DateOnly(2024, 5, 1), stored.FechaUltimaCarpeta);
+    }
+
+
+    [Fact]
+    public void OnPostSetFecha_UnparseableText_IsRejected()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        model.OnPostSetFecha(id, "quince del marzo");
+
+        Assert.True(model.MessageIsError);
+        Assert.Null(repository.GetAll().Single(c => c.Id == id).FechaUltimaCarpeta);
     }
 
     [Fact]

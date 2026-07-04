@@ -37,13 +37,27 @@ Depends on: `add-address-change-routing` (EWS) and `add-upload-confirmation-flow
 - [ ] 6.3 Copy-to-second-PC scenario — documented in `deploy/README.md`, not yet verified live (needs an actual second machine)
 
 ## 7. Verification
-- [x] 7.1 `dotnet build` + full test suite green (70/70)
+- [x] 7.1 `dotnet build` + full test suite green (105/105)
 - [ ] 7.2 Live end-to-end verification — pending access to a real/test session with the production mailbox and real dashboard users
 - [x] 7.3 Root `README.md` — dashboard usage section added ("## Dashboard web": login, filters, editable date, confirmation button with attribution, sector PDF)
 
 ## 8. Visual design (added after first live review with the operator)
 - [x] 8.1 `wwwroot/css/dashboard.css`: institutional color palette via CSS custom properties, status badges (Pendiente/Subido/Confirmado colored distinctly), zebra-striped table, consistent spacing/typography — shared by `Login` and `Index`; `Sector` keeps its separate minimal print stylesheet
 - [ ] 8.2 Verify visually in the browser against real data (the 38 live cases already loaded) — pending operator confirmation
+
+## 10. Manual person-data entry (added 2026-07-03, operator request)
+- [x] 10.1 `PersonRequestRepository.SetPersonData(id, fullName, rut)`: stores name + normalized RUT, clears `NeedsReview`
+- [x] 10.2 Index page: on `needs_review` rows, inline name + RUT inputs with save; RUT check-digit-validated server-side, rejection message surfaced
+- [x] 10.3 Unit tests: valid entry clears review flag, invalid RUT rejected, normalization applied
+- [x] 10.4 Center table headers (operator visual request)
+- [x] 10.5 Fecha última carpeta as free-text Spanish entry ("15 marzo 2024"), no calendar picker; `SpanishDate` parser/formatter (accepts "de"/"del" connectors, setiembre variant), rejection message on unparseable input; same format rendered in Index and the Sector print view
+
+## 11. Legal-deadline countdown (added 2026-07-03, operator request; plazo = 15 días hábiles)
+- [x] 11.1 `PersonRequest.ReceivedAt` (email's DateTimeReceived) stored at detection; schema + insert/map
+- [x] 11.2 `DeadlineCalculator`: add/count business days (Mon–Fri), deadline = received + 15 hábiles (configurable `PlazoDiasHabiles`)
+- [x] 11.3 Index: "Recibido" and "Plazo" columns — countdown badge from day one, amber ≤7, red ≤3/overdue, hidden once Uploaded/Confirmed
+- [x] 11.4 CSV report gains `fecha_recibido`
+- [x] 11.5 Unit tests: business-day math (weekends, exact boundary), badge thresholds, uploaded cases excluded
 
 ## 9. Comuna directory management (added 2026-07-03, operator request)
 - [x] 9.1 `ComunaDirectory.UpdateContactEmail(csvPath, comuna, newEmail)`: atomic CSV rewrite (temp + move), preserving all other rows
