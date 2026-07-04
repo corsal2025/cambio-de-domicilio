@@ -19,8 +19,20 @@ Diseño y decisiones documentadas en `openspec/specs/routing/` (spec vigente) y 
 
 ## Configuración local
 
-1. Copiar `src/OutlookComunaRouter/appsettings.Example.json` a `src/OutlookComunaRouter/appsettings.Development.json` (ignorado por git) y completar `Router:Ews:Username`/`Password`, y ajustar `MailboxAddress` a un buzón de prueba si aún no hay acceso al buzón real.
-2. Crear `data/comunas.csv` (ignorado por git) con el formato de `data/comunas.example.csv`:
+### Credenciales (User Secrets)
+
+**Opción recomendada** — las credenciales nunca quedan en texto plano:
+```powershell
+dotnet user-secrets set "Router:Ews:Username" "servervalpo\cambiodedomicilio"
+dotnet user-secrets set "Router:Ews:Password" "tu-contraseña"
+dotnet user-secrets set "Router:SqliteDbPath" "data/router.db"
+```
+
+**Alternativa** — copiar `src/OutlookComunaRouter/appsettings.Example.json` a `src/OutlookComunaRouter/appsettings.Development.json` (ignorado por git) y completar `Router:Ews:Username`/`Password`, y ajustar `MailboxAddress` a un buzón de prueba si aún no hay acceso al buzón real.
+
+### Datos
+
+1. Crear `data/comunas.csv` (ignorado por git) con el formato de `data/comunas.example.csv`:
    ```csv
    Comuna,ContactEmail,Domain
    Catemu,rfloresc@municatemu.cl,municatemu.cl
@@ -51,12 +63,35 @@ Ver `deploy/README.md` para el detalle de certificado HTTPS y creación de usuar
 dotnet test
 ```
 
+### CI automático (GitHub Actions)
+
+Cada push o PR a `main` ejecuta `build + test` automáticamente.
+El workflow está en [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+## Docker (desarrollo / build)
+
+Usa contenedores Linux si no tienes .NET SDK local:
+
+```bash
+docker compose run --rm build       # compila
+docker compose run --rm test        # ejecuta 105 tests
+docker compose run --rm publish     # genera single-file exe en ./publish/
+```
+
 ## Despliegue
 
 ### Windows (actual)
 
 Runbook completo, scripts de instalación/desinstalación de la Tarea Programada
 y checklist paso a paso en [`deploy/README.md`](deploy/README.md).
+
+**Publicación unificada** (un solo comando):
+```powershell
+.\deploy\publish.ps1 -DevCert -InstallTask -Shortcut -AddUser operador
+```
+
+Publica, copia datos, instala tarea, crea acceso directo y usuario del dashboard
+en un solo paso. Ver `deploy/README.md` para parámetros detallados.
 
 ### VPS (futuro)
 

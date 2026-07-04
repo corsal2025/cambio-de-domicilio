@@ -2,6 +2,11 @@
 
 Runbook completo, en orden.
 
+> ⚡ **Publicación rápida**: usa `.\deploy\publish.ps1 -DevCert -InstallTask -Shortcut -AddUser operador`
+> para ejecutar los pasos 4–10 de una sola vez (ver sección [Script unificado](#script-unificado-publishps1) abajo).
+
+
+
 ## 1. Credenciales EWS (no requiere TI ni Azure AD)
 
 El buzón vive en Exchange Server 2016 on-premise (`mail.munivalpo.cl`), no en
@@ -115,3 +120,31 @@ basta con copiar la carpeta `publish/` completa (incluida `data/`) al otro
 equipo y ejecutar `OutlookComunaRouter.exe` — no requiere tener el runtime de
 .NET instalado. El certificado HTTPS local sigue siendo necesario ahí también
 si ese equipo va a servir el dashboard (paso 4).
+
+## Script unificado: publish.ps1
+
+El script [`deploy/publish.ps1`](publish.ps1) ejecuta los pasos 4–10 en un solo comando:
+
+**Uso básico** (solo publica):
+```powershell
+.\deploy\publish.ps1
+```
+
+**Despliegue completo** (como Administrador):
+```powershell
+.\deploy\publish.ps1 -DevCert -InstallTask -Shortcut -AddUser operador
+```
+
+**Segundo PC** (solo copia datos + certificado):
+```powershell
+.\deploy\publish.ps1 -ConfigOnly -DevCert
+```
+
+| Parámetro | Qué hace |
+|---|---|
+| `-DevCert` | Instala el certificado HTTPS de desarrollo (paso 4) |
+| `-AddUser nombre` | Crea un usuario del dashboard (paso 5) |
+| `-InstallTask` | Registra la tarea programada (paso 8, requiere Admin) |
+| `-Shortcut` | Crea acceso directo en escritorio (paso 10) |
+| `-ConfigOnly` | Solo copia datos y configuración, sin publicar |
+| `-PublishDir ruta` | Directorio de salida (default: `./publish`)

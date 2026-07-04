@@ -1,0 +1,38 @@
+# Docker Compose for OutlookComunaRouter development
+#
+# Commands:
+#   docker compose build    # build the image
+#   docker compose run --rm build    # build the project
+#   docker compose run --rm test     # run tests (105 should pass)
+#   docker compose run --rm publish  # publish single-file exe (output in ./publish/)
+#
+# Notes:
+# - EWS connectivity requires Windows host (Exchange on-premise)
+# - Use this for build/test on Linux/WSL; deploy on Windows via Scheduled Task
+
+services:
+  build:
+    build:
+      context: .
+      target: build
+    image: outlook-comuna-router:latest
+    entrypoint: ["dotnet", "build", "-c", "Release", "--no-restore"]
+    working_dir: /src
+
+  test:
+    build:
+      context: .
+      target: test
+    image: outlook-comuna-router:test
+    entrypoint: ["dotnet", "test", "-c", "Release", "--no-build", "--verbosity", "normal"]
+    working_dir: /src
+
+  publish:
+    build:
+      context: .
+      target: publish
+    image: outlook-comuna-router:publish
+    entrypoint: []
+    working_dir: /src
+    volumes:
+      - ./publish:/app/publish

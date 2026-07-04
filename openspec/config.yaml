@@ -1,20 +1,25 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Tech stack: .NET 10, C#, ASP.NET Core, Razor Pages, SQLite, EWS (Exchange Web Services SOAP)
+  Architecture: Clean Architecture with Domain, Application (Routing/EWS/Mail), and Presentation (Dashboard) layers
+  Testing: xUnit, in-memory SQLite repositories, TDD
+  Authentication: Cookie auth with PBKDF2 password hashing
+  Deployment: Windows Scheduled Task (production), self-contained single-file publish
+  Domain: Municipal government — Valparaíso, Chile. Conaset address-change request routing.
+  All code, comments, and documentation in English. Business process diagrams in Spanish (operator-facing).
+  Database: SQLite via Microsoft.Data.Sqlite. No ORM.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  _global:
+    - Read and follow docs/base-standards.md before creating any artifact
+    - Read docs/backend-standards.md for backend-related artifacts
+    - Read docs/frontend-standards.md for Razor Page/dashboard artifacts
+    - Read docs/data-model.md for database schema decisions
+    - Reference docs/flujo-proceso.md as the ground-truth business process
+  proposal:
+    - Include a "Non-goals" section
+    - Map each proposed change to a step in docs/flujo-proceso.md
+  tasks:
+    - Break tasks into testable units (one feature = one task group)
+    - Mark tasks as [x] only when code + tests are both complete
