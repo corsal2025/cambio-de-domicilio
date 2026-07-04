@@ -77,7 +77,7 @@ public class EwsEmailReaderTests
         var reader = new EwsEmailReader(client, NullLogger<EwsEmailReader>.Instance);
 
         await reader.GetMessagesInFolderAsync("CARP. PARA PEDIR", CancellationToken.None);
-        await reader.GetMessagesInFolderAsync("CARP. YA PEDIDAS", CancellationToken.None);
+        await reader.GetMessagesInFolderAsync("CARP. YA SUBIDAS", CancellationToken.None);
 
         var findFolderCalls = client.Requests.Count(r => r.Contains("FindFolder"));
         Assert.Equal(2, findFolderCalls); // each distinct folder name resolved once

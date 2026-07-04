@@ -14,7 +14,7 @@ public sealed record ConfirmationResult(bool Sent, string Reason);
 /// <summary>
 /// Tracks folder requests other comunas make to Valparaíso: registers incoming requests found in
 /// "CARP. PARA PEDIR", marks them as uploaded when the operator moves the email to
-/// "CARP. YA PEDIDAS", and sends the confirmation email only when the operator explicitly
+/// "CARP. YA SUBIDAS", and sends the confirmation email only when the operator explicitly
 /// triggers it (button) — never automatically.
 /// </summary>
 public sealed class AddressChangeRoutingService(
@@ -75,7 +75,7 @@ public sealed class AddressChangeRoutingService(
     }
 
     /// <summary>
-    /// Processes one email found in the confirmation folder ("CARP. YA PEDIDAS"): marks the
+    /// Processes one email found in the confirmation folder ("CARP. YA SUBIDAS"): marks the
     /// matching pending case as Uploaded. Does NOT send anything — sending is an explicit
     /// operator action via <see cref="SendConfirmationAsync"/>.
     /// </summary>

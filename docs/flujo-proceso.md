@@ -13,7 +13,7 @@ Diagrama acordado con el operador (2026-07-03). Fuente de verdad del proceso de 
  PASO 2 — EL OPERADOR CLASIFICA EL CORREO                 [manual]
  ─────────────────────────────────────────────
    Carpeta que hay que subir      → mover a  CARP. PARA PEDIR
-   Carpeta ya subida en Conaset   → mover a  CARP. YA PEDIDAS
+   Carpeta ya subida en Conaset   → mover a  CARP. YA SUBIDAS
 
  PASO 3 — ANÁLISIS Y EXTRACCIÓN                       [automático]
  ─────────────────────────────────────────────
@@ -43,7 +43,7 @@ Diagrama acordado con el operador (2026-07-03). Fuente de verdad del proceso de 
  PASO 6 — CARPETA FÍSICA                                  [manual]
  ─────────────────────────────────────────────
  Le traen la carpeta → escanea → sube a Conaset
- → mueve el correo a CARP. YA PEDIDAS
+ → mueve el correo a CARP. YA SUBIDAS
  (el sistema lo detecta y marca el caso como SUBIDA,
   pero NO envía nada todavía)
 

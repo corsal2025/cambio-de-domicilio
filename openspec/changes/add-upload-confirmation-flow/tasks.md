@@ -9,7 +9,7 @@ Revised 2026-07-03 after walking the full business process with the operator (se
 
 ## 2. Folder-based reading, generalized to two folders
 - [x] 2.1 `IEmailReader.GetMessagesInFolderAsync(folderDisplayName)`; per-folder `EwsFolderRef` cache
-- [x] 2.2 `RouterOptions.SourceFolderName = "CARP. PARA PEDIR"`, `ConfirmationFolderName = "CARP. YA PEDIDAS"` (exact names from the operator's Outlook)
+- [x] 2.2 `RouterOptions.SourceFolderName = "CARP. PARA PEDIR"`, `ConfirmationFolderName = "CARP. YA SUBIDAS"` (exact names from the operator's Outlook)
 - [x] 2.3 Unit tests: independent per-folder resolution and caching
 
 ## 3. Routing service

@@ -4,7 +4,7 @@ Templates used by OutlookComunaRouter. Not hardcoded in source — mirrored here
 
 ## Upload confirmation (sent to the requesting comuna's contact)
 
-Sent automatically once the operator moves the source email from "CARP. PARA PEDIR" to "CARP. YA PEDIDAS" and the configured grace period (default 30 min) has elapsed.
+Sent automatically once the operator moves the source email from "CARP. PARA PEDIR" to "CARP. YA SUBIDAS" and the configured grace period (default 30 min) has elapsed.
 
 **Subject:**
 ```

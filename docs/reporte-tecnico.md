@@ -78,7 +78,7 @@
    correo llega a                  operador sube la          operador aprieta
    CARP. PARA PEDIR                carpeta a Conaset y       "Enviar confirmación"
         │                          mueve el correo a         en el dashboard
-        │                          CARP. YA PEDIDAS               │
+        │                          CARP. YA SUBIDAS               │
         ▼                               │                         ▼
   ┌───────────┐   detección EWS   ┌────▼──────┐  botón   ┌──────────────┐
   │ PENDIENTE │ ────────────────► │  SUBIDO   │ ───────► │  CONFIRMADO  │
@@ -92,7 +92,7 @@
    filtrados en el dashboard)                              
 
   REGLAS CLAVE:
-  • Mover el correo a CARP. YA PEDIDAS NO envía nada — solo marca "Subido".
+  • Mover el correo a CARP. YA SUBIDAS NO envía nada — solo marca "Subido".
   • El correo a la comuna sale ÚNICAMENTE con el clic del operador.
   • Un caso Pendiente o ya Confirmado no puede confirmarse (el servidor lo rechaza
     aunque la página esté desactualizada).

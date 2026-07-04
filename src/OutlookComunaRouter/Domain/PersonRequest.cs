@@ -5,7 +5,7 @@ public enum RequestStatus
     /// <summary>Request registered from CARP. PARA PEDIR; folder not uploaded yet.</summary>
     Pending,
 
-    /// <summary>The operator moved the email to CARP. YA PEDIDAS: folder uploaded to Conaset, confirmation not sent yet.</summary>
+    /// <summary>The operator moved the email to CARP. YA SUBIDAS: folder uploaded to Conaset, confirmation not sent yet.</summary>
     Uploaded,
 
     /// <summary>Confirmation email sent to the requesting comuna (operator pressed the send button).</summary>

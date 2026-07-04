@@ -5,7 +5,7 @@ Servicio en segundo plano (.NET 10, `BackgroundService`) que ayuda a tramitar la
 1. Cada 30 minutos (configurable) revisa la carpeta **"CARP. PARA PEDIR"** del buzón `cambiodedomicilio@munivalpo.cl` en Exchange on-premise (vía EWS). El operador clasifica manualmente los correos entrantes moviéndolos a esa carpeta — el sistema no escanea la bandeja de entrada completa.
 2. Por cada correo nuevo de una comuna conocida (dominio comparado contra el directorio, no un patrón adivinado): extrae **nombre del contribuyente, RUT** (valida el dígito verificador, acepta mayúscula/minúscula y con/sin puntos) **y la comuna solicitante**. Lo registra como **Pendiente** — no envía ningún correo en este paso.
 3. El operador digita manualmente la **fecha de última carpeta** por caso; el sistema deriva el **sector** (Archivo si es anterior a julio 2023, Oficina 43 si es igual o posterior) y puede generar un PDF con los casos de un sector para ir a buscar las carpetas físicas.
-4. Cuando el operador sube la carpeta a Conaset y mueve el correo a **"CARP. YA PEDIDAS"**, el sistema lo detecta y marca el caso como **Subida** — sin enviar nada todavía.
+4. Cuando el operador sube la carpeta a Conaset y mueve el correo a **"CARP. YA SUBIDAS"**, el sistema lo detecta y marca el caso como **Subida** — sin enviar nada todavía.
 5. El operador decide cuándo confirmar: con un botón ("Enviar confirmación", hoy expuesto vía `SendConfirmationAsync`, próximamente en el dashboard web) envía el correo estándar a la comuna avisando que la carpeta ya se subió, y el caso pasa a **Confirmado**. Nada se envía automáticamente por el solo hecho de mover el correo.
 6. Mantiene un reporte CSV siempre actualizado en `data/reporte.csv` (nombre, RUT, comuna, estado, fecha de última carpeta, sector, fecha de confirmación, y una columna "Requiere revisión" para los casos con datos incompletos) — sin filas duplicadas por persona+comuna.
 
@@ -15,7 +15,7 @@ Diseño y decisiones documentadas en `openspec/specs/routing/` (spec vigente) y 
 
 - .NET 10 SDK
 - Credenciales de Active Directory del propio buzón (`servervalpo\cambiodedomicilio` o equivalente) para autenticarse contra el endpoint EWS on-premise (`https://mail.munivalpo.cl/EWS/Exchange.asmx`). **No se necesita Azure AD ni aprobación de TI** — el buzón vive en Exchange Server 2016 on-premise, no en Exchange Online (ver `docs/reporte-tecnico.md`, sección 3).
-- Dos carpetas deben existir en el buzón: **"CARP. PARA PEDIR"** y **"CARP. YA PEDIDAS"** (nombres configurables vía `Router:SourceFolderName` y `Router:ConfirmationFolderName`).
+- Dos carpetas deben existir en el buzón: **"CARP. PARA PEDIR"** y **"CARP. YA SUBIDAS"** (nombres configurables vía `Router:SourceFolderName` y `Router:ConfirmationFolderName`).
 
 ## Configuración local
 

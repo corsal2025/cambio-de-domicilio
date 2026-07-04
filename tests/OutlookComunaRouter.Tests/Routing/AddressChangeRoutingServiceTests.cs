@@ -35,7 +35,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
             MailboxAddress = "cambiodedomicilio@munivalpo.cl",
             OwnDomain = "munivalpo.cl",
             SourceFolderName = "CARP. PARA PEDIR",
-            ConfirmationFolderName = "CARP. YA PEDIDAS",
+            ConfirmationFolderName = "CARP. YA SUBIDAS",
             SqliteDbPath = dbPath,
             ComunaDirectoryCsvPath = "unused.csv",
             ReportCsvPath = "unused-report.csv",
@@ -126,7 +126,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
     [Fact]
     public async Task SendConfirmationAsync_StillPending_RefusesToSend()
     {
-        var id = InsertPending(); // never moved to CARP. YA PEDIDAS
+        var id = InsertPending(); // never moved to CARP. YA SUBIDAS
 
         var result = await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
 

@@ -72,7 +72,7 @@ The system SHALL let the operator enter the contributor's última-carpeta date p
 - **THEN** the case's sector is `Archivo`; with `2024-01-10` it is `Oficina 43`
 
 ### Requirement: Detect upload signal
-The system SHALL scan the configured confirmation folder ("CARP. YA PEDIDAS") on each polling cycle. When an email found there matches a `Pending` record by `InternetMessageId`, the record SHALL transition to `Uploaded` — with NO email sent as a result of the move alone.
+The system SHALL scan the configured confirmation folder ("CARP. YA SUBIDAS") on each polling cycle. When an email found there matches a `Pending` record by `InternetMessageId`, the record SHALL transition to `Uploaded` — with NO email sent as a result of the move alone.
 
 #### Scenario: Operator moves a completed case's email
 - **WHEN** the moved email's `InternetMessageId` matches a `Pending` record

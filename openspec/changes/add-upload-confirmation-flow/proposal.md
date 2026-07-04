@@ -9,8 +9,8 @@ The operational workflow changed from what `add-address-change-routing` assumed.
 - **Remove** the automatic outbound "please send the last folder" email (`EmailTemplates.FolderRequest`, the `Sent`/reply-matching lifecycle). It no longer reflects what happens: nobody needs to be asked, the request already arrived by mail.
 - **Source folder renamed/corrected**: reads `"CARP. PARA PEDIR"` (previously configured as `"Para pedir"` — exact name confirmed from the operator's Outlook).
 - For every new email in that folder from a known comuna domain: extract `full_name`, `rut`, and the **requesting comuna** (same domain-based detection as before), and record it as `Pending` — no email sent at this point.
-- **New signal**: the operator's own existing habit of moving a completed case's email into `"CARP. YA PEDIDAS"` (their archive folder) is read as the "this was uploaded" signal — no new UI, no command the operator has to remember, just their existing workflow.
-- When an email that matches a `Pending` record (by `InternetMessageId` — it's the same email, only moved) appears in `"CARP. YA PEDIDAS"`, the system sends a standard confirmation email to that comuna's contact address ("ya se subió la carpeta") and marks the record `Confirmed`.
+- **New signal**: the operator's own existing habit of moving a completed case's email into `"CARP. YA SUBIDAS"` (their archive folder) is read as the "this was uploaded" signal — no new UI, no command the operator has to remember, just their existing workflow.
+- When an email that matches a `Pending` record (by `InternetMessageId` — it's the same email, only moved) appears in `"CARP. YA SUBIDAS"`, the system sends a standard confirmation email to that comuna's contact address ("ya se subió la carpeta") and marks the record `Confirmed`.
 - Simplify the data model accordingly: two states (`Pending` → `Confirmed`), dropping the request/response fields that modeled the old outbound-then-reply lifecycle.
 - The CSV report and dual notification channels (toast + email to the operator) are kept, repurposed to reflect confirmation events instead of reply events.
 
