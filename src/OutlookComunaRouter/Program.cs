@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using OutlookComunaRouter;
 using OutlookComunaRouter.Configuration;
@@ -88,6 +89,23 @@ if (args.Contains("--smoke-test"))
 }
 
 app.Services.GetRequiredService<IUserRepository>().EnsureSchema();
+
+_ = Task.Run(async () =>
+{
+    try
+    {
+        // Small delay to let the server bind before opening the browser
+        await Task.Delay(2000);
+        var url = "https://localhost:5001";
+        Console.WriteLine($"Abriendo dashboard: {url}");
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"No se pudo abrir el navegador automáticamente: {ex.Message}");
+        Console.WriteLine("Abre https://localhost:5001 manualmente en tu navegador.");
+    }
+});
 
 app.UseHttpsRedirection(); // the plain-HTTP listener only ever redirects, never serves data
 app.UseStaticFiles();
