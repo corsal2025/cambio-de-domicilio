@@ -118,7 +118,7 @@
                             <form method="post" asp-page-handler="SetFecha" style="display:flex; gap:6px; align-items:center;">
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="text" name="fecha" class="input-inline" style="min-width:140px;"
-                                       placeholder="ej: 15 marzo 2024"
+                                       placeholder="ej: 15/03/2024 o 15 marzo 2024"
                                        value="@(item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")" />
                                 <button type="submit" class="btn-primary">OK</button>
                             </form>

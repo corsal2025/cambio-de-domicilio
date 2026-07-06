@@ -95,6 +95,98 @@ public class EwsEmailReaderTests
         Assert.DoesNotContain(client.Requests, r => r.Contains("FindItem"));
     }
 
+    private static readonly string FindItemErrorXml = $"""
+        <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+          <soap:Body>
+            <m:FindItemResponse>
+              <m:ResponseMessages>
+                <m:FindItemResponseMessage ResponseClass="Error">
+                  <m:ResponseCode>ErrorFolderNotFound</m:ResponseCode>
+                </m:FindItemResponseMessage>
+              </m:ResponseMessages>
+            </m:FindItemResponse>
+          </soap:Body>
+        </soap:Envelope>
+        """;
+
+    private static string FindItemWithIdsXml(int count) => $"""
+        <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+          <soap:Body>
+            <m:FindItemResponse>
+              <m:ResponseMessages>
+                <m:FindItemResponseMessage ResponseClass="Success">
+                  <m:RootFolder TotalItemsInView="{count}">
+                    <t:Items>
+                    {string.Join('\n', Enumerable.Range(1, count).Select(i => $"""<t:Message><t:ItemId Id="item-{i}" ChangeKey="ck-{i}"/></t:Message>"""))}
+                    </t:Items>
+                  </m:RootFolder>
+                </m:FindItemResponseMessage>
+              </m:ResponseMessages>
+            </m:FindItemResponse>
+          </soap:Body>
+        </soap:Envelope>
+        """;
+
+    private static readonly string EmptyGetItemXml = $"""
+        <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+          <soap:Body>
+            <m:GetItemResponse>
+              <m:ResponseMessages>
+                <m:GetItemResponseMessage ResponseClass="Success">
+                  <m:Items/>
+                </m:GetItemResponseMessage>
+              </m:ResponseMessages>
+            </m:GetItemResponse>
+          </soap:Body>
+        </soap:Envelope>
+        """;
+
+    [Fact]
+    public async Task GetMessagesInFolderAsync_CachedFolderIdGoesStale_ReResolvesAndRetries()
+    {
+        // Cycle 1 resolves and caches the folder. Cycle 2 hits a stale-folder EWS error,
+        // must drop the cache entry, re-resolve, and retry instead of failing forever.
+        var client = new RecordingClient([
+            FindFolderFoundXml, EmptyFindItemXml,   // cycle 1: resolve + list OK
+            FindItemErrorXml,                        // cycle 2: cached id now stale
+            FindFolderFoundXml, EmptyFindItemXml]);  // cycle 2: re-resolve + retry OK
+        var reader = new EwsEmailReader(client, NullLogger<EwsEmailReader>.Instance);
+
+        await reader.GetMessagesInFolderAsync("CARP. PARA PEDIR", CancellationToken.None);
+        var result = await reader.GetMessagesInFolderAsync("CARP. PARA PEDIR", CancellationToken.None);
+
+        Assert.Empty(result);
+        Assert.Equal(2, client.Requests.Count(r => r.Contains("FindFolder")));
+    }
+
+    [Fact]
+    public async Task GetMessagesInFolderAsync_ManyItems_FetchesDetailsInChunks()
+    {
+        var client = new RecordingClient([
+            FindFolderFoundXml,
+            FindItemWithIdsXml(120),
+            EmptyGetItemXml, EmptyGetItemXml, EmptyGetItemXml]);
+        var reader = new EwsEmailReader(client, NullLogger<EwsEmailReader>.Instance);
+
+        await reader.GetMessagesInFolderAsync("CARP. PARA PEDIR", CancellationToken.None);
+
+        var getItemCalls = client.Requests.Where(r => r.Contains("GetItem")).ToList();
+        Assert.Equal(3, getItemCalls.Count); // 120 ids in chunks of 50 -> 50+50+20
+        Assert.All(getItemCalls, r => Assert.True(CountOccurrences(r, "<t:ItemId ") <= 50));
+    }
+
+    private static int CountOccurrences(string text, string needle)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = text.IndexOf(needle, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += needle.Length;
+        }
+        return count;
+    }
+
     private sealed class RecordingClient(IReadOnlyList<string> responses) : IEwsClient
     {
         private int callIndex;

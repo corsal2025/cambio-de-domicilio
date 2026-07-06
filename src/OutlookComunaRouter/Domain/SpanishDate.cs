@@ -18,6 +18,9 @@ public static class SpanishDate
         ["enero", "febrero", "marzo", "abril", "mayo", "junio",
          "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
+    /// <summary>Two-digit years at or above this value resolve to 19xx; below it, to 20xx.</summary>
+    private const int TwoDigitYearPivot = 50;
+
     public static bool TryParse(string? input, out DateOnly date)
     {
         date = default;
@@ -27,17 +30,30 @@ public static class SpanishDate
         }
 
         var words = input
-            .Split([' ', '\t', ','], StringSplitOptions.RemoveEmptyEntries)
+            .Split([' ', '\t', ',', '/', '-', '.'], StringSplitOptions.RemoveEmptyEntries)
             .Where(w => !w.Equals("de", StringComparison.OrdinalIgnoreCase)
                      && !w.Equals("del", StringComparison.OrdinalIgnoreCase))
             .ToArray();
 
-        if (words.Length != 3
-            || !int.TryParse(words[0], out var day)
-            || !Months.TryGetValue(words[1], out var month)
-            || !int.TryParse(words[2], out var year))
+        if (words.Length != 3 || !int.TryParse(words[0], out var day))
         {
             return false;
+        }
+
+        if (!Months.TryGetValue(words[1], out var month)
+            && (!int.TryParse(words[1], out month) || month < 1 || month > 12))
+        {
+            return false;
+        }
+
+        if (!int.TryParse(words[2], out var year))
+        {
+            return false;
+        }
+
+        if (words[2].Length <= 2)
+        {
+            year += year >= TwoDigitYearPivot ? 1900 : 2000;
         }
 
         if (year < 1900 || year > 2100 || day < 1 || day > DateTime.DaysInMonth(year, month))

@@ -38,7 +38,7 @@ public class IndexModel(
     {
         if (!SpanishDate.TryParse(fecha, out var parsed))
         {
-            Message = "Fecha no reconocida. Use el formato: día mes año — por ejemplo: 15 marzo 2024.";
+            Message = "Fecha no reconocida. Formatos aceptados: 15/03/2024 o 15 marzo 2024.";
             MessageIsError = true;
             Load();
             return Page();
