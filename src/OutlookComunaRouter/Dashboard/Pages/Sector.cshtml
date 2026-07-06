@@ -6,45 +6,127 @@
     <meta charset="utf-8" />
     <title>Documento — @Model.SelectedSector</title>
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/dashboard.css" />
     <style>
-        body { font-family: sans-serif; margin: 24px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #333; padding: 6px 10px; text-align: left; font-size: 13px; }
-        .no-print { margin-bottom: 16px; }
+        .doc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 3px solid var(--color-primary);
+            padding-bottom: 14px;
+            margin-bottom: 18px;
+        }
+
+        .doc-header h2 {
+            margin: 0 0 4px;
+            color: var(--color-primary);
+            font-size: 1.25rem;
+        }
+
+        .doc-header .doc-org {
+            margin: 0;
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .doc-header .doc-meta {
+            text-align: right;
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+        }
+
+        .doc-empty {
+            padding: 28px;
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+        }
+
+        .doc-count {
+            margin: 14px 2px 0;
+            font-size: 0.8rem;
+            color: var(--color-text-muted);
+        }
+
         @@media print {
-            .no-print { display: none; }
+            header.app-header, .no-print { display: none; }
+            body { background: #fff; }
+            main { padding: 0; max-width: none; }
+            .card { border: none; box-shadow: none; }
+            table.cases th { background: #eef2f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            table.cases td, table.cases th { border: 1px solid #999; }
         }
     </style>
 </head>
 <body>
-    <div class="no-print">
-        <a asp-page="/Index">&larr; Volver</a> —
-        <button onclick="window.print()">Imprimir / Guardar como PDF</button>
-    </div>
+    <header class="app-header">
+        <div class="brand">
+            OutlookComunaRouter
+            <small>Municipalidad de Valparaíso — Documento por sector</small>
+        </div>
+        <nav class="app-nav">
+            <a asp-page="/Index">Casos</a>
+            <a asp-page="/Sector" asp-route-sector="Archivo" class="@(Model.SelectedSector == OutlookComunaRouter.Domain.FolderSector.Archivo ? "active" : "")">PDF Archivo</a>
+            <a asp-page="/Sector" asp-route-sector="Oficina43" class="@(Model.SelectedSector == OutlookComunaRouter.Domain.FolderSector.Oficina43 ? "active" : "")">PDF Oficina 43</a>
+            <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
+        </nav>
+    </header>
 
-    <h2>Listado de carpetas — Sector @Model.SelectedSector</h2>
-    <p>Generado: @DateTimeOffset.Now.ToString("dd-MM-yyyy HH:mm")</p>
+    <main>
+        <div class="no-print" style="margin-bottom: 14px;">
+            <button type="button" class="btn-primary" onclick="window.print()">Imprimir / Guardar como PDF</button>
+        </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Nombre completo</th>
-                <th>RUT</th>
-                <th>Comuna</th>
-                <th>Fecha última carpeta</th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach (var item in Model.Cases)
+        <div class="doc-header">
+            <div>
+                <p class="doc-org">Municipalidad de Valparaíso — Solicitudes de carpeta</p>
+                <h2>Listado de carpetas — Sector @(Model.SelectedSector == OutlookComunaRouter.Domain.FolderSector.Oficina43 ? "Oficina 43" : "Archivo")</h2>
+            </div>
+            <div class="doc-meta">
+                Generado: @DateTimeOffset.Now.ToString("dd-MM-yyyy HH:mm")
+            </div>
+        </div>
+
+        <div class="card">
+            @if (Model.Cases.Count == 0)
+            {
+                <p class="doc-empty">
+                    No hay carpetas en este sector todavía. Los casos aparecen aquí cuando su
+                    "Fecha última carpeta" se ingresa en la pantalla de Casos.
+                </p>
+            }
+            else
+            {
+                <table class="cases">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left;">Nombre completo</th>
+                            <th>RUT</th>
+                            <th>Comuna</th>
+                            <th>Fecha última carpeta</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model.Cases)
+                    {
+                        <tr>
+                            <td>@item.FullName</td>
+                            <td style="text-align:center;">@item.Rut</td>
+                            <td style="text-align:center;">@item.Comuna</td>
+                            <td style="text-align:center;">@(item.FechaUltimaCarpeta is { } f ? OutlookComunaRouter.Domain.SpanishDate.Format(f) : "")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        @if (Model.Cases.Count > 0)
         {
-            <tr>
-                <td>@item.FullName</td>
-                <td>@item.Rut</td>
-                <td>@item.Comuna</td>
-                <td>@(item.FechaUltimaCarpeta is { } f ? OutlookComunaRouter.Domain.SpanishDate.Format(f) : "")</td>
-            </tr>
+            <p class="doc-count">Total: @Model.Cases.Count carpeta(s)</p>
         }
-        </tbody>
-    </table>
+    </main>
 </body>
 </html>
