@@ -13,6 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="OutlookComunaRouter.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Real EWS credentials live here for local dev (git-ignored) — never copy them into
          bin/, obj/, or a publish/ output, since those get shared or deployed as a whole folder. -->
     <Content Update="appsettings.Development.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />

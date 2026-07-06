@@ -11,6 +11,9 @@ src/OutlookComunaRouter/appsettings.Development.json
 **/appsettings.Development.json
 .env
 
+# TLS certificate private key material (LAN self-signed cert)
+certs/
+
 # Runtime data (SQLite DB, reports, comuna directory with real contact emails)
 # Double-starred so this applies at any depth, not just repo root — a stray
 # `data/` created by running the app from a different working directory must

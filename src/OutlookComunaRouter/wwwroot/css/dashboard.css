@@ -220,6 +220,35 @@ button.btn-primary:hover { background: var(--color-primary); }
     font-size: 0.9rem;
 }
 
+.login-card .password-field {
+    position: relative;
+}
+
+.login-card .password-field input {
+    padding-right: 36px;
+}
+
+.login-card .password-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 12px;
+    width: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--color-text-muted);
+    cursor: pointer;
+}
+
+.login-card .password-toggle:hover,
+.login-card .password-toggle.active {
+    color: var(--color-primary);
+}
+
 .login-card button {
     width: 100%;
     padding: 9px;

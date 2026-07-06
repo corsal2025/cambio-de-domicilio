@@ -5,6 +5,7 @@
 <head>
     <meta charset="utf-8" />
     <title>Ingresar — OutlookComunaRouter</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
     <link rel="stylesheet" href="~/css/dashboard.css" />
 </head>
 <body>
@@ -14,13 +15,31 @@
             <p class="subtitle">Municipalidad de Valparaíso — Solicitudes de carpeta</p>
             <form method="post">
                 <input asp-for="Username" placeholder="Usuario" autofocus />
-                <input asp-for="Password" type="password" placeholder="Contraseña" />
+                <div class="password-field">
+                    <input asp-for="Password" type="password" placeholder="Contraseña" id="password-input" />
+                    <button type="button" class="password-toggle" id="password-toggle" aria-label="Mostrar contraseña" aria-pressed="false">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                    </button>
+                </div>
                 <button type="submit">Ingresar</button>
                 @if (Model.ErrorMessage is not null)
                 {
                     <p class="error">@Model.ErrorMessage</p>
                 }
             </form>
+            <script>
+                document.getElementById('password-toggle').addEventListener('click', function () {
+                    var input = document.getElementById('password-input');
+                    var isHidden = input.type === 'password';
+                    input.type = isHidden ? 'text' : 'password';
+                    this.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
+                    this.setAttribute('aria-label', isHidden ? 'Ocultar contraseña' : 'Mostrar contraseña');
+                    this.classList.toggle('active', isHidden);
+                });
+            </script>
         </div>
     </div>
 </body>

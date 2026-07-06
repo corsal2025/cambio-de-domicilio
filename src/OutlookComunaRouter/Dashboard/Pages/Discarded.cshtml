@@ -1,0 +1,56 @@
+@page
+@model OutlookComunaRouter.Dashboard.Pages.DiscardedModel
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Correos descartados — OutlookComunaRouter</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/dashboard.css" />
+</head>
+<body>
+    <header class="app-header">
+        <div class="brand">
+            OutlookComunaRouter
+            <small>Municipalidad de Valparaíso — Correos descartados</small>
+        </div>
+        <nav class="app-nav">
+            <a asp-page="/Index">Casos</a>
+            <a asp-page="/Comunas">Comunas</a>
+            <a asp-page="/Discarded" class="active">Descartados</a>
+            <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
+        </nav>
+    </header>
+
+    <main>
+        <p class="review-hint">
+            Correos encontrados en "CARP. PARA PEDIR" cuyo dominio de remitente no está en el directorio de comunas.
+            Si falta una comuna, agréguela en la pantalla de Comunas — el próximo ciclo dejará de descartar sus correos.
+        </p>
+
+        <div class="card">
+            <table class="cases">
+                <thead>
+                    <tr>
+                        <th>Remitente</th>
+                        <th>Asunto</th>
+                        <th>Motivo</th>
+                        <th>Descartado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.SourceSender</td>
+                        <td>@item.SourceSubject</td>
+                        <td>@item.Reason</td>
+                        <td>@item.DiscardedAt.LocalDateTime.ToString("dd-MM-yyyy HH:mm")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>

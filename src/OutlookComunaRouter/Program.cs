@@ -19,6 +19,8 @@ builder.Services.AddSingleton(routerOptions);
 
 builder.Services.AddSingleton<IPersonRequestRepository>(_ =>
     new PersonRequestRepository($"Data Source={routerOptions.SqliteDbPath}"));
+builder.Services.AddSingleton<IDiscardedEmailRepository>(_ =>
+    new DiscardedEmailRepository($"Data Source={routerOptions.SqliteDbPath}"));
 builder.Services.AddSingleton<IUserRepository>(_ =>
     new UserRepository($"Data Source={routerOptions.SqliteDbPath}"));
 builder.Services.AddSingleton<ILoginService, LoginService>();
@@ -32,7 +34,8 @@ builder.Services.AddSingleton<AddressChangeRoutingService>();
 builder.Services.AddSingleton<INotificationChannel, WindowsToastNotificationChannel>();
 builder.Services.AddSingleton<INotificationChannel, EmailNotificationChannel>();
 
-builder.Services.AddHostedService<RouterWorker>();
+builder.Services.AddSingleton<RouterWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<RouterWorker>());
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -89,6 +92,7 @@ if (args.Contains("--smoke-test"))
 }
 
 app.Services.GetRequiredService<IUserRepository>().EnsureSchema();
+app.Services.GetRequiredService<IDiscardedEmailRepository>().EnsureSchema();
 
 _ = Task.Run(async () =>
 {

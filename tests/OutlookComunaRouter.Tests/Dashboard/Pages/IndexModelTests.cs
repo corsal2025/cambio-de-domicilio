@@ -10,6 +10,7 @@ using OutlookComunaRouter.Domain;
 using OutlookComunaRouter.Mail;
 using OutlookComunaRouter.Notifications;
 using OutlookComunaRouter.Persistence;
+using OutlookComunaRouter.Reporting;
 using OutlookComunaRouter.Routing;
 using Xunit;
 
@@ -27,6 +28,8 @@ public class IndexModelTests : IDisposable
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
         repository.EnsureSchema();
+        var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
+        discardedRepository.EnsureSchema();
         File.WriteAllText(csvPath, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
 
         var options = new RouterOptions
@@ -42,13 +45,22 @@ public class IndexModelTests : IDisposable
 
         routingService = new AddressChangeRoutingService(
             repository,
+            discardedRepository,
             new ComunaDirectory(),
             new NoOpMailSender(),
             [],
             options,
             NullLogger<AddressChangeRoutingService>.Instance);
 
-        model = new IndexModel(repository, routingService, options)
+        var routerWorker = new RouterWorker(
+            routingService,
+            new NoOpEmailReader(),
+            repository,
+            new NoOpCsvReportWriter(),
+            options,
+            NullLogger<RouterWorker>.Instance);
+
+        model = new IndexModel(repository, discardedRepository, routingService, routerWorker, options)
         {
             PageContext = new PageContext
             {
@@ -104,6 +116,33 @@ public class IndexModelTests : IDisposable
 
         var result = Assert.Single(model.Cases);
         Assert.Equal(incompleteId, result.Id);
+    }
+
+    [Fact]
+    public void OnGet_SomeCasesNeedReview_CountReflectsTotalRegardlessOfFilter()
+    {
+        repository.Insert(NewRequest("msg-1"));
+        repository.Insert(new PersonRequest
+        {
+            SourceMessageId = "msg-2",
+            SourceSubject = "Solicitud de carpeta",
+            SourceSender = "rfloresc@municatemu.cl",
+            NeedsReview = true,
+            Status = RequestStatus.Pending
+        });
+        repository.Insert(new PersonRequest
+        {
+            SourceMessageId = "msg-3",
+            SourceSubject = "Solicitud de carpeta",
+            SourceSender = "rfloresc@municatemu.cl",
+            NeedsReview = true,
+            Status = RequestStatus.Pending
+        });
+
+        model.OnGet(status: "Uploaded"); // a filter that excludes every case above
+
+        Assert.Empty(model.Cases);
+        Assert.Equal(2, model.NeedsReviewCount);
     }
 
     [Fact]
@@ -186,6 +225,15 @@ public class IndexModelTests : IDisposable
         Assert.Equal(1, stored.ConfirmedByUserId);
     }
 
+    [Fact]
+    public async Task OnPostSyncNowAsync_RunsCycleAndReportsSuccess()
+    {
+        await model.OnPostSyncNowAsync();
+
+        Assert.False(model.MessageIsError);
+        Assert.Equal("Sincronización completada.", model.Message);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId) => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",
@@ -215,5 +263,18 @@ public class IndexModelTests : IDisposable
     {
         public Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+    }
+
+    private sealed class NoOpEmailReader : IEmailReader
+    {
+        public Task<IReadOnlyList<IncomingEmail>> GetMessagesInFolderAsync(string folderDisplayName, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
+    }
+
+    private sealed class NoOpCsvReportWriter : ICsvReportWriter
+    {
+        public void Write(IReadOnlyList<PersonRequest> requests, string outputPath)
+        {
+        }
     }
 }

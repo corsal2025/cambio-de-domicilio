@@ -20,6 +20,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
 
     private readonly string dbPath = Path.Combine(Path.GetTempPath(), $"routing-test-{Guid.NewGuid():N}.db");
     private readonly IPersonRequestRepository repository;
+    private readonly IDiscardedEmailRepository discardedRepository;
     private readonly FakeMailSender mailSender = new();
     private readonly FakeNotificationChannel notificationChannel = new();
     private readonly AddressChangeRoutingService sut;
@@ -28,6 +29,8 @@ public class AddressChangeRoutingServiceTests : IDisposable
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
         repository.EnsureSchema();
+        discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
+        discardedRepository.EnsureSchema();
 
         var options = new RouterOptions
         {
@@ -44,6 +47,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
 
         sut = new AddressChangeRoutingService(
             repository,
+            discardedRepository,
             new ComunaDirectory(),
             mailSender,
             [notificationChannel],
@@ -63,13 +67,38 @@ public class AddressChangeRoutingServiceTests : IDisposable
     }
 
     [Fact]
-    public void ProcessIncomingRequest_UnknownDomain_IsIgnored()
+    public void ProcessIncomingRequest_UnknownDomain_IsIgnoredAndRecordedAsDiscarded()
     {
         sut.ProcessIncomingRequest(
             NewEmail("msg-1", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7", sender: "alguien@otracomuna.cl"),
             Contacts);
 
         Assert.Empty(repository.GetAll());
+        var discarded = Assert.Single(discardedRepository.GetAll());
+        Assert.Equal("msg-1", discarded.SourceMessageId);
+        Assert.Contains("otracomuna.cl", discarded.Reason);
+    }
+
+    [Fact]
+    public void ProcessIncomingRequest_UnknownDomain_SecondCycleDoesNotDuplicateDiscardRecord()
+    {
+        var email = NewEmail("msg-1", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7", sender: "alguien@otracomuna.cl");
+
+        sut.ProcessIncomingRequest(email, Contacts);
+        sut.ProcessIncomingRequest(email, Contacts); // next poll cycle, email is still sitting in the folder
+
+        Assert.Single(discardedRepository.GetAll());
+    }
+
+    [Fact]
+    public void ProcessIncomingRequest_OwnDomain_IsIgnoredWithoutDiscardRecord()
+    {
+        sut.ProcessIncomingRequest(
+            NewEmail("msg-1", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7", sender: "interno@munivalpo.cl"),
+            Contacts);
+
+        Assert.Empty(repository.GetAll());
+        Assert.Empty(discardedRepository.GetAll());
     }
 
     [Fact]

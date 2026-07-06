@@ -19,6 +19,7 @@ public sealed record ConfirmationResult(bool Sent, string Reason);
 /// </summary>
 public sealed class AddressChangeRoutingService(
     IPersonRequestRepository repository,
+    IDiscardedEmailRepository discardedRepository,
     IComunaDirectory directory,
     IMailSender mailSender,
     IEnumerable<INotificationChannel> notificationChannels,
@@ -36,9 +37,28 @@ public sealed class AddressChangeRoutingService(
         }
 
         var senderDomain = ExtractDomain(email.SenderAddress);
+        if (string.Equals(senderDomain, options.OwnDomain, StringComparison.OrdinalIgnoreCase))
+        {
+            return; // internal correspondence, not routing-relevant, not worth flagging
+        }
+
         var comunaContact = directory.ResolveByDomain(senderDomain, options.OwnDomain, contacts);
         if (comunaContact is null)
         {
+            if (!discardedRepository.ExistsBySourceMessageId(email.MessageId))
+            {
+                discardedRepository.Insert(new DiscardedEmail
+                {
+                    SourceMessageId = email.MessageId,
+                    SourceSubject = email.Subject,
+                    SourceSender = email.SenderAddress,
+                    Reason = $"Dominio no reconocido en el directorio de comunas: {senderDomain}"
+                });
+                logger.LogWarning(
+                    "Correo descartado: dominio '{Domain}' no está en el directorio de comunas (asunto: {Subject})",
+                    senderDomain, email.Subject);
+            }
+
             return; // not a recognized comuna domain, not routing-relevant
         }
 

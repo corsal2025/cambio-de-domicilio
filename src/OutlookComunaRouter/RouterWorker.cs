@@ -31,17 +31,26 @@ public sealed class RouterWorker(
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 
-    private async Task RunCycleAsync(CancellationToken cancellationToken)
+    /// <summary>Runs one poll cycle. Returns false only when a cycle was already running and this call was skipped
+    /// (used by the dashboard's manual "sync now" action to report accurate feedback).</summary>
+    internal async Task<bool> RunCycleAsync(CancellationToken cancellationToken)
     {
         if (!await cycleGuard.WaitAsync(TimeSpan.Zero, cancellationToken))
         {
             logger.LogWarning("Ciclo anterior aún en ejecución, se omite este tick");
-            return;
+            return false;
         }
 
         try
         {
             var contacts = routingService.LoadDirectory();
+            if (contacts.Count == 0)
+            {
+                logger.LogCritical(
+                    "El directorio de comunas ({CsvPath}) está vacío o no se pudo leer. Se omite este ciclo completo para no perder correos silenciosamente",
+                    options.ComunaDirectoryCsvPath);
+                return true;
+            }
 
             var incoming = await emailReader.GetMessagesInFolderAsync(options.SourceFolderName, cancellationToken);
             foreach (var email in incoming)
@@ -73,10 +82,12 @@ public sealed class RouterWorker(
             logger.LogInformation(
                 "Ciclo completado: {IncomingCount} en '{SourceFolder}', {ConfirmationCount} en '{ConfirmationFolder}'",
                 incoming.Count, options.SourceFolderName, confirmations.Count, options.ConfirmationFolderName);
+            return true;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Fallo el ciclo de sondeo, se reintentará en el próximo tick");
+            return true;
         }
         finally
         {

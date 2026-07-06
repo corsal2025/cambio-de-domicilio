@@ -11,9 +11,16 @@ using OutlookComunaRouter.Routing;
 namespace OutlookComunaRouter.Dashboard.Pages;
 
 [Authorize]
-public class IndexModel(IPersonRequestRepository repository, AddressChangeRoutingService routingService, RouterOptions options) : PageModel
+public class IndexModel(
+    IPersonRequestRepository repository,
+    IDiscardedEmailRepository discardedRepository,
+    AddressChangeRoutingService routingService,
+    RouterWorker routerWorker,
+    RouterOptions options) : PageModel
 {
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
+    public int NeedsReviewCount { get; private set; }
+    public int DiscardedCount { get; private set; }
     public string? StatusFilter { get; set; }
     public bool OnlyNeedsReview { get; set; }
     public string? Message { get; set; }
@@ -62,6 +69,17 @@ public class IndexModel(IPersonRequestRepository repository, AddressChangeRoutin
         return Page();
     }
 
+    public async Task<IActionResult> OnPostSyncNowAsync()
+    {
+        var ran = await routerWorker.RunCycleAsync(HttpContext.RequestAborted);
+        Message = ran
+            ? "Sincronización completada."
+            : "Ya hay una sincronización en curso, intente en unos segundos.";
+        MessageIsError = !ran;
+        Load();
+        return Page();
+    }
+
     public async Task<IActionResult> OnPostConfirmAsync(long id)
     {
         var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -84,7 +102,11 @@ public class IndexModel(IPersonRequestRepository repository, AddressChangeRoutin
 
     private void Load()
     {
-        var all = repository.GetAll().AsEnumerable();
+        var everything = repository.GetAll();
+        NeedsReviewCount = everything.Count(c => c.NeedsReview);
+        DiscardedCount = discardedRepository.GetAll().Count;
+
+        var all = everything.AsEnumerable();
 
         if (!string.IsNullOrEmpty(StatusFilter) && Enum.TryParse<RequestStatus>(StatusFilter, out var status))
         {
