@@ -35,6 +35,13 @@ public interface IPersonRequestRepository
     /// been tracked at all (e.g. a mistaken manual entry). Not the same as reverting a status.</summary>
     void Delete(long id);
 
+    /// <summary>Tombstones a source email so the poll cycle never re-inserts it as a new case —
+    /// without this, deleting a case whose original email is still sitting in "CARP. PARA PEDIR"
+    /// gets silently recreated on the very next sync (auto or manual).</summary>
+    void RecordDeletedSourceMessage(string sourceMessageId);
+
+    bool IsSourceMessageDeleted(string sourceMessageId);
+
     IReadOnlyList<PersonRequest> GetAll();
 }
 
@@ -67,6 +74,11 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 CreatedAt TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS IX_PersonRequest_RutComuna ON PersonRequest (Rut, Comuna);
+
+            CREATE TABLE IF NOT EXISTS DeletedSourceMessage (
+                SourceMessageId TEXT PRIMARY KEY,
+                DeletedAt TEXT NOT NULL
+            );
             """;
         command.ExecuteNonQuery();
 
@@ -326,6 +338,29 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.CommandText = "DELETE FROM PersonRequest WHERE Id = $id";
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
+    }
+
+    public void RecordDeletedSourceMessage(string sourceMessageId)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO DeletedSourceMessage (SourceMessageId, DeletedAt)
+            VALUES ($id, $deletedAt)
+            ON CONFLICT (SourceMessageId) DO NOTHING
+            """;
+        command.Parameters.AddWithValue("$id", sourceMessageId);
+        command.Parameters.AddWithValue("$deletedAt", DateTimeOffset.UtcNow.ToString("O"));
+        command.ExecuteNonQuery();
+    }
+
+    public bool IsSourceMessageDeleted(string sourceMessageId)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT 1 FROM DeletedSourceMessage WHERE SourceMessageId = $id";
+        command.Parameters.AddWithValue("$id", sourceMessageId);
+        return command.ExecuteScalar() is not null;
     }
 
     public void SetMarked(long id, bool marked)

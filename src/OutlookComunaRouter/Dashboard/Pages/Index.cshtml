@@ -13,8 +13,11 @@
 <body class="cases-page">
     <header class="app-header">
         <div class="brand">
-            OutlookComunaRouter
-            <small>Municipalidad de Valparaíso — Solicitudes de carpeta</small>
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                OutlookComunaRouter
+                <small>Municipalidad de Valparaíso — Solicitudes de carpeta</small>
+            </span>
         </div>
         <nav class="app-nav">
             <div class="nav-group nav-group-filters">
@@ -56,6 +59,16 @@
                     }
                 </form>
                 <form method="post" asp-page-handler="SyncNow"><button type="submit">Sincronizar ahora</button></form>
+                <form method="post" asp-page-handler="MarkAllBySector" asp-route-sector="Archivo"
+                      asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" asp-route-search="@Model.SearchQuery"
+                      title="Marca todos los casos cuya última carpeta es anterior a julio 2023 (sector Archivo)">
+                    <button type="submit">Marcar todo Archivo</button>
+                </form>
+                <form method="post" asp-page-handler="MarkAllBySector" asp-route-sector="Oficina43"
+                      asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" asp-route-search="@Model.SearchQuery"
+                      title="Marca todos los casos cuya última carpeta es julio 2023 en adelante (sector Oficina 43)">
+                    <button type="submit">Marcar todo Oficina 43</button>
+                </form>
                 <a asp-page="/ChangePassword">Cambiar contraseña</a>
                 <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
             </div>
@@ -163,7 +176,8 @@
                         </td>
                         <td class="text-cell rut-cell">
                             <input type="text" name="rut" value="@item.Rut" placeholder="RUT" required size="13"
-                                   class="input-inline rut-input" form="person-form-@item.Id" onchange="this.form.submit()" />
+                                   class="input-inline rut-input" form="person-form-@item.Id" onchange="this.form.submit()"
+                                   oncopy="var s=this.value.substring(this.selectionStart,this.selectionEnd)||this.value; event.clipboardData.setData('text/plain', s.replace(/\./g,'')); event.preventDefault();" />
                         </td>
                         <td class="text-cell">@item.Comuna</td>
                         <td class="text-cell">@item.ReceivedAt.LocalDateTime.ToString("dd-MM-yyyy")</td>

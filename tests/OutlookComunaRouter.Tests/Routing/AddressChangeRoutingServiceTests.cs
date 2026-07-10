@@ -232,6 +232,20 @@ public class AddressChangeRoutingServiceTests : IDisposable
     }
 
     [Fact]
+    public void ProcessIncomingRequest_TombstonedMessageId_IsNeverReinserted()
+    {
+        // The operator deleted every case tracked from this email, but the email itself is
+        // still sitting untouched in the source folder — without a tombstone, the very next
+        // poll cycle (auto or manual) would silently recreate the case from scratch, losing
+        // whatever the operator had already entered (fecha, corrections, etc.).
+        repository.RecordDeletedSourceMessage("msg-1");
+
+        sut.ProcessIncomingRequest(NewEmail("msg-1", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7"), Contacts);
+
+        Assert.Empty(repository.GetAll());
+    }
+
+    [Fact]
     public void ProcessIncomingRequest_MissingData_RecordedAsNeedsReview()
     {
         sut.ProcessIncomingRequest(NewEmail("msg-1", "Correo sin datos reconocibles."), Contacts);

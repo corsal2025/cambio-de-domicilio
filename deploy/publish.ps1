@@ -110,7 +110,7 @@ if (-not (Test-Path $TargetConfig)) {
     if (Test-Path $ExampleConfig) {
         Copy-Item $ExampleConfig $TargetConfig
         Write-Host "  ✅ appsettings.json creado desde appsettings.Example.json" -ForegroundColor Green
-        Write-Host "  ⚠️  EDITALO: completa Router:Ews:Username y Router:Ews:Password" -ForegroundColor Yellow
+        Write-Host "  ⚠️  EDITALO: completa Router:Ews:Username, Router:Ews:Password y Kestrel:Certificates:Default:Password" -ForegroundColor Yellow
     }
 } else {
     Write-Host "  ✅ appsettings.json ya existe" -ForegroundColor Green

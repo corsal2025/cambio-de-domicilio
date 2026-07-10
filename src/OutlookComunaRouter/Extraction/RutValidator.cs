@@ -38,6 +38,13 @@ public static class RutValidator
             return null;
         }
 
+        // RUTs under 10 million have a 7-digit body — pad with a leading 0 so every RUT
+        // groups into the same 2-3-3-digit shape (e.g. "9.876.543" -> "09.876.543").
+        if (body.Length == 7)
+        {
+            body = "0" + body;
+        }
+
         return Format(body, checkDigit);
     }
 

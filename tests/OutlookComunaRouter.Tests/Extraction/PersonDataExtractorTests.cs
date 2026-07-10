@@ -98,6 +98,33 @@ public class PersonDataExtractorTests
     }
 
     [Fact]
+    public void Extract_SpaceSeparatedThreeWordName_ReordersToGivenNameFirst()
+    {
+        // Single-given-name variant of Viña's export (APELLIDO APELLIDO NOMBRE, one fewer word
+        // than the calibrated 4-word case) — same reorder rule, unambiguous either way.
+        var body = "19328001        3       FIGUEROA        BOLADOS ZIZINHO";
+
+        var result = PersonDataExtractor.Extract(body);
+
+        Assert.Equal("19.328.001-3", result.Rut);
+        Assert.Equal("ZIZINHO FIGUEROA BOLADOS", result.FullName);
+    }
+
+    [Fact]
+    public void Extract_SpaceSeparatedAmbiguousWordCount_DropsNameForReview()
+    {
+        // 5 words can't be split into surnames/given-names reliably (could be 2+3 or 3+2) —
+        // dropping the name (forcing NeedsReview via the null FullName) beats silently storing
+        // it in the wrong order.
+        var body = "19328001        3       SAN MARTIN GARCIA JUAN CARLOS";
+
+        var result = PersonDataExtractor.Extract(body);
+
+        Assert.Equal("19.328.001-3", result.Rut);
+        Assert.Null(result.FullName);
+    }
+
+    [Fact]
     public void Extract_FourWordNameNotFromSpaceSeparatedFormat_IsNotReordered()
     {
         // The reorder is specific to Viña's fixed-order system export (space-separated check

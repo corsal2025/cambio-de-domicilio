@@ -178,16 +178,22 @@ public static partial class PersonDataExtractor
 
     /// <summary>
     /// Viña del Mar's system (the only source matched via <see cref="SpaceSeparatedRutPattern"/>)
-    /// always exports APELLIDO APELLIDO NOMBRE NOMBRE — swap the two halves so the name reads
-    /// given-names-first like everywhere else in the report. Only safe for an exact 4-word name;
-    /// other word counts aren't reordered since which half is which can't be inferred reliably.
+    /// exports APELLIDO(S) NOMBRE(S) — surnames first, then given names — so this swaps them to
+    /// read given-names-first like everywhere else in the report. The 2/3/4-word shapes are
+    /// unambiguous (one or two surnames, followed by one or two given names) and safe to swap;
+    /// any other word count can't be split reliably, so the caller drops the name entirely
+    /// (returns null) rather than risk silently storing it in the wrong order.
     /// </summary>
-    private static string ReorderGivenNamesFirst(string fullName)
+    private static string? ReorderGivenNamesFirst(string fullName)
     {
         var words = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return words.Length == 4
-            ? $"{words[2]} {words[3]} {words[0]} {words[1]}"
-            : fullName;
+        return words.Length switch
+        {
+            2 => $"{words[1]} {words[0]}",
+            3 => $"{words[2]} {words[0]} {words[1]}",
+            4 => $"{words[2]} {words[3]} {words[0]} {words[1]}",
+            _ => null
+        };
     }
 
     /// <summary>

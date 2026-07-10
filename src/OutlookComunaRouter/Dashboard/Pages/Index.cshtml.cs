@@ -16,7 +16,8 @@ public class IndexModel(
     IDiscardedEmailRepository discardedRepository,
     AddressChangeRoutingService routingService,
     RouterWorker routerWorker,
-    RouterOptions options) : PageModel
+    RouterOptions options,
+    ILogger<IndexModel> logger) : PageModel
 {
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
     public IReadOnlyList<ComunaContact> ComunaOptions { get; private set; } = [];
@@ -40,6 +41,7 @@ public class IndexModel(
 
     public IActionResult OnPostSetFecha(long id, string fecha)
     {
+        logger.LogInformation("OnPostSetFecha caso={Id} valorRecibido='{Fecha}'", id, fecha);
         if (string.IsNullOrWhiteSpace(fecha))
         {
             repository.ClearFechaUltimaCarpeta(id);
@@ -140,7 +142,15 @@ public class IndexModel(
     /// re-found source email, this actually erases the row.</summary>
     public IActionResult OnPostDeleteCase(long id)
     {
+        // Tombstone the source email BEFORE deleting the row (need it while the row still
+        // exists) so a future sync cycle never recreates this case from the same email.
+        var sourceMessageId = repository.FindById(id)?.SourceMessageId;
         repository.Delete(id);
+        if (sourceMessageId is not null)
+        {
+            repository.RecordDeletedSourceMessage(sourceMessageId);
+        }
+
         Message = "Caso eliminado.";
         return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
     }
@@ -165,6 +175,23 @@ public class IndexModel(
         foreach (var item in Cases)
         {
             repository.SetMarked(item.Id, marked);
+        }
+
+        return RedirectToPage(new { status, needsReview, search });
+    }
+
+    /// <summary>Selects exactly the still-outstanding cases in the given sector (derived from
+    /// Fecha última carpeta) — marks every matching, not-yet-Confirmed case AND unmarks every
+    /// other one, regardless of the current filter, so the checked set on screen always reflects
+    /// only that sector's pending work. Confirmed (blue) cases are excluded: they're already
+    /// done, selecting them again for a new PDF run makes no sense. A shortcut so the operator
+    /// doesn't have to hunt down and tick every Archivo (or Oficina 43) case one by one before
+    /// generating that sector's PDF.</summary>
+    public IActionResult OnPostMarkAllBySector(FolderSector sector, string? status, bool needsReview, string? search)
+    {
+        foreach (var item in repository.GetAll())
+        {
+            repository.SetMarked(item.Id, item.Sector == sector && item.Status != RequestStatus.Confirmed);
         }
 
         return RedirectToPage(new { status, needsReview, search });

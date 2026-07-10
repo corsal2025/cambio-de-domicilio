@@ -11,7 +11,15 @@ using OutlookComunaRouter.Persistence;
 using OutlookComunaRouter.Reporting;
 using OutlookComunaRouter.Routing;
 
-var builder = WebApplication.CreateBuilder(args);
+// ContentRootPath pinned to the exe's own folder (not the process's current directory) so every
+// relative path in config (SqliteDbPath, ComunaDirectoryCsvPath, cert path, etc.) resolves the
+// same way no matter how the app is launched — double-click, a shortcut, Task Scheduler, or a
+// pendrive that gets a different drive letter on every PC it's plugged into.
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory
+});
 
 var routerOptions = builder.Configuration.GetSection(RouterOptions.SectionName).Get<RouterOptions>()
     ?? throw new InvalidOperationException($"Missing '{RouterOptions.SectionName}' configuration section.");

@@ -41,9 +41,20 @@ header.app-header {
 }
 
 header.app-header .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     font-weight: 600;
     font-size: 1.05rem;
     letter-spacing: 0.2px;
+}
+
+header.app-header .brand-logo {
+    height: 36px;
+    width: auto;
+    border-radius: 4px;
+    background: #fff;
+    padding: 2px;
 }
 
 header.app-header .brand small {

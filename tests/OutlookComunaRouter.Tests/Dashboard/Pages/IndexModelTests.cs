@@ -65,7 +65,7 @@ public class IndexModelTests : IDisposable
             options,
             NullLogger<RouterWorker>.Instance);
 
-        model = new IndexModel(repository, discardedRepository, routingService, routerWorker, options)
+        model = new IndexModel(repository, discardedRepository, routingService, routerWorker, options, NullLogger<IndexModel>.Instance)
         {
             PageContext = new PageContext
             {
@@ -343,6 +343,16 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
+    public void OnPostDeleteCase_TombstonesTheSourceMessage_SoResyncCannotRecreateIt()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        model.OnPostDeleteCase(id);
+
+        Assert.True(repository.IsSourceMessageDeleted("msg-1"));
+    }
+
+    [Fact]
     public void OnPostMarkAllVisible_MarkTrue_MarksAllCurrentlyVisibleCases()
     {
         var id1 = repository.Insert(NewRequest("msg-1"));
@@ -376,6 +386,46 @@ public class IndexModelTests : IDisposable
         model.OnPostMarkAllVisible(marked: false, status: null, needsReview: false, search: null);
 
         Assert.False(repository.GetAll().Single(c => c.Id == id).Marked);
+    }
+
+    [Fact]
+    public void OnPostMarkAllBySector_SelectsExactlyThatSector_UnmarkingEverythingElse()
+    {
+        var archivoId = repository.Insert(NewRequest("msg-1"));
+        repository.SetFechaUltimaCarpeta(archivoId, new DateOnly(2022, 1, 1)); // Archivo
+
+        var oficinaId = repository.Insert(NewRequest("msg-2"));
+        repository.SetFechaUltimaCarpeta(oficinaId, new DateOnly(2024, 1, 1)); // Oficina43
+        repository.SetMarked(oficinaId, true); // stale mark from earlier — must be cleared
+
+        var noSectorId = repository.Insert(NewRequest("msg-3")); // no fecha -> no sector
+        repository.SetMarked(noSectorId, true); // also stale — must be cleared
+
+        // Status filter is irrelevant to this action — every Archivo case gets marked,
+        // not just the ones currently visible under whatever filter is active.
+        model.OnPostMarkAllBySector(FolderSector.Archivo, status: "Uploaded", needsReview: false, search: null);
+
+        Assert.True(repository.GetAll().Single(c => c.Id == archivoId).Marked);
+        Assert.False(repository.GetAll().Single(c => c.Id == oficinaId).Marked);
+        Assert.False(repository.GetAll().Single(c => c.Id == noSectorId).Marked);
+    }
+
+    [Fact]
+    public void OnPostMarkAllBySector_ExcludesAlreadyConfirmedCases()
+    {
+        // Confirmed (blue) cases are already done — selecting them again for a fresh print run
+        // makes no sense, so they're skipped even though they belong to the sector.
+        var pendingId = repository.Insert(NewRequest("msg-1"));
+        repository.SetFechaUltimaCarpeta(pendingId, new DateOnly(2022, 1, 1)); // Archivo, still open
+
+        var confirmedId = repository.Insert(NewRequest("msg-2"));
+        repository.SetFechaUltimaCarpeta(confirmedId, new DateOnly(2022, 1, 1)); // Archivo, already confirmed
+        repository.UpdateStatusToConfirmed(confirmedId, DateTimeOffset.UtcNow, confirmedByUserId: 1);
+
+        model.OnPostMarkAllBySector(FolderSector.Archivo, status: null, needsReview: false, search: null);
+
+        Assert.True(repository.GetAll().Single(c => c.Id == pendingId).Marked);
+        Assert.False(repository.GetAll().Single(c => c.Id == confirmedId).Marked);
     }
 
     [Fact]

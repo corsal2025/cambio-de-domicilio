@@ -35,6 +35,13 @@ public sealed class AddressChangeRoutingService(
     /// <summary>Processes one email found in the source folder ("CARP. PARA PEDIR").</summary>
     public void ProcessIncomingRequest(IncomingEmail email, IReadOnlyList<ComunaContact> contacts)
     {
+        if (repository.IsSourceMessageDeleted(email.MessageId))
+        {
+            // The operator explicitly deleted every case tracked from this email — as long as it
+            // sits unmoved in the source folder, every poll cycle would otherwise recreate it.
+            return;
+        }
+
         if (repository.ExistsBySourceMessageId(email.MessageId))
         {
             // The operator may have moved this email back to the source folder to undo an

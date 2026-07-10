@@ -26,4 +26,6 @@ certs/
 # OpenSpec local workset
 openspec/.workset/
 publish/
+publish-pendrive/
+imagenes/
 .atl/

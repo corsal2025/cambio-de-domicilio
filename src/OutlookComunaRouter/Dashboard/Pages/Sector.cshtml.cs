@@ -12,11 +12,14 @@ public class SectorModel(IPersonRequestRepository repository) : PageModel
     public FolderSector SelectedSector { get; private set; }
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
 
+    /// <summary>Only cases the operator checked (Marcar, on Casos) show up here — that checkbox
+    /// is how the operator picks which contributors get categorized into a sector document,
+    /// before printing.</summary>
     public void OnGet(FolderSector sector)
     {
         SelectedSector = sector;
         Cases = repository.GetAll()
-            .Where(c => c.Sector == sector && c.SectorPdfGeneratedAt is null)
+            .Where(c => c.Sector == sector && c.Marked && c.SectorPdfGeneratedAt is null)
             .OrderBy(c => c.FullName)
             .ToList();
     }
@@ -51,7 +54,7 @@ public class SectorModel(IPersonRequestRepository repository) : PageModel
     private void MarkAllVisibleAsPrinted(FolderSector sector)
     {
         var now = DateTimeOffset.UtcNow;
-        foreach (var item in repository.GetAll().Where(c => c.Sector == sector && c.SectorPdfGeneratedAt is null))
+        foreach (var item in repository.GetAll().Where(c => c.Sector == sector && c.Marked && c.SectorPdfGeneratedAt is null))
         {
             repository.SetSectorPdfGenerated(item.Id, now);
         }

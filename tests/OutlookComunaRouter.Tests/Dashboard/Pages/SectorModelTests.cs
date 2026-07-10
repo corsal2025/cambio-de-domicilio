@@ -22,11 +22,14 @@ public class SectorModelTests : IDisposable
     {
         var archivoId = repository.Insert(NewRequest("msg-1", "Persona Archivo"));
         repository.SetFechaUltimaCarpeta(archivoId, new DateOnly(2022, 1, 1));
+        repository.SetMarked(archivoId, true);
 
         var oficinaId = repository.Insert(NewRequest("msg-2", "Persona Oficina"));
         repository.SetFechaUltimaCarpeta(oficinaId, new DateOnly(2024, 1, 1));
+        repository.SetMarked(oficinaId, true);
 
         var withoutFechaId = repository.Insert(NewRequest("msg-3", "Persona Sin Fecha"));
+        repository.SetMarked(withoutFechaId, true);
 
         var model = new SectorModel(repository);
         model.OnGet(FolderSector.Archivo);
@@ -36,14 +39,36 @@ public class SectorModelTests : IDisposable
     }
 
     [Fact]
+    public void OnGet_ExcludesUnmarkedCases()
+    {
+        // Marcar (checked on Casos) is how the operator picks which contributors get
+        // categorized into a sector document — an unmarked case with a valid sector never
+        // shows up here, even though it would otherwise qualify by FechaUltimaCarpeta alone.
+        var markedId = repository.Insert(NewRequest("msg-1", "Persona Marcada"));
+        repository.SetFechaUltimaCarpeta(markedId, new DateOnly(2022, 1, 1));
+        repository.SetMarked(markedId, true);
+
+        var unmarkedId = repository.Insert(NewRequest("msg-2", "Persona Sin Marcar"));
+        repository.SetFechaUltimaCarpeta(unmarkedId, new DateOnly(2022, 1, 1));
+
+        var model = new SectorModel(repository);
+        model.OnGet(FolderSector.Archivo);
+
+        var result = Assert.Single(model.Cases);
+        Assert.Equal("Persona Marcada", result.FullName);
+    }
+
+    [Fact]
     public void OnGet_ExcludesCasesAlreadyGeneratedInAPreviousPdf()
     {
         var printedId = repository.Insert(NewRequest("msg-1", "Ya Impreso"));
         repository.SetFechaUltimaCarpeta(printedId, new DateOnly(2022, 1, 1));
+        repository.SetMarked(printedId, true);
         repository.SetSectorPdfGenerated(printedId, DateTimeOffset.UtcNow);
 
         var freshId = repository.Insert(NewRequest("msg-2", "Caso Nuevo"));
         repository.SetFechaUltimaCarpeta(freshId, new DateOnly(2022, 1, 1));
+        repository.SetMarked(freshId, true);
 
         var model = new SectorModel(repository);
         model.OnGet(FolderSector.Archivo);
@@ -53,12 +78,14 @@ public class SectorModelTests : IDisposable
     }
 
     [Fact]
-    public void OnPostMarkPrinted_MarksAllCurrentlyVisibleCasesInThatSector()
+    public void OnPostMarkPrinted_MarksEveryCurrentlyVisibleCaseInThatSector()
     {
         var archivoId = repository.Insert(NewRequest("msg-1", "Persona Archivo"));
         repository.SetFechaUltimaCarpeta(archivoId, new DateOnly(2022, 1, 1));
+        repository.SetMarked(archivoId, true);
         var oficinaId = repository.Insert(NewRequest("msg-2", "Persona Oficina"));
         repository.SetFechaUltimaCarpeta(oficinaId, new DateOnly(2024, 1, 1));
+        repository.SetMarked(oficinaId, true);
 
         var model = new SectorModel(repository);
         model.OnPostMarkPrinted(FolderSector.Archivo);
@@ -75,8 +102,10 @@ public class SectorModelTests : IDisposable
     {
         var toRemoveId = repository.Insert(NewRequest("msg-1", "Persona A"));
         repository.SetFechaUltimaCarpeta(toRemoveId, new DateOnly(2022, 1, 1));
+        repository.SetMarked(toRemoveId, true);
         var toKeepId = repository.Insert(NewRequest("msg-2", "Persona B"));
         repository.SetFechaUltimaCarpeta(toKeepId, new DateOnly(2022, 1, 1));
+        repository.SetMarked(toKeepId, true);
 
         var model = new SectorModel(repository);
         model.OnPostRemoveOne(toRemoveId, FolderSector.Archivo);
@@ -94,10 +123,13 @@ public class SectorModelTests : IDisposable
     {
         var archivoId1 = repository.Insert(NewRequest("msg-1", "Persona A"));
         repository.SetFechaUltimaCarpeta(archivoId1, new DateOnly(2022, 1, 1));
+        repository.SetMarked(archivoId1, true);
         var archivoId2 = repository.Insert(NewRequest("msg-2", "Persona B"));
         repository.SetFechaUltimaCarpeta(archivoId2, new DateOnly(2022, 1, 1));
+        repository.SetMarked(archivoId2, true);
         var oficinaId = repository.Insert(NewRequest("msg-3", "Persona Oficina"));
         repository.SetFechaUltimaCarpeta(oficinaId, new DateOnly(2024, 1, 1));
+        repository.SetMarked(oficinaId, true);
 
         var model = new SectorModel(repository);
         model.OnPostClearAll(FolderSector.Archivo);

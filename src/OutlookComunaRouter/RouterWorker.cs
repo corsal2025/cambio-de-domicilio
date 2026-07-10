@@ -18,17 +18,13 @@ public sealed class RouterWorker(
 {
     private readonly SemaphoreSlim cycleGuard = new(1, 1);
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    /// <summary>No automatic polling — sync only runs when the operator presses "Sincronizar
+    /// ahora" on the dashboard (see IndexModel.OnPostSyncNowAsync), which calls RunCycleAsync
+    /// directly. This method just ensures the schema exists at startup.</summary>
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         repository.EnsureSchema();
-        var interval = TimeSpan.FromMinutes(options.PollIntervalMinutes);
-
-        using var timer = new PeriodicTimer(interval);
-        do
-        {
-            await RunCycleAsync(stoppingToken);
-        }
-        while (await timer.WaitForNextTickAsync(stoppingToken));
+        return Task.CompletedTask;
     }
 
     /// <summary>Runs one poll cycle. Returns false only when a cycle was already running and this call was skipped
