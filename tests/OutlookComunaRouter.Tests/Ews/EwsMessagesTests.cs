@@ -82,4 +82,46 @@ public class EwsMessagesTests
         Assert.Contains(document.Descendants(EwsMessages.T + "FieldURI"),
             e => e.Attribute("FieldURI")!.Value == "message:InternetMessageId");
     }
+
+    [Fact]
+    public void BuildFindItemByMessageIdRequest_FiltersByInternetMessageIdWithinFolder()
+    {
+        var xml = EwsMessages.BuildFindItemByMessageIdRequest(EwsFolderRef.ByFolderId("folder-1", "ck-1"), "<abc@munivalpo.cl>");
+        var document = XDocument.Parse(xml);
+
+        var constant = document.Descendants(EwsMessages.T + "Constant").Single();
+        Assert.Equal("<abc@munivalpo.cl>", constant.Attribute("Value")!.Value);
+        Assert.Contains(document.Descendants(EwsMessages.T + "FieldURI"),
+            e => e.Attribute("FieldURI")!.Value == "message:InternetMessageId");
+        var folderRef = document.Descendants(EwsMessages.T + "FolderId").Single();
+        Assert.Equal("folder-1", folderRef.Attribute("Id")!.Value);
+    }
+
+    [Fact]
+    public void BuildMoveItemRequest_TargetsDestinationFolderAndItem()
+    {
+        var xml = EwsMessages.BuildMoveItemRequest(
+            new EwsItemRef("item-1", "ck-1"),
+            EwsFolderRef.ByFolderId("dest-folder", "dest-ck"));
+        var document = XDocument.Parse(xml);
+
+        var moveItem = document.Descendants(EwsMessages.M + "MoveItem").Single();
+        Assert.NotNull(moveItem);
+        var toFolder = document.Descendants(EwsMessages.T + "FolderId").Single();
+        Assert.Equal("dest-folder", toFolder.Attribute("Id")!.Value);
+        var itemId = document.Descendants(EwsMessages.T + "ItemId").Single();
+        Assert.Equal("item-1", itemId.Attribute("Id")!.Value);
+        Assert.Equal("ck-1", itemId.Attribute("ChangeKey")!.Value);
+    }
+
+    [Fact]
+    public void BuildUpdateItemSetReadFlagRequest_SetsIsReadField()
+    {
+        var xml = EwsMessages.BuildUpdateItemSetReadFlagRequest(new EwsItemRef("item-1", "ck-1"), isRead: false);
+        var document = XDocument.Parse(xml);
+
+        var updateItem = document.Descendants(EwsMessages.M + "UpdateItem").Single();
+        Assert.Equal("AlwaysOverwrite", updateItem.Attribute("ConflictResolution")!.Value);
+        Assert.Equal("false", document.Descendants(EwsMessages.T + "IsRead").Single().Value);
+    }
 }

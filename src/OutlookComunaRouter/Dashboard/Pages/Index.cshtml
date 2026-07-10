@@ -8,38 +8,57 @@
     <meta http-equiv="refresh" content="120" />
     <title>Casos — OutlookComunaRouter</title>
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
-    <link rel="stylesheet" href="~/css/dashboard.css" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
 </head>
-<body>
+<body class="cases-page">
     <header class="app-header">
         <div class="brand">
             OutlookComunaRouter
             <small>Municipalidad de Valparaíso — Solicitudes de carpeta</small>
         </div>
         <nav class="app-nav">
-            <a asp-page="/Index" class="@(Model.StatusFilter is null && !Model.OnlyNeedsReview ? "active" : "")">Todos</a>
-            <a asp-page="/Index" asp-route-status="Pending" class="@(Model.StatusFilter == "Pending" ? "active" : "")">Pendientes</a>
-            <a asp-page="/Index" asp-route-status="Uploaded" class="@(Model.StatusFilter == "Uploaded" ? "active" : "")">Subidos</a>
-            <a asp-page="/Index" asp-route-status="Confirmed" class="@(Model.StatusFilter == "Confirmed" ? "active" : "")">Confirmados</a>
-            <a asp-page="/Index" asp-route-needsReview="true" class="@(Model.OnlyNeedsReview ? "active" : "")">
-                Requiere revisión
-                @if (Model.NeedsReviewCount > 0)
-                {
-                    <span class="badge badge-review">@Model.NeedsReviewCount</span>
-                }
-            </a>
-            <a asp-page="/Sector" asp-route-sector="Archivo">PDF Archivo</a>
-            <a asp-page="/Sector" asp-route-sector="Oficina43">PDF Oficina 43</a>
-            <a asp-page="/Comunas">Comunas</a>
-            <a asp-page="/Discarded">
-                Descartados
-                @if (Model.DiscardedCount > 0)
-                {
-                    <span class="badge badge-review">@Model.DiscardedCount</span>
-                }
-            </a>
-            <form method="post" asp-page-handler="SyncNow"><button type="submit">Sincronizar ahora</button></form>
-            <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
+            <div class="nav-group nav-group-filters">
+                <a asp-page="/Index" class="@(Model.StatusFilter is null && !Model.OnlyNeedsReview && string.IsNullOrEmpty(Model.SearchQuery) ? "active" : "")">Todos</a>
+                <a asp-page="/Index" asp-route-status="Pending" class="@(Model.StatusFilter == "Pending" ? "active" : "")">Pendientes</a>
+                <a asp-page="/Index" asp-route-status="Uploaded" class="@(Model.StatusFilter == "Uploaded" ? "active" : "")">Subidos</a>
+                <a asp-page="/Index" asp-route-status="Confirmed" class="@(Model.StatusFilter == "Confirmed" ? "active" : "")">Confirmados</a>
+                <a asp-page="/Index" asp-route-needsReview="true" class="@(Model.OnlyNeedsReview ? "active" : "")">
+                    Requiere revisión
+                    @if (Model.NeedsReviewCount > 0)
+                    {
+                        <span class="badge badge-review">@Model.NeedsReviewCount</span>
+                    }
+                </a>
+            </div>
+
+            <div class="nav-group nav-group-tools">
+                <a asp-page="/Sector" asp-route-sector="Archivo">PDF Archivo</a>
+                <a asp-page="/Sector" asp-route-sector="Oficina43">PDF Oficina 43</a>
+                <a asp-page="/Comunas">Comunas</a>
+                <a asp-page="/Discarded">
+                    Descartados
+                    @if (Model.DiscardedCount > 0)
+                    {
+                        <span class="badge badge-review">@Model.DiscardedCount</span>
+                    }
+                </a>
+            </div>
+
+            <div class="nav-group nav-group-end">
+                <form method="get" class="nav-search">
+                    <input type="hidden" name="status" value="@Model.StatusFilter" />
+                    <input type="hidden" name="needsReview" value="@Model.OnlyNeedsReview" />
+                    <input type="text" name="search" placeholder="Buscar por RUT o nombre..." value="@Model.SearchQuery" />
+                    <button type="submit">Buscar</button>
+                    @if (!string.IsNullOrEmpty(Model.SearchQuery))
+                    {
+                        <a asp-page="/Index" asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" class="nav-search-clear">Limpiar</a>
+                    }
+                </form>
+                <form method="post" asp-page-handler="SyncNow"><button type="submit">Sincronizar ahora</button></form>
+                <a asp-page="/ChangePassword">Cambiar contraseña</a>
+                <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
+            </div>
         </nav>
     </header>
 
@@ -49,10 +68,50 @@
             <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
         }
 
-        <div class="card">
-            <table class="cases">
+        <div class="card" style="padding: 20px 24px; margin-bottom: 16px;">
+            <form method="post" asp-page-handler="AddManualCase" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+                <div>
+                    <label class="form-label" for="manual-comuna">Comuna</label>
+                    <select name="comuna" id="manual-comuna" required
+                            style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem;">
+                        <option value="">Seleccione...</option>
+                        @foreach (var contact in Model.ComunaOptions)
+                        {
+                            <option value="@contact.Comuna">@contact.Comuna</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" for="manual-nombre">Nombre completo</label>
+                    <input type="text" name="nombre" id="manual-nombre" required placeholder="ej: Gustavo Peña Castro"
+                           style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem; min-width:220px;" />
+                </div>
+                <div>
+                    <label class="form-label" for="manual-rut">RUT</label>
+                    <input type="text" name="rut" id="manual-rut" required placeholder="ej: 18.785.387-7"
+                           style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem;" />
+                </div>
+                <button type="submit" class="btn-primary" style="padding:8px 16px;">Agregar caso</button>
+            </form>
+        </div>
+
+        <div class="card table-card">
+            <table class="cases cases-index">
                 <thead>
                     <tr>
+                        <th style="white-space:nowrap;">
+                            <span style="display:inline-flex; align-items:center; gap:5px;">
+                                <form method="post" asp-page-handler="MarkAllVisible"
+                                      asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview"
+                                      style="display:inline-flex;">
+                                    <input type="checkbox" class="marked-checkbox" title="Marcar/desmarcar todos los casos visibles"
+                                           @(Model.AllVisibleMarked ? "checked" : "")
+                                           onchange="this.nextElementSibling.value = this.checked; this.form.submit();" />
+                                    <input type="hidden" name="marked" value="@(Model.AllVisibleMarked ? "true" : "false")" />
+                                </form>
+                                Marcar
+                            </span>
+                        </th>
                         <th>Nombre</th>
                         <th>RUT</th>
                         <th>Comuna</th>
@@ -65,28 +124,49 @@
                     </tr>
                 </thead>
                 <tbody>
+                @{ var rowIndex = 0; }
                 @foreach (var item in Model.Cases)
                 {
-                    <tr>
-                        @if (item.NeedsReview)
-                        {
-                            <td colspan="2">
-                                <form method="post" asp-page-handler="SetPersonData" style="display:flex; gap:6px; align-items:center;">
-                                    <input type="hidden" name="id" value="@item.Id" />
-                                    <input type="text" name="nombre" value="@item.FullName" placeholder="Nombre completo" required style="flex:2; min-width:180px;" class="input-inline" />
-                                    <input type="text" name="rut" value="@item.Rut" placeholder="RUT" required style="flex:1; min-width:110px;" class="input-inline" />
-                                    <button type="submit" class="btn-primary">Guardar</button>
-                                </form>
-                                <div class="review-hint">Requiere revisión — datos no extraíbles del correo (asunto: @item.SourceSubject)</div>
-                            </td>
-                        }
-                        else
-                        {
-                            <td>@item.FullName</td>
-                            <td>@item.Rut</td>
-                        }
-                        <td>@item.Comuna</td>
-                        <td>@item.ReceivedAt.LocalDateTime.ToString("dd-MM-yyyy")</td>
+                    var rowClass = rowIndex % 2 == 1 ? "row-alt" : "";
+                    var statusRowClass = item.Status == RequestStatus.Confirmed
+                        ? "row-confirmed"
+                        : (item.NeedsReview ? "row-needs-review" : "");
+                    rowIndex++;
+                    <tr class="@rowClass @statusRowClass">
+                        <td class="marked-cell">
+                            <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="checkbox" name="markedValue" class="marked-checkbox"
+                                       @(item.Marked ? "checked" : "") onchange="this.form.submit()"
+                                       title="@(item.Marked ? "Desmarcar caso" : "Marcar caso")" />
+                            </form>
+                        </td>
+                        <td class="name-cell">
+                            <form method="post" asp-page-handler="SetPersonData" id="person-form-@item.Id">
+                                <input type="hidden" name="id" value="@item.Id" />
+                            </form>
+                            <span class="name-with-alert">
+                            @if (item.NeedsReview)
+                            {
+                                <span class="review-alert" aria-label="Requiere revisión"
+                                      title="Requiere revisión — datos no extraíbles del correo (asunto: @item.SourceSubject)">⚠</span>
+                            }
+                            @* min-width in `ch` (not the `size` attribute) sets the column's floor: `size` estimates
+                               using the "0" glyph, which under-counts wide capitals (W, M) common in these names and
+                               let the column collapse below what the actual text needs. width:100% (see CSS) then
+                               lets each row's input still fill any extra space the widest name in the column grants it. *@
+                            <input type="text" name="nombre" value="@item.FullName" placeholder="Nombre completo" required
+                                   style="min-width: @(Math.Max((item.FullName ?? "").Length + 6, 20))ch;"
+                                   class="input-inline name-input" form="person-form-@item.Id" onchange="this.form.submit()"
+                                   title="@(item.NeedsReview ? $"Requiere revisión — datos no extraíbles del correo (asunto: {item.SourceSubject})" : "")" />
+                            </span>
+                        </td>
+                        <td class="text-cell rut-cell">
+                            <input type="text" name="rut" value="@item.Rut" placeholder="RUT" required size="13"
+                                   class="input-inline rut-input" form="person-form-@item.Id" onchange="this.form.submit()" />
+                        </td>
+                        <td class="text-cell">@item.Comuna</td>
+                        <td class="text-cell">@item.ReceivedAt.LocalDateTime.ToString("dd-MM-yyyy")</td>
                         <td>
                             @if (item.Status == RequestStatus.Pending)
                             {
@@ -115,23 +195,53 @@
                             <span class="badge @badgeClass">@badgeText</span>
                         </td>
                         <td>
-                            <form method="post" asp-page-handler="SetFecha" style="display:flex; gap:6px; align-items:center;">
+                            <form method="post" asp-page-handler="SetFecha" class="fecha-form">
                                 <input type="hidden" name="id" value="@item.Id" />
-                                <input type="text" name="fecha" class="input-inline" style="min-width:140px;"
-                                       placeholder="ej: 15/03/2024 o 15 marzo 2024"
-                                       value="@(item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")" />
-                                <button type="submit" class="btn-primary">OK</button>
+                                <input type="text" name="fecha" class="input-inline fecha-input" size="16"
+                                       placeholder="ej: 15/03/2024"
+                                       title="Formatos aceptados: 15/03/2024 o 15 marzo 2024"
+                                       value="@(item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")"
+                                       onchange="this.form.submit()" />
                             </form>
                         </td>
-                        <td>@(item.Sector?.ToString() ?? "—")</td>
+                        <td class="text-cell">@(item.Sector?.ToString() ?? "—")</td>
                         <td>
-                            @if (item.Status == RequestStatus.Uploaded && !item.NeedsReview)
+                            @if (item.Status == RequestStatus.Pending && !item.NeedsReview)
+                            {
+                                <form method="post" asp-page-handler="MarkUploadedAndConfirm"
+                                      onsubmit="return confirm('Esto moverá el correo a \'CARP. YA SUBIDAS\' y enviará la confirmación a la comuna de inmediato. ¿Confirmar?');">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-primary" title="Mover correo a 'CARP. YA SUBIDAS' y enviar confirmación">Marcar subida</button>
+                                </form>
+                            }
+                            else if (item.Status == RequestStatus.Uploaded && !item.NeedsReview)
                             {
                                 <form method="post" asp-page-handler="Confirm">
                                     <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn-primary">Enviar confirmación</button>
+                                    <button type="submit" class="btn-primary" title="Enviar confirmación">Confirmar</button>
                                 </form>
                             }
+                            else if (item.Status == RequestStatus.Confirmed)
+                            {
+                                <form method="post" asp-page-handler="RectifyConfirmation"
+                                      onsubmit="return confirm('Esto enviará un correo de RECTIFICACIÓN a la comuna indicando que la confirmación anterior fue un error, y revertirá el caso a Pendiente. ¿Continuar?') && confirm('¿Estás completamente seguro? Se enviará un correo real a la comuna ahora mismo.');">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-outline-danger" style="padding:4px 10px; font-size:0.72rem;" title="Enviar correo de rectificación y volver el caso a Pendiente">Deshacer y rectificar</button>
+                                </form>
+                            }
+                            <form method="post" asp-page-handler="DeleteCase"
+                                  onsubmit="return confirm('Esto elimina el caso de forma permanente, no se puede deshacer. ¿Confirmar?');">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <button type="submit" class="btn-danger" title="Eliminar caso permanentemente" aria-label="Eliminar caso">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 6h18" />
+                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                        <line x1="10" y1="11" x2="10" y2="17" />
+                                        <line x1="14" y1="11" x2="14" y2="17" />
+                                    </svg>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                 }
@@ -139,5 +249,22 @@
             </table>
         </div>
     </main>
+    <script>
+        // The page reloads constantly (every table action submits a form, plus the 2-minute
+        // auto-refresh above) — without this, the browser resets scroll to the top every time,
+        // forcing the operator to scroll back down to wherever they were working. beforeunload
+        // covers every way the page can go away: form submits, the meta refresh, manual reloads.
+        (function () {
+            var scrollKey = 'casesScrollY';
+            var savedScroll = sessionStorage.getItem(scrollKey);
+            if (savedScroll !== null) {
+                window.scrollTo(0, parseInt(savedScroll, 10));
+                sessionStorage.removeItem(scrollKey);
+            }
+            window.addEventListener('beforeunload', function () {
+                sessionStorage.setItem(scrollKey, window.scrollY);
+            });
+        })();
+    </script>
 </body>
 </html>

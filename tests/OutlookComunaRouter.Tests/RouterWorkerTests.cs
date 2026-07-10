@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OutlookComunaRouter.Configuration;
+using OutlookComunaRouter.Dashboard.Auth;
 using OutlookComunaRouter.Directories;
 using OutlookComunaRouter.Domain;
 using OutlookComunaRouter.Mail;
@@ -90,12 +91,16 @@ public class RouterWorkerTests : IDisposable
 
         var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
         discardedRepository.EnsureSchema();
+        var users = new UserRepository($"Data Source={dbPath}");
+        users.EnsureSchema();
 
         var routingService = new AddressChangeRoutingService(
             repository,
             discardedRepository,
             new ComunaDirectory(),
             new FakeMailSender(),
+            new NoOpEmailMover(),
+            users,
             [],
             options,
             NullLogger<AddressChangeRoutingService>.Instance);
@@ -147,6 +152,12 @@ public class RouterWorkerTests : IDisposable
     {
         public Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+    }
+
+    private sealed class NoOpEmailMover : IEmailMover
+    {
+        public Task<bool> MoveAndMarkUnreadAsync(string messageId, string sourceFolderDisplayName, string destinationFolderDisplayName, CancellationToken cancellationToken) =>
+            Task.FromResult(true);
     }
 
     private sealed class ListLogger<T> : ILogger<T>

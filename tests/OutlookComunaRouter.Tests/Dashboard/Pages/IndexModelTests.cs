@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using OutlookComunaRouter.Configuration;
+using OutlookComunaRouter.Dashboard.Auth;
 using OutlookComunaRouter.Dashboard.Pages;
 using OutlookComunaRouter.Directories;
 using OutlookComunaRouter.Domain;
@@ -30,6 +31,8 @@ public class IndexModelTests : IDisposable
         repository.EnsureSchema();
         var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
         discardedRepository.EnsureSchema();
+        var users = new UserRepository($"Data Source={dbPath}");
+        users.EnsureSchema();
         File.WriteAllText(csvPath, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
 
         var options = new RouterOptions
@@ -48,6 +51,8 @@ public class IndexModelTests : IDisposable
             discardedRepository,
             new ComunaDirectory(),
             new NoOpMailSender(),
+            new NoOpEmailMover(),
+            users,
             [],
             options,
             NullLogger<AddressChangeRoutingService>.Instance);
@@ -74,14 +79,73 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
-    public void OnGet_NoFilter_ReturnsAllCasesNewestFirst()
+    public void OnGet_NoFilter_OrdersByReceivedAtNewestFirst()
     {
-        repository.Insert(NewRequest("msg-1"));
-        repository.Insert(NewRequest("msg-2"));
+        // Order must follow when the email actually arrived (ReceivedAt), not when the row was
+        // inserted into the database (CreatedAt) — otherwise a case re-tracked later (e.g. after
+        // being reverted) would jump to the top even though the original request is old.
+        var older = NewRequest("msg-1");
+        older.ReceivedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var newer = NewRequest("msg-2");
+        newer.ReceivedAt = new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
+
+        repository.Insert(older);
+        repository.Insert(newer);
 
         model.OnGet(status: null);
 
         Assert.Equal(2, model.Cases.Count);
+        Assert.Equal("msg-2", model.Cases[0].SourceMessageId);
+        Assert.Equal("msg-1", model.Cases[1].SourceMessageId);
+    }
+
+    [Fact]
+    public void OnGet_MarkedCase_DoesNotAffectSortOrder()
+    {
+        // Marking is pure personal bookkeeping (highlights the row) — it must NOT move the case,
+        // unlike Confirmed status which does sink to the end (see the Confirmed-sort test below).
+        var newestMarked = NewRequest("msg-1");
+        newestMarked.ReceivedAt = new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
+        var olderUnmarked = NewRequest("msg-2");
+        olderUnmarked.ReceivedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        var markedId = repository.Insert(newestMarked);
+        repository.Insert(olderUnmarked);
+        repository.SetMarked(markedId, true);
+
+        model.OnGet(status: null);
+
+        Assert.Equal(2, model.Cases.Count);
+        Assert.Equal("msg-1", model.Cases[0].SourceMessageId); // marked, but still newest -> stays on top
+        Assert.Equal("msg-2", model.Cases[1].SourceMessageId);
+    }
+
+    [Fact]
+    public void OnGet_ConfirmedCases_SortToTheEndOrderedByConfirmedAtAscending()
+    {
+        // Confirmed cases (blue row) sink below everything else, including marked-but-not-yet-
+        // confirmed ones — and among themselves they order by when they were confirmed, not by
+        // ReceivedAt, so the operator can see confirmations in the order they happened.
+        var pending = NewRequest("msg-pending");
+        pending.ReceivedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var confirmedFirst = NewRequest("msg-confirmed-first");
+        confirmedFirst.ReceivedAt = new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
+        var confirmedSecond = NewRequest("msg-confirmed-second");
+        confirmedSecond.ReceivedAt = new DateTimeOffset(2026, 6, 2, 0, 0, 0, TimeSpan.Zero);
+
+        repository.Insert(pending);
+        var firstId = repository.Insert(confirmedFirst);
+        var secondId = repository.Insert(confirmedSecond);
+        // Confirm "second" chronologically before "first" — ConfirmedAt order must win, not insert order.
+        repository.UpdateStatusToConfirmed(secondId, new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero), 1);
+        repository.UpdateStatusToConfirmed(firstId, new DateTimeOffset(2026, 7, 5, 0, 0, 0, TimeSpan.Zero), 1);
+
+        model.OnGet(status: null);
+
+        Assert.Equal(3, model.Cases.Count);
+        Assert.Equal("msg-pending", model.Cases[0].SourceMessageId);
+        Assert.Equal("msg-confirmed-second", model.Cases[1].SourceMessageId); // confirmed 07-01, earlier
+        Assert.Equal("msg-confirmed-first", model.Cases[2].SourceMessageId); // confirmed 07-05, later
     }
 
     [Fact]
@@ -146,7 +210,7 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
-    public void OnPostSetPersonData_ValidData_ClearsReviewFlagAndNormalizesRut()
+    public void OnPostSetPersonData_ValidData_ClearsReviewFlagAndNormalizesRutAndName()
     {
         var incomplete = new PersonRequest
         {
@@ -164,7 +228,7 @@ public class IndexModelTests : IDisposable
         var stored = repository.GetAll().Single(c => c.Id == id);
         Assert.False(stored.NeedsReview);
         Assert.Equal("18.785.387-7", stored.Rut);
-        Assert.Equal("Gustavo Peña Castro", stored.FullName);
+        Assert.Equal("GUSTAVO PEÑA CASTRO", stored.FullName);
     }
 
     [Fact]
@@ -202,6 +266,19 @@ public class IndexModelTests : IDisposable
 
 
     [Fact]
+    public void OnPostSetFecha_EmptyValue_ClearsDateWithoutError()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        model.OnPostSetFecha(id, "1 mayo 2024");
+        Assert.NotNull(repository.GetAll().Single(c => c.Id == id).FechaUltimaCarpeta);
+
+        model.OnPostSetFecha(id, "");
+
+        Assert.Null(repository.GetAll().Single(c => c.Id == id).FechaUltimaCarpeta);
+        Assert.False(model.MessageIsError);
+    }
+
+    [Fact]
     public void OnPostSetFecha_UnparseableText_IsRejected()
     {
         var id = repository.Insert(NewRequest("msg-1"));
@@ -216,6 +293,7 @@ public class IndexModelTests : IDisposable
     public async Task OnPostConfirmAsync_UploadedCase_RecordsAttributionFromClaim()
     {
         var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetFechaUltimaCarpeta(id, new DateOnly(2024, 3, 15));
         repository.MarkUploaded(id, DateTimeOffset.UtcNow);
 
         await model.OnPostConfirmAsync(id);
@@ -226,12 +304,173 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
+    public async Task OnPostMarkUploadedAndConfirmAsync_PendingCase_MovesUpdatesAndConfirms()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetFechaUltimaCarpeta(id, new DateOnly(2024, 3, 15));
+
+        await model.OnPostMarkUploadedAndConfirmAsync(id);
+
+        var stored = repository.GetAll().Single(c => c.Id == id);
+        Assert.Equal(RequestStatus.Confirmed, stored.Status);
+        Assert.Equal(1, stored.ConfirmedByUserId);
+        Assert.False(model.MessageIsError);
+    }
+
+    [Fact]
+    public async Task OnPostRectifyConfirmationAsync_ConfirmedCase_RevertsToPending()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetFechaUltimaCarpeta(id, new DateOnly(2024, 3, 15));
+        await model.OnPostMarkUploadedAndConfirmAsync(id);
+
+        await model.OnPostRectifyConfirmationAsync(id);
+
+        var stored = repository.GetAll().Single(c => c.Id == id);
+        Assert.Equal(RequestStatus.Pending, stored.Status);
+        Assert.False(model.MessageIsError);
+    }
+
+    [Fact]
+    public void OnPostDeleteCase_RemovesTheCase()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        model.OnPostDeleteCase(id);
+
+        Assert.Empty(repository.GetAll());
+        Assert.Equal("Caso eliminado.", model.Message);
+    }
+
+    [Fact]
+    public void OnPostMarkAllVisible_MarkTrue_MarksAllCurrentlyVisibleCases()
+    {
+        var id1 = repository.Insert(NewRequest("msg-1"));
+        var id2 = repository.Insert(NewRequest("msg-2"));
+
+        model.OnPostMarkAllVisible(marked: true, status: null, needsReview: false, search: null);
+
+        Assert.True(repository.GetAll().Single(c => c.Id == id1).Marked);
+        Assert.True(repository.GetAll().Single(c => c.Id == id2).Marked);
+    }
+
+    [Fact]
+    public void OnPostMarkAllVisible_RespectsStatusFilter()
+    {
+        var pendingId = repository.Insert(NewRequest("msg-1"));
+        var uploadedId = repository.Insert(NewRequest("msg-2"));
+        repository.MarkUploaded(uploadedId, DateTimeOffset.UtcNow);
+
+        model.OnPostMarkAllVisible(marked: true, status: "Pending", needsReview: false, search: null);
+
+        Assert.True(repository.GetAll().Single(c => c.Id == pendingId).Marked);
+        Assert.False(repository.GetAll().Single(c => c.Id == uploadedId).Marked); // filtered out, untouched
+    }
+
+    [Fact]
+    public void OnPostMarkAllVisible_MarkFalse_UnmarksAll()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetMarked(id, true);
+
+        model.OnPostMarkAllVisible(marked: false, status: null, needsReview: false, search: null);
+
+        Assert.False(repository.GetAll().Single(c => c.Id == id).Marked);
+    }
+
+    [Fact]
+    public void AllVisibleMarked_TrueOnlyWhenEveryVisibleCaseIsMarked()
+    {
+        var id1 = repository.Insert(NewRequest("msg-1"));
+        var id2 = repository.Insert(NewRequest("msg-2"));
+        model.OnGet(status: null);
+        Assert.False(model.AllVisibleMarked);
+
+        repository.SetMarked(id1, true);
+        repository.SetMarked(id2, true);
+        model.OnGet(status: null);
+        Assert.True(model.AllVisibleMarked);
+    }
+
+    [Fact]
+    public void AllVisibleMarked_NoCases_IsFalse()
+    {
+        model.OnGet(status: null);
+
+        Assert.False(model.AllVisibleMarked);
+    }
+
+    [Fact]
+    public void OnPostToggleMarked_SetsMarkedFlag()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        model.OnPostToggleMarked(id, markedValue: "on");
+        Assert.True(repository.GetAll().Single(c => c.Id == id).Marked);
+
+        model.OnPostToggleMarked(id, markedValue: "");
+        Assert.False(repository.GetAll().Single(c => c.Id == id).Marked);
+    }
+
+    [Fact]
     public async Task OnPostSyncNowAsync_RunsCycleAndReportsSuccess()
     {
         await model.OnPostSyncNowAsync();
 
         Assert.False(model.MessageIsError);
         Assert.Equal("Sincronización completada.", model.Message);
+    }
+
+    [Fact]
+    public void OnPostAddManualCase_ValidData_InsertsPendingCaseNotNeedingReview()
+    {
+        model.OnPostAddManualCase("Catemu", "Gustavo Peña Castro", "18785387-7");
+
+        var stored = Assert.Single(repository.GetAll());
+        Assert.Equal("GUSTAVO PEÑA CASTRO", stored.FullName);
+        Assert.Equal("18.785.387-7", stored.Rut);
+        Assert.Equal("Catemu", stored.Comuna);
+        Assert.Equal(RequestStatus.Pending, stored.Status);
+        Assert.False(stored.NeedsReview);
+        Assert.False(model.MessageIsError);
+    }
+
+    [Fact]
+    public void OnPostAddManualCase_UnknownComuna_IsRejectedWithoutInserting()
+    {
+        model.OnPostAddManualCase("NoExiste", "Gustavo Peña Castro", "18785387-7");
+
+        Assert.Empty(repository.GetAll());
+        Assert.True(model.MessageIsError);
+    }
+
+    [Fact]
+    public void OnPostAddManualCase_InvalidRut_IsRejectedWithoutInserting()
+    {
+        model.OnPostAddManualCase("Catemu", "Gustavo Peña Castro", "18785387-6"); // wrong check digit
+
+        Assert.Empty(repository.GetAll());
+        Assert.True(model.MessageIsError);
+    }
+
+    [Fact]
+    public void OnPostAddManualCase_IncompleteName_IsRejectedWithoutInserting()
+    {
+        model.OnPostAddManualCase("Catemu", "Gustavo", "18785387-7");
+
+        Assert.Empty(repository.GetAll());
+        Assert.True(model.MessageIsError);
+    }
+
+    [Fact]
+    public void OnPostAddManualCase_DuplicateRutAndComuna_IsRejectedWithoutSecondRow()
+    {
+        model.OnPostAddManualCase("Catemu", "Gustavo Peña Castro", "18785387-7");
+
+        model.OnPostAddManualCase("Catemu", "Gustavo Andrés Peña Castro", "18785387-7");
+
+        Assert.Single(repository.GetAll());
+        Assert.True(model.MessageIsError);
     }
 
     private static PersonRequest NewRequest(string sourceMessageId) => new()
@@ -269,6 +508,12 @@ public class IndexModelTests : IDisposable
     {
         public Task<IReadOnlyList<IncomingEmail>> GetMessagesInFolderAsync(string folderDisplayName, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
+    }
+
+    private sealed class NoOpEmailMover : IEmailMover
+    {
+        public Task<bool> MoveAndMarkUnreadAsync(string messageId, string sourceFolderDisplayName, string destinationFolderDisplayName, CancellationToken cancellationToken) =>
+            Task.FromResult(true);
     }
 
     private sealed class NoOpCsvReportWriter : ICsvReportWriter

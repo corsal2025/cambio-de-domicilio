@@ -1,69 +1,130 @@
 # Data Model Documentation
 
-This document describes the data model for **OutlookComunaRouter**, a batch job that reads "cambio de domicilio" (address change) notifications in an Outlook mailbox, requests the latest case folder ("última carpeta") for each person from the relevant comuna (municipality), and tracks the request/response lifecycle.
+This document describes the data model for **OutlookComunaRouter**, a background service that
+tracks folder requests other comunas make to Valparaíso for a contributor's "última carpeta"
+(most recent driver's-license folder), from detection through upload and confirmation.
 
-Storage: SQLite, single file, no ORM.
+Storage: SQLite, single file, no ORM (`Microsoft.Data.Sqlite` directly).
 
 ## Model Descriptions
 
 ### 1. PersonRequest
 
-Represents one detected address-change notification for one person, and the lifecycle of the folder request sent to their comuna.
+Represents one tracked contributor request — one row per person, even when several people were
+named in the same source email.
 
 **Fields:**
-- `id`: Primary key (integer, autoincrement)
-- `full_name`: Full name as extracted from the source email (e.g. `GUSTAVO ANDRÉS PEÑA CASTRO`), nullable if extraction failed
-- `rut`: Chilean RUT, normalized to canonical dotted form (e.g. `18.785.387-7`) regardless of source punctuation, nullable if extraction failed
-- `comuna`: Comuna name, resolved via the sender domain against `ComunaContact.domain` (not guessed from the domain string), nullable if the domain isn't in the directory
-- `source_message_id`: `InternetMessageId` (RFC 5322 `Message-ID` header) of the original address-change notification email — chosen over the EWS `ItemId` because `ItemId` changes when an item is moved between folders, while `InternetMessageId` is immutable
-- `source_conversation_id`: Exchange `ConversationId` of the original email (available in EWS on Exchange 2010+)
-- `source_subject`: Subject of the original notification email, kept for manual-review reference when extraction fails
-- `source_sender`: Sender address of the original notification email, kept for manual-review reference
-- `needs_review`: `true` when `full_name`, `rut`, or `comuna` could not be resolved automatically
-- `status`: One of `pending`, `sent`, `responded` (see lifecycle below)
-- `request_sent_at`: Timestamp when the folder-request email was sent to the comuna (nullable until sent)
-- `request_message_id`: Graph message ID of the outgoing request email (nullable until sent)
-- `response_received_at`: Timestamp when a matching reply from the comuna was detected (nullable until responded)
-- `response_message_id`: Graph message ID of the comuna's reply (nullable until responded)
-- `last_folder_date`: "Fecha de última carpeta" reported by the comuna in their reply, once parsed (nullable until responded)
-- `created_at`: When this record was first detected
+- `Id`: Primary key (integer, autoincrement)
+- `FullName`: Full name as extracted (e.g. `GUSTAVO ANDRÉS PEÑA CASTRO`), nullable if extraction
+  failed or the case still needs manual review
+- `Rut`: Chilean RUT, normalized to canonical dotted form (e.g. `18.785.387-7`) regardless of source
+  punctuation, nullable if extraction failed
+- `Comuna`: Comuna name, resolved via the sender domain (or exact address, for domains shared by
+  several comunas) against `ComunaContact` — never guessed from the domain string
+- `SourceMessageId`: `InternetMessageId` (RFC 5322 `Message-ID` header) of the original request
+  email — chosen over the EWS `ItemId` because `ItemId`/`ChangeKey` change when an item is moved or
+  otherwise touched, while `InternetMessageId` is immutable. **Not unique**: a single source email
+  can list more than one contributor, and each gets its own row sharing this value.
+- `SourceConversationId`: Exchange `ConversationId` of the original email
+- `SourceSubject`: Subject of the original email, kept for manual-review reference
+- `SourceSender`: Sender address of the original email, kept for manual-review reference
+- `NeedsReview`: `true` when `FullName` or `Rut` could not be resolved automatically, or when a name
+  was only found via the subject-line fallback (a subject-derived name is never auto-trusted — see
+  the `extraction` spec)
+- `Status`: One of `Pending`, `Uploaded`, `Confirmed` (see lifecycle below)
+- `ReceivedAt`: When the source email was received — the legal upload deadline counts from this date
+- `FechaUltimaCarpeta`: Date of the contributor's última carpeta, typed in manually by the operator;
+  derives `Sector` (computed, not stored: `Archivo` if before July 2023, else `Oficina43`)
+- `UploadedAt`: When the case transitioned to Uploaded (nullable until then)
+- `ConfirmedAt` / `ConfirmedByUserId`: When the confirmation email was sent and which dashboard user
+  triggered it — a real email goes to another municipality, so this is always attributed
+- `Marked`: Operator-only bookkeeping checkbox (boolean), independent of `Status` — lets the
+  operator tick off cases they've cross-checked manually, with zero effect on the routing/
+  confirmation logic
+- `CreatedAt`: When this record was first created
 
-**Validation Rules:**
-- `full_name` and `rut` are required to move a record from `pending` to `sent` — if either can't be extracted from the source email, the record stays `pending` and is flagged for manual review (not sent automatically).
-- `comuna` must resolve to a known entry in `ComunaContact`; if it doesn't, the record stays `pending` (unknown comuna, no destination to send to).
-- A given `source_message_id` is only ever processed once (idempotency key), so re-running a polling cycle does not duplicate outgoing requests.
-- A given `(rut, comuna)` pair has at most one request with `status IN (sent, responded)` at a time — a second notification for the same person+comuna links to the existing record instead of creating a duplicate outgoing request.
+**Validation rules:**
+- A case can only transition `Pending → Uploaded` when its source email is found in
+  "CARP. YA SUBIDAS" (or via the one-click "Marcar subida" action, which moves it there itself).
+- A case can only be confirmed (`Uploaded → Confirmed`) when `NeedsReview = false` and
+  `FullName`/`Rut`/`Comuna` are all present.
+- A given `(Rut, Comuna)` pair has at most one tracked case — a resend for the same person+comuna
+  does not create a duplicate row.
+- `SourceMessageId` is deliberately **not** a unique constraint (see field description above); the
+  "already processed" idempotency check is "does at least one row exist for this message", not a
+  schema-level uniqueness guarantee.
 
-**Status Lifecycle:**
+**Status lifecycle:**
 ```
-pending -> sent -> responded
+Pending -> Uploaded -> Confirmed
 ```
-- `pending`: notification detected, not yet sent (missing data, unknown comuna, or not processed yet)
-- `sent`: folder request emailed to the comuna's contact address
-- `responded`: a reply matching this request (same thread, or new email from a `muni<comuna>.cl` domain referencing the same RUT/name) was detected
+- `Pending`: request detected, folder not yet uploaded to Conaset
+- `Uploaded`: operator uploaded the folder and the source email was found in "CARP. YA SUBIDAS"
+  (manually moved, or via "Marcar subida") — nothing has been sent to the comuna yet
+- `Confirmed`: the confirmation email was sent to the requesting comuna (only ever on an explicit
+  operator action) — `ConfirmedAt`/`ConfirmedByUserId` are set
 
-### 2. ComunaContact
+### 2. DiscardedEmail
 
-Reference directory mapping a comuna to its municipal contact email, imported from a CSV/Excel file provided by the user.
+An email whose sender domain could not be resolved to a known comuna, kept for operator visibility
+instead of being silently dropped.
 
 **Fields:**
-- `comuna`: Comuna name (unique, normalized: uppercase, no accents, for matching)
-- `contact_email`: Municipal contact address for that comuna (e.g. `rfloresc@municatemu.cl`)
-- `domain`: Email domain associated with the comuna (e.g. `municatemu.cl`), used to recognize both outgoing sends and incoming replies
-- `imported_at`: When this row was last (re)imported
+- `Id`, `SourceMessageId` (unique — one discard record per message), `SourceSubject`,
+  `SourceSender`, `Reason` (human-readable, e.g. "Dominio no reconocido..." or "Dominio compartido
+  por varias comunas..."), `DiscardedAt`
 
-**Validation Rules:**
-- `domain` must never equal the organization's own domain (`munivalpo.cl`) — that domain identifies internally-generated mail, not a comuna response.
+**Lifecycle:** deleted automatically the next time its message resolves to a known comuna (directory
+updated, or an exact address registered for a domain shared by several comunas) — see the `routing`
+spec's "stale Discarded records" requirement.
+
+### 3. ComunaContact
+
+Reference directory mapping a comuna to its municipal contact email, loaded from
+`data/comunas.csv` (editable from the dashboard's "Comunas" page).
+
+**Fields:** `Comuna`, `ContactEmail`, `Domain` — not a database table; loaded fresh from the CSV on
+each polling cycle. Multiple rows for the same `(Comuna, Domain)` are allowed (contact-email
+history); the last one wins. Multiple *different* comunas can share the same `Domain` (a generic
+webmail provider) — resolution then requires an exact `ContactEmail` match, not domain alone (see
+`routing` spec).
+
+### 4. DashboardUser
+
+One row per operator with dashboard access.
+
+**Fields:** `Id`, `Username` (unique), `Email` (nullable — recovery email, self-service, empty by
+default), `PasswordHash`, `PasswordSalt`, `Iterations`, `FailedLoginAttempts`, `LockedUntil`
+(nullable), `CreatedAt`, `Marked`... *(not applicable to this table — see PersonRequest)*.
+
+### 5. PasswordResetToken
+
+Single-use, time-limited tokens for the "¿Olvidaste tu contraseña?" flow.
+
+**Fields:** `Id`, `UserId`, `Token` (unique, 40 cryptographically-random hex characters),
+`ExpiresAt` (30 minutes after creation), `UsedAt` (nullable — set on completion, or immediately when
+a newer token for the same user supersedes it), `CreatedAt`.
+
+**Validation rules:**
+- A token is valid only when `UsedAt IS NULL` and `ExpiresAt` is in the future.
+- Requesting a new reset for a user marks all of that user's previously-unused tokens as used.
 
 ## Entity Relationship
 
 ```
-ComunaContact (1) ----< (N) PersonRequest
-   via comuna/domain match
+ComunaContact (1) ----< (N) PersonRequest        via comuna/domain (or exact address) match
+DashboardUser (1) ----< (N) PasswordResetToken   via UserId
+DashboardUser (1) ----< (N) PersonRequest        via ConfirmedByUserId (attribution only)
 ```
 
 ## Identification Rules (business logic, not schema)
 
-- **Address-change source detection**: an email is a candidate address-change notification if its sender domain matches a `domain` already present in `ComunaContact` (the imported directory) and is **not** the organization's own domain (`munivalpo.cl`). Domains not present in the directory are not routing-relevant.
-- **Reply matching**: a comuna's response is matched to a `PersonRequest` first by `source_conversation_id` / `In-Reply-To` (same thread), falling back to RUT match in the new email's body when it arrives as a new thread from a recognized comuna domain.
-- **Duplicate suppression**: before sending, check for an existing `PersonRequest` with the same `(rut, comuna)` and `status IN (sent, responded)`; if found, link the new source email instead of sending again.
+- **Request source detection**: an email is a candidate request if its sender domain matches a
+  `Domain` already present in `ComunaContact` and is **not** the organization's own domain
+  (`munivalpo.cl`). Domains not present in the directory are discarded for manual review, not
+  ignored outright.
+- **Shared-domain resolution**: when a domain matches more than one comuna, resolution requires an
+  exact sender-address match against a registered `ContactEmail`; an unrecognized address under an
+  ambiguous domain is discarded rather than guessed.
+- **Duplicate suppression**: before creating a case, check for an existing `(Rut, Comuna)` pair; if
+  found, the new source email is not turned into a second row.

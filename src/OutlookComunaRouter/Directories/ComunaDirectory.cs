@@ -6,9 +6,14 @@ public interface IComunaDirectory
 {
     IReadOnlyList<ComunaContact> LoadFromCsv(string csvPath);
 
-    /// <summary>Resolves a sender email domain to a known comuna, or null if not in the directory
-    /// or if it equals the organization's own domain.</summary>
-    ComunaContact? ResolveByDomain(string senderDomain, string ownDomain, IReadOnlyList<ComunaContact> contacts);
+    /// <summary>
+    /// Resolves a sender's full email address to a known comuna, or null if not in the directory
+    /// or if it equals the organization's own domain. Tries an exact address match first (needed
+    /// for shared webmail domains like gmail.com used by more than one comuna); falls back to a
+    /// domain-only match only when exactly one comuna is registered for that domain, since guessing
+    /// among several would misattribute a case to the wrong comuna.
+    /// </summary>
+    ComunaContact? ResolveByDomain(string senderEmailAddress, string ownDomain, IReadOnlyList<ComunaContact> contacts);
 
     /// <summary>
     /// Persists a corrected contact email for a comuna back to the CSV (the same file the
@@ -16,6 +21,13 @@ public interface IComunaDirectory
     /// Returns false when the comuna is not in the directory or the email is not valid.
     /// </summary>
     bool UpdateContactEmail(string csvPath, string comuna, string newEmail);
+
+    /// <summary>
+    /// Appends a brand-new comuna/domain/contact-email row to the CSV, for comunas not yet in the
+    /// directory (or an additional domain for an existing one). Returns false when the comuna,
+    /// domain or email don't have a valid shape.
+    /// </summary>
+    bool AddContact(string csvPath, string comuna, string contactEmail, string domain);
 }
 
 public sealed class ComunaDirectory : IComunaDirectory
@@ -56,23 +68,43 @@ public sealed class ComunaDirectory : IComunaDirectory
         }
 
         return contacts
-            .GroupBy(c => c.Domain, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.Last()) // last row wins on duplicate domain, matching upsert semantics
+            .GroupBy(c => (Comuna: c.Comuna.ToUpperInvariant(), c.Domain))
+            .Select(g => g.Last()) // last row wins on duplicate comuna+domain, matching upsert semantics
             .ToList();
     }
 
-    public ComunaContact? ResolveByDomain(string senderDomain, string ownDomain, IReadOnlyList<ComunaContact> contacts)
+    public ComunaContact? ResolveByDomain(string senderEmailAddress, string ownDomain, IReadOnlyList<ComunaContact> contacts)
     {
-        var normalizedSender = senderDomain.Trim().ToLowerInvariant();
+        var normalizedSender = senderEmailAddress.Trim().ToLowerInvariant();
         var normalizedOwn = ownDomain.Trim().ToLowerInvariant();
+        var senderDomain = ExtractDomain(normalizedSender);
 
-        if (normalizedSender == normalizedOwn)
+        if (senderDomain == normalizedOwn)
         {
             return null;
         }
 
-        return contacts.FirstOrDefault(c =>
-            string.Equals(c.Domain, normalizedSender, StringComparison.OrdinalIgnoreCase));
+        var exactAddressMatch = contacts.FirstOrDefault(c =>
+            string.Equals(c.ContactEmail, normalizedSender, StringComparison.OrdinalIgnoreCase));
+        if (exactAddressMatch is not null)
+        {
+            return exactAddressMatch;
+        }
+
+        // Domain-only match is only safe when a single comuna owns that domain — for a shared
+        // webmail domain (e.g. gmail.com) registered to several comunas, an unrecognized address
+        // must be discarded for manual review rather than guessed.
+        var domainMatches = contacts
+            .Where(c => string.Equals(c.Domain, senderDomain, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        return domainMatches.Count == 1 ? domainMatches[0] : null;
+    }
+
+    private static string ExtractDomain(string emailAddress)
+    {
+        var at = emailAddress.LastIndexOf('@');
+        return at >= 0 ? emailAddress[(at + 1)..] : emailAddress;
     }
 
     public bool UpdateContactEmail(string csvPath, string comuna, string newEmail)
@@ -110,4 +142,31 @@ public sealed class ComunaDirectory : IComunaDirectory
         return at > 0 && at < email.Length - 3 && email.IndexOf('@', at + 1) < 0
             && email[(at + 1)..].Contains('.') && !email.Contains(',') && !email.Contains(' ');
     }
+
+    public bool AddContact(string csvPath, string comuna, string contactEmail, string domain)
+    {
+        comuna = comuna.Trim();
+        contactEmail = contactEmail.Trim();
+        domain = domain.Trim().ToLowerInvariant();
+
+        if (comuna.Length == 0 || !IsValidEmailShape(contactEmail) || !IsValidDomainShape(domain))
+        {
+            return false;
+        }
+
+        var contacts = LoadFromCsv(csvPath).ToList();
+        contacts.Add(new ComunaContact(comuna, contactEmail, domain));
+
+        // Write to a temp file then move, so the polling cycle never reads a half-written directory.
+        var tempPath = csvPath + ".tmp";
+        var lines = new List<string> { "Comuna,ContactEmail,Domain" };
+        lines.AddRange(contacts.Select(c => $"{c.Comuna},{c.ContactEmail},{c.Domain}"));
+        File.WriteAllLines(tempPath, lines);
+        File.Move(tempPath, csvPath, overwrite: true);
+        return true;
+    }
+
+    private static bool IsValidDomainShape(string domain) =>
+        domain.Length > 0 && !domain.Contains('@') && !domain.Contains(' ')
+            && !domain.Contains(',') && domain.Contains('.');
 }

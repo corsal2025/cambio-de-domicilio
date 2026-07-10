@@ -13,8 +13,28 @@ public interface IPersonRequestRepository
     long Insert(PersonRequest request);
     void MarkUploaded(long id, DateTimeOffset uploadedAt);
     void SetFechaUltimaCarpeta(long id, DateOnly fecha);
+    void ClearFechaUltimaCarpeta(long id);
     void SetPersonData(long id, string fullName, string normalizedRut);
+    void SetMarked(long id, bool marked);
     void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long confirmedByUserId);
+
+    /// <summary>Reverts every Uploaded row for this source email back to Pending (clearing UploadedAt) —
+    /// used when the original email is found again in the source folder, meaning the operator undid an
+    /// accidental upload/move. Confirmed rows are never touched by this: a real confirmation email
+    /// already went to the comuna. Returns the number of rows reverted.</summary>
+    int RevertUploadedBySourceMessageId(string sourceMessageId);
+
+    /// <summary>Operator-triggered undo of a Confirmed case (paired with sending a rectification
+    /// email to the comuna) — resets Status/UploadedAt/ConfirmedAt/ConfirmedByUserId back to a
+    /// clean Pending state, as if the case had never been uploaded or confirmed.</summary>
+    void RevertConfirmedToPending(long id);
+
+    void SetSectorPdfGenerated(long id, DateTimeOffset generatedAt);
+
+    /// <summary>Permanently removes a case — operator-triggered, for entries that shouldn't have
+    /// been tracked at all (e.g. a mistaken manual entry). Not the same as reverting a status.</summary>
+    void Delete(long id);
+
     IReadOnlyList<PersonRequest> GetAll();
 }
 
@@ -31,7 +51,9 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 FullName TEXT NULL,
                 Rut TEXT NULL,
                 Comuna TEXT NULL,
-                SourceMessageId TEXT NOT NULL UNIQUE,
+                -- Not UNIQUE: one source email can list several contributors, each getting its
+                -- own row sharing the same SourceMessageId.
+                SourceMessageId TEXT NOT NULL,
                 SourceConversationId TEXT NULL,
                 SourceSubject TEXT NOT NULL,
                 SourceSender TEXT NOT NULL,
@@ -47,6 +69,89 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             CREATE INDEX IF NOT EXISTS IX_PersonRequest_RutComuna ON PersonRequest (Rut, Comuna);
             """;
         command.ExecuteNonQuery();
+
+        EnsureColumnExists(connection, "Marked", "Marked INTEGER NOT NULL DEFAULT 0");
+        EnsureColumnExists(connection, "SectorPdfGeneratedAt", "SectorPdfGeneratedAt TEXT NULL");
+        RemoveSourceMessageIdUniqueConstraintIfPresent(connection);
+    }
+
+    /// <summary>Additive migration for databases created before multiple contributors per email were
+    /// supported, where SourceMessageId was still UNIQUE. SQLite can't drop a column constraint
+    /// directly, so this rebuilds the table when the old constraint is detected.</summary>
+    private static void RemoveSourceMessageIdUniqueConstraintIfPresent(SqliteConnection connection)
+    {
+        using (var checkCommand = connection.CreateCommand())
+        {
+            checkCommand.CommandText = "SELECT sql FROM sqlite_master WHERE type='table' AND name='PersonRequest'";
+            var tableSql = checkCommand.ExecuteScalar() as string;
+            if (tableSql is null || !tableSql.Contains("SourceMessageId TEXT NOT NULL UNIQUE", StringComparison.OrdinalIgnoreCase))
+            {
+                return; // already migrated, or a fresh install that never had the constraint
+            }
+        }
+
+        using var transaction = connection.BeginTransaction();
+        using (var rebuildCommand = connection.CreateCommand())
+        {
+            rebuildCommand.Transaction = transaction;
+            rebuildCommand.CommandText = """
+                CREATE TABLE PersonRequest_new (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    FullName TEXT NULL,
+                    Rut TEXT NULL,
+                    Comuna TEXT NULL,
+                    SourceMessageId TEXT NOT NULL,
+                    SourceConversationId TEXT NULL,
+                    SourceSubject TEXT NOT NULL,
+                    SourceSender TEXT NOT NULL,
+                    NeedsReview INTEGER NOT NULL,
+                    Status TEXT NOT NULL,
+                    ReceivedAt TEXT NOT NULL,
+                    FechaUltimaCarpeta TEXT NULL,
+                    UploadedAt TEXT NULL,
+                    ConfirmedAt TEXT NULL,
+                    ConfirmedByUserId INTEGER NULL,
+                    CreatedAt TEXT NOT NULL,
+                    Marked INTEGER NOT NULL DEFAULT 0,
+                    SectorPdfGeneratedAt TEXT NULL
+                );
+                INSERT INTO PersonRequest_new
+                    (Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
+                     NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt)
+                SELECT
+                    Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
+                    NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt
+                FROM PersonRequest;
+                DROP TABLE PersonRequest;
+                ALTER TABLE PersonRequest_new RENAME TO PersonRequest;
+                CREATE INDEX IF NOT EXISTS IX_PersonRequest_RutComuna ON PersonRequest (Rut, Comuna);
+                """;
+            rebuildCommand.ExecuteNonQuery();
+        }
+        transaction.Commit();
+    }
+
+    /// <summary>Additive migration for columns added after the table was first created — SQLite has
+    /// no "ADD COLUMN IF NOT EXISTS", so check PRAGMA table_info first.</summary>
+    private static void EnsureColumnExists(SqliteConnection connection, string columnName, string columnDefinitionSql)
+    {
+        using (var pragmaCommand = connection.CreateCommand())
+        {
+            pragmaCommand.CommandText = "PRAGMA table_info(PersonRequest)";
+            using var reader = pragmaCommand.ExecuteReader();
+            var nameOrdinal = reader.GetOrdinal("name");
+            while (reader.Read())
+            {
+                if (string.Equals(reader.GetString(nameOrdinal), columnName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+            }
+        }
+
+        using var alterCommand = connection.CreateCommand();
+        alterCommand.CommandText = $"ALTER TABLE PersonRequest ADD COLUMN {columnDefinitionSql}";
+        alterCommand.ExecuteNonQuery();
     }
 
     public bool ExistsBySourceMessageId(string sourceMessageId)
@@ -153,6 +258,15 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.ExecuteNonQuery();
     }
 
+    public void ClearFechaUltimaCarpeta(long id)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET FechaUltimaCarpeta = NULL WHERE Id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
     /// <summary>Operator-entered person data for cases the extractor couldn't parse; clears the review flag.</summary>
     public void SetPersonData(long id, string fullName, string normalizedRut)
     {
@@ -165,6 +279,61 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             """;
         command.Parameters.AddWithValue("$fullName", fullName);
         command.Parameters.AddWithValue("$rut", normalizedRut);
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public int RevertUploadedBySourceMessageId(string sourceMessageId)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE PersonRequest
+            SET Status = 'Pending', UploadedAt = NULL
+            WHERE SourceMessageId = $id AND Status = 'Uploaded'
+            """;
+        command.Parameters.AddWithValue("$id", sourceMessageId);
+        return command.ExecuteNonQuery();
+    }
+
+    public void RevertConfirmedToPending(long id)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE PersonRequest
+            SET Status = 'Pending', UploadedAt = NULL, ConfirmedAt = NULL, ConfirmedByUserId = NULL
+            WHERE Id = $id AND Status = 'Confirmed'
+            """;
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void SetSectorPdfGenerated(long id, DateTimeOffset generatedAt)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET SectorPdfGeneratedAt = $generatedAt WHERE Id = $id";
+        command.Parameters.AddWithValue("$generatedAt", generatedAt.ToString("O"));
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void Delete(long id)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM PersonRequest WHERE Id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void SetMarked(long id, bool marked)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET Marked = $marked WHERE Id = $id";
+        command.Parameters.AddWithValue("$marked", marked ? 1 : 0);
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
@@ -222,6 +391,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         UploadedAt = reader.IsDBNull(reader.GetOrdinal("UploadedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("UploadedAt"))),
         ConfirmedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmedAt"))),
         ConfirmedByUserId = reader.IsDBNull(reader.GetOrdinal("ConfirmedByUserId")) ? null : reader.GetInt64(reader.GetOrdinal("ConfirmedByUserId")),
-        CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt")))
+        CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
+        Marked = reader.GetInt32(reader.GetOrdinal("Marked")) == 1,
+        SectorPdfGeneratedAt = reader.IsDBNull(reader.GetOrdinal("SectorPdfGeneratedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("SectorPdfGeneratedAt")))
     };
 }

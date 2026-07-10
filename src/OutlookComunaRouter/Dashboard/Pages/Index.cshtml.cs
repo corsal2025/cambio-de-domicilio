@@ -19,23 +19,33 @@ public class IndexModel(
     RouterOptions options) : PageModel
 {
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
+    public IReadOnlyList<ComunaContact> ComunaOptions { get; private set; } = [];
     public int NeedsReviewCount { get; private set; }
     public int DiscardedCount { get; private set; }
     public string? StatusFilter { get; set; }
     public bool OnlyNeedsReview { get; set; }
+    public string? SearchQuery { get; set; }
     public string? Message { get; set; }
     public bool MessageIsError { get; set; }
     public int PlazoDiasHabiles => options.PlazoDiasHabiles;
+    public bool AllVisibleMarked => Cases.Count > 0 && Cases.All(c => c.Marked);
 
-    public void OnGet(string? status, bool needsReview = false)
+    public void OnGet(string? status, bool needsReview = false, string? search = null)
     {
         StatusFilter = status;
         OnlyNeedsReview = needsReview;
+        SearchQuery = search;
         Load();
     }
 
     public IActionResult OnPostSetFecha(long id, string fecha)
     {
+        if (string.IsNullOrWhiteSpace(fecha))
+        {
+            repository.ClearFechaUltimaCarpeta(id);
+            return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview });
+        }
+
         if (!SpanishDate.TryParse(fecha, out var parsed))
         {
             Message = "Fecha no reconocida. Formatos aceptados: 15/03/2024 o 15 marzo 2024.";
@@ -51,7 +61,9 @@ public class IndexModel(
     public IActionResult OnPostSetPersonData(long id, string nombre, string rut)
     {
         var normalizedRut = RutValidator.NormalizeAndValidate(rut);
-        nombre = (nombre ?? string.Empty).Trim();
+        // Uppercase to match the casing PersonDataExtractor already uses for auto-extracted names,
+        // so manually-corrected cases don't end up in a different case than the rest of the report.
+        nombre = (nombre ?? string.Empty).Trim().ToUpperInvariant();
 
         if (normalizedRut is null || nombre.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length < 2)
         {
@@ -67,6 +79,95 @@ public class IndexModel(
         Message = "Datos guardados. El caso ya no requiere revisión.";
         Load();
         return Page();
+    }
+
+    /// <summary>Manually registers a case that didn't arrive by tracked email (e.g. a request
+    /// received by phone, or an email that got missed) — the comuna must already be in the
+    /// directory, since the confirmation step later resolves the contact address by exact name.</summary>
+    public IActionResult OnPostAddManualCase(string comuna, string nombre, string rut)
+    {
+        var normalizedRut = RutValidator.NormalizeAndValidate(rut);
+        nombre = (nombre ?? string.Empty).Trim().ToUpperInvariant();
+
+        if (normalizedRut is null || nombre.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length < 2)
+        {
+            Message = normalizedRut is null
+                ? "El RUT ingresado no es válido (revise el dígito verificador)."
+                : "Ingrese el nombre completo (al menos nombre y apellido).";
+            MessageIsError = true;
+            Load();
+            return Page();
+        }
+
+        var matchedComuna = routingService.LoadDirectory()
+            .FirstOrDefault(c => string.Equals(c.Comuna, comuna, StringComparison.OrdinalIgnoreCase));
+        if (matchedComuna is null)
+        {
+            Message = "La comuna ingresada no está en el directorio. Agréguela primero en la página 'Comunas'.";
+            MessageIsError = true;
+            Load();
+            return Page();
+        }
+
+        if (repository.FindByRutAndComuna(normalizedRut, matchedComuna.Comuna) is not null)
+        {
+            Message = "Ya existe un caso registrado para esta persona y esta comuna.";
+            MessageIsError = true;
+            Load();
+            return Page();
+        }
+
+        repository.Insert(new PersonRequest
+        {
+            FullName = nombre,
+            Rut = normalizedRut,
+            Comuna = matchedComuna.Comuna,
+            SourceMessageId = $"manual-{Guid.NewGuid()}",
+            SourceSubject = "Ingresado manualmente por el operador",
+            SourceSender = User.Identity?.Name ?? "operador",
+            NeedsReview = false,
+            Status = RequestStatus.Pending,
+            ReceivedAt = DateTimeOffset.UtcNow
+        });
+
+        Message = "Caso agregado manualmente.";
+        Load();
+        return Page();
+    }
+
+    /// <summary>Operator-triggered permanent removal of a case (e.g. a mistaken manual entry, or
+    /// one that should never have been tracked) — unlike the automatic revert-to-Pending on a
+    /// re-found source email, this actually erases the row.</summary>
+    public IActionResult OnPostDeleteCase(long id)
+    {
+        repository.Delete(id);
+        Message = "Caso eliminado.";
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
+    }
+
+    public IActionResult OnPostToggleMarked(long id, string? markedValue)
+    {
+        // Only accept explicit 'on' value (checkbox form submission), reject anything else
+        var marked = markedValue == "on";
+        repository.SetMarked(id, marked);
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
+    }
+
+    /// <summary>Marks (or unmarks) every case currently visible under the active filter — a
+    /// bulk shortcut for the per-row "Marcar" checkbox, respecting the same status/needsReview
+    /// filter the operator is looking at.</summary>
+    public IActionResult OnPostMarkAllVisible(bool marked, string? status, bool needsReview, string? search)
+    {
+        StatusFilter = status;
+        OnlyNeedsReview = needsReview;
+        SearchQuery = search;
+        Load();
+        foreach (var item in Cases)
+        {
+            repository.SetMarked(item.Id, marked);
+        }
+
+        return RedirectToPage(new { status, needsReview, search });
     }
 
     public async Task<IActionResult> OnPostSyncNowAsync()
@@ -92,6 +193,34 @@ public class IndexModel(
         return Page();
     }
 
+    /// <summary>One-click action for a Pending case: moves the original email to "ya subida" and
+    /// sends the confirmation, in one step (see AddressChangeRoutingService.MarkUploadedAndConfirmAsync).</summary>
+    public async Task<IActionResult> OnPostMarkUploadedAndConfirmAsync(long id)
+    {
+        var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var contacts = routingService.LoadDirectory();
+        var result = await routingService.MarkUploadedAndConfirmAsync(id, userId, contacts, HttpContext.RequestAborted);
+
+        Message = result.Reason;
+        MessageIsError = !result.Sent;
+        Load();
+        return Page();
+    }
+
+    /// <summary>Undo for a Confirmed case clicked by mistake: sends a rectification email to the
+    /// comuna and reverts the case to Pending — see AddressChangeRoutingService.RectifyConfirmationAsync.</summary>
+    public async Task<IActionResult> OnPostRectifyConfirmationAsync(long id)
+    {
+        var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var contacts = routingService.LoadDirectory();
+        var result = await routingService.RectifyConfirmationAsync(id, userId, contacts, HttpContext.RequestAborted);
+
+        Message = result.Reason;
+        MessageIsError = !result.Sent;
+        Load();
+        return Page();
+    }
+
     /// <summary>Business days remaining until the legal upload deadline for this case, from today.</summary>
     public int DiasHabilesRestantes(PersonRequest request)
     {
@@ -105,6 +234,10 @@ public class IndexModel(
         var everything = repository.GetAll();
         NeedsReviewCount = everything.Count(c => c.NeedsReview);
         DiscardedCount = discardedRepository.GetAll().Count;
+        ComunaOptions = routingService.LoadDirectory()
+            .DistinctBy(c => c.Comuna, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(c => c.Comuna)
+            .ToList();
 
         var all = everything.AsEnumerable();
 
@@ -118,6 +251,30 @@ public class IndexModel(
             all = all.Where(c => c.NeedsReview);
         }
 
-        Cases = all.OrderByDescending(c => c.CreatedAt).ToList();
+        // Search by name or RUT (case-insensitive, partial match)
+        if (!string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            var query = SearchQuery.Trim().ToUpperInvariant();
+            all = all.Where(c => 
+                (c.FullName ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                (c.Rut ?? string.Empty).Replace(".", string.Empty).Replace("-", string.Empty)
+                    .Contains(query.Replace(".", string.Empty).Replace("-", string.Empty), StringComparison.OrdinalIgnoreCase)
+            );
+        }
+
+        // Confirmed cases (blue row — folder uploaded, comuna already emailed) sink to the very
+        // end, ordered by ConfirmedAt ascending, so confirmations show in the order they
+        // happened instead of mixed in with outstanding work. The Marcar checkbox is pure
+        // personal bookkeeping (see PersonRequest.Marked) and does NOT affect sort order —
+        // ticking it just highlights the row, it never moves. Everything not Confirmed stays on
+        // top, ordered by ReceivedAt (fecha de ingreso — when the email actually arrived), not by
+        // CreatedAt (when the row was inserted): a case re-tracked later (e.g. after being
+        // reverted from Uploaded back to Pending) must stay in its original position instead of
+        // jumping to the top just because its database row is newer.
+        Cases = all
+            .OrderBy(c => c.Status == RequestStatus.Confirmed)
+            .ThenBy(c => c.ConfirmedAt)
+            .ThenByDescending(c => c.ReceivedAt)
+            .ToList();
     }
 }

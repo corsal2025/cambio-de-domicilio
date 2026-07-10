@@ -187,6 +187,93 @@ public class EwsEmailReaderTests
         return count;
     }
 
+    private static readonly string FindItemOneMatchXml = $"""
+        <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+          <soap:Body>
+            <m:FindItemResponse>
+              <m:ResponseMessages>
+                <m:FindItemResponseMessage ResponseClass="Success">
+                  <m:RootFolder TotalItemsInView="1">
+                    <t:Items>
+                      <t:Message><t:ItemId Id="src-item-1" ChangeKey="src-ck-1"/></t:Message>
+                    </t:Items>
+                  </m:RootFolder>
+                </m:FindItemResponseMessage>
+              </m:ResponseMessages>
+            </m:FindItemResponse>
+          </soap:Body>
+        </soap:Envelope>
+        """;
+
+    private static readonly string MoveItemSuccessXml = $"""
+        <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+          <soap:Body>
+            <m:MoveItemResponse>
+              <m:ResponseMessages>
+                <m:MoveItemResponseMessage ResponseClass="Success">
+                  <m:Items>
+                    <t:Message><t:ItemId Id="dest-item-1" ChangeKey="dest-ck-1"/></t:Message>
+                  </m:Items>
+                </m:MoveItemResponseMessage>
+              </m:ResponseMessages>
+            </m:MoveItemResponse>
+          </soap:Body>
+        </soap:Envelope>
+        """;
+
+    private static readonly string UpdateItemSuccessXml = $"""
+        <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+          <soap:Body>
+            <m:UpdateItemResponse>
+              <m:ResponseMessages>
+                <m:UpdateItemResponseMessage ResponseClass="Success" />
+              </m:ResponseMessages>
+            </m:UpdateItemResponse>
+          </soap:Body>
+        </soap:Envelope>
+        """;
+
+    [Fact]
+    public async Task MoveAndMarkUnreadAsync_MatchFound_MovesAndMarksUnread()
+    {
+        var client = new RecordingClient([
+            FindFolderFoundXml, // resolve source folder
+            FindFolderFoundXml, // resolve destination folder
+            FindItemOneMatchXml, // find the item by InternetMessageId
+            MoveItemSuccessXml, // move it
+            UpdateItemSuccessXml]); // mark unread at destination
+        var reader = new EwsEmailReader(client, NullLogger<EwsEmailReader>.Instance);
+
+        var moved = await reader.MoveAndMarkUnreadAsync("<abc@munivalpo.cl>", "CARP. PARA PEDIR", "CARP. YA SUBIDAS", CancellationToken.None);
+
+        Assert.True(moved);
+        Assert.Contains(client.Requests, r => r.Contains("MoveItem") && r.Contains("src-item-1"));
+        Assert.Contains(client.Requests, r => r.Contains("UpdateItem") && r.Contains("dest-item-1"));
+    }
+
+    [Fact]
+    public async Task MoveAndMarkUnreadAsync_NoMatchingItem_ReturnsFalseWithoutMoving()
+    {
+        var client = new RecordingClient([FindFolderFoundXml, FindFolderFoundXml, EmptyFindItemXml]);
+        var reader = new EwsEmailReader(client, NullLogger<EwsEmailReader>.Instance);
+
+        var moved = await reader.MoveAndMarkUnreadAsync("<no-existe@munivalpo.cl>", "CARP. PARA PEDIR", "CARP. YA SUBIDAS", CancellationToken.None);
+
+        Assert.False(moved);
+        Assert.DoesNotContain(client.Requests, r => r.Contains("MoveItem"));
+    }
+
+    [Fact]
+    public async Task MoveAndMarkUnreadAsync_SourceFolderNotFound_ReturnsFalse()
+    {
+        var client = new RecordingClient([FindFolderNotFoundXml]);
+        var reader = new EwsEmailReader(client, NullLogger<EwsEmailReader>.Instance);
+
+        var moved = await reader.MoveAndMarkUnreadAsync("<abc@munivalpo.cl>", "Carpeta Inexistente", "CARP. YA SUBIDAS", CancellationToken.None);
+
+        Assert.False(moved);
+    }
+
     private sealed class RecordingClient(IReadOnlyList<string> responses) : IEwsClient
     {
         private int callIndex;

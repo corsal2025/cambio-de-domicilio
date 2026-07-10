@@ -8,6 +8,11 @@ public interface IDiscardedEmailRepository
     void EnsureSchema();
     bool ExistsBySourceMessageId(string sourceMessageId);
     void Insert(DiscardedEmail email);
+    void DeleteBySourceMessageId(string sourceMessageId);
+
+    /// <summary>Operator-triggered permanent removal of a single discarded record by Id.</summary>
+    void Delete(long id);
+
     IReadOnlyList<DiscardedEmail> GetAll();
 }
 
@@ -53,6 +58,24 @@ public sealed class DiscardedEmailRepository(string connectionString) : IDiscard
         command.Parameters.AddWithValue("$sourceSender", email.SourceSender);
         command.Parameters.AddWithValue("$reason", email.Reason);
         command.Parameters.AddWithValue("$discardedAt", email.DiscardedAt.ToString("O"));
+        command.ExecuteNonQuery();
+    }
+
+    public void DeleteBySourceMessageId(string sourceMessageId)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM DiscardedEmail WHERE SourceMessageId = $id";
+        command.Parameters.AddWithValue("$id", sourceMessageId);
+        command.ExecuteNonQuery();
+    }
+
+    public void Delete(long id)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM DiscardedEmail WHERE Id = $id";
+        command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
 

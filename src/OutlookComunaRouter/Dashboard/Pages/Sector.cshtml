@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <title>Documento — @Model.SelectedSector</title>
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
-    <link rel="stylesheet" href="~/css/dashboard.css" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
     <style>
         .doc-header {
             display: flex;
@@ -75,8 +75,13 @@
     </header>
 
     <main>
-        <div class="no-print" style="margin-bottom: 14px;">
-            <button type="button" class="btn-primary" onclick="window.print()">Imprimir / Guardar como PDF</button>
+        <form id="mark-printed-form" method="post" asp-page-handler="MarkPrinted" asp-route-sector="@Model.SelectedSector" style="display:none;"></form>
+        <div class="no-print" style="margin-bottom: 14px; display:flex; gap:10px; align-items:center;">
+            <button type="button" class="btn-primary" onclick="markPrintedAndPrint()">Imprimir / Guardar como PDF</button>
+            <form method="post" asp-page-handler="ClearAll" asp-route-sector="@Model.SelectedSector"
+                  onsubmit="return confirm('Esto vacía el listado de este sector — quedará en blanco para volver a llenarse con nuevos casos. NO elimina los datos de los contribuyentes, solo los saca de esta lista. ¿Confirmar?');">
+                <button type="submit" class="btn-outline-danger">Vaciar listado</button>
+            </form>
         </div>
 
         <div class="doc-header">
@@ -106,6 +111,7 @@
                             <th>RUT</th>
                             <th>Comuna</th>
                             <th>Fecha última carpeta</th>
+                            <th class="no-print">Acción</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -116,6 +122,13 @@
                             <td style="text-align:center;">@item.Rut</td>
                             <td style="text-align:center;">@item.Comuna</td>
                             <td style="text-align:center;">@(item.FechaUltimaCarpeta is { } f ? OutlookComunaRouter.Domain.SpanishDate.Format(f) : "")</td>
+                            <td class="no-print" style="text-align:center;">
+                                <form method="post" asp-page-handler="RemoveOne" asp-route-sector="@Model.SelectedSector"
+                                      onsubmit="return confirm('Esto quita este caso del listado de este sector (no se elimina de Casos). ¿Confirmar?');">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-danger" style="padding:4px 10px; font-size:0.76rem;">Quitar</button>
+                                </form>
+                            </td>
                         </tr>
                     }
                     </tbody>
@@ -128,5 +141,18 @@
             <p class="doc-count">Total: @Model.Cases.Count carpeta(s)</p>
         }
     </main>
+    <script>
+        function markPrintedAndPrint() {
+            var form = document.getElementById('mark-printed-form');
+            var token = form.querySelector('input[name="__RequestVerificationToken"]').value;
+            fetch(form.action, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: '__RequestVerificationToken=' + encodeURIComponent(token)
+            }).finally(function () {
+                window.print();
+            });
+        }
+    </script>
 </body>
 </html>

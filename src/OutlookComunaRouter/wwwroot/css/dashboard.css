@@ -58,8 +58,10 @@ header.app-header .brand small {
 nav.app-nav {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
     flex-wrap: wrap;
+    flex: 1;
 }
 
 nav.app-nav a {
@@ -85,6 +87,70 @@ nav.app-nav form button {
 }
 nav.app-nav form button:hover { background: rgba(255, 255, 255, 0.22); }
 
+/* Three logical groups (view filters | reference tools | search+actions) instead of one long
+   run of links — each group wraps as a unit and gets a divider, so on a narrow window the nav
+   breaks between groups rather than mid-group. nav-group-end pins right on wide screens via
+   margin-left:auto and drops that once the row wraps (flex-wrap puts it on its own line). */
+.nav-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    padding: 4px 14px;
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.nav-group:first-child {
+    padding-left: 0;
+    border-left: none;
+}
+
+/* Own row, full width — centers its own contents so it lines up under the row above (which
+   nav.app-nav centers as a whole line), instead of hugging left or right. */
+.nav-group-end {
+    flex-basis: 100%;
+    justify-content: center;
+    padding-left: 0;
+    border-left: none;
+}
+
+.nav-search {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.nav-search input[type="text"] {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    min-width: 180px;
+}
+
+.nav-search input[type="text"]::placeholder {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.nav-search button {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.nav-search button:hover { background: rgba(255, 255, 255, 0.22); }
+
+.nav-search-clear {
+    font-size: 0.8rem;
+    text-decoration: underline;
+    white-space: nowrap;
+}
+
 main {
     padding: 20px 24px 40px;
     max-width: 1400px;
@@ -106,7 +172,32 @@ main {
     border-radius: var(--radius);
     border: 1px solid var(--color-border);
     box-shadow: var(--shadow-sm);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* On the cases table (Index page), pin the table's own area to the viewport height instead of
+   letting the whole page scroll — otherwise the horizontal scrollbar sits at the bottom of a
+   potentially very long table, requiring a long vertical scroll first just to reach it. With
+   this, the horizontal scrollbar (and the vertical one, for tall tables) stays reachable right
+   at the bottom of the visible table area. */
+body.cases-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+body.cases-page main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.card.table-card {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 table.cases {
@@ -134,6 +225,165 @@ table.cases td {
 
 table.cases tbody tr:nth-child(even) { background: #fafbfc; }
 table.cases tbody tr:hover { background: #f0f6fb; }
+
+table.cases-index {
+    table-layout: auto;
+    font-size: 0.8rem;
+    min-width: 960px;
+}
+
+/* Zebra striping is computed server-side into an explicit class instead of relying on
+   :nth-child, since row visibility/order has changed before under a fixed layout — keeping
+   this explicit avoids depending on layout details that are unrelated to the striping itself. */
+table.cases-index tbody tr:nth-child(even) {
+    background: transparent;
+}
+
+table.cases-index tbody tr.row-alt {
+    background: #fafbfc;
+}
+
+table.cases-index th {
+    padding: 8px 5px;
+    font-size: 0.64rem;
+}
+
+table.cases-index td {
+    padding: 6px 5px;
+}
+
+table.cases-index th,
+table.cases-index td {
+    text-align: center;
+}
+
+table.cases-index .badge {
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+}
+
+table.cases-index button.btn-primary {
+    padding: 4px 10px;
+    font-size: 0.76rem;
+    white-space: nowrap;
+}
+
+table.cases-index td:last-child {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+table.cases-index td:last-child form {
+    margin: 0;
+}
+
+table.cases-index .input-inline {
+    padding: 3px 4px;
+    font-size: 0.74rem;
+}
+
+table.cases-index td.name-cell {
+    text-align: left;
+}
+
+/* width:100% here fills whatever extra room the column has (so short names don't leave a
+   visible gap); the per-row inline `min-width: Nch` (see Index.cshtml) is what actually forces
+   the column itself to grow — table-layout:auto respects an input's min-width when sizing its
+   column even under width:100%, unlike the HTML `size` attribute, which browsers ignore for
+   column sizing once a CSS width is set. */
+table.cases-index td.name-cell .name-input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+table.cases-index td.rut-cell .rut-input {
+    width: 100%;
+    min-width: 11ch;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+table.cases-index .marked-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+table.cases-index tbody tr:has(.marked-checkbox:checked) {
+    background: #bfe3b4;
+}
+
+table.cases-index tbody tr:has(.marked-checkbox:checked):hover {
+    background: #aed89f;
+}
+
+/* Confirmed (folder already uploaded + comuna already notified) is the most important
+   status to spot at a glance, so it wins over both the zebra stripe and the "marked" tint. */
+table.cases-index tbody tr.row-confirmed {
+    background: #b8d9f0 !important;
+}
+
+table.cases-index tbody tr.row-confirmed:hover {
+    background: #a0c8ea !important;
+}
+
+/* Needs-review (incomplete/unreliable extracted data) also needs to win over the zebra
+   stripe and the "marked" tint — same reasoning as row-confirmed above. It never overlaps
+   row-confirmed in practice: confirming a case already requires NeedsReview to be false. */
+table.cases-index tbody tr.row-needs-review {
+    background: var(--color-review-bg) !important;
+}
+
+table.cases-index tbody tr.row-needs-review:hover {
+    background: #f6d0d8 !important;
+}
+
+/* Groups the alert symbol and the name input on one row — without this, the input's own
+   width:100% makes it wrap onto its own line below the alert instead of sitting beside it. */
+table.cases-index td.name-cell .name-with-alert {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+@keyframes review-alert-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+}
+
+.review-alert {
+    flex: none;
+    color: var(--color-review);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: help;
+    animation: review-alert-blink 1.2s ease-in-out infinite;
+}
+
+table.cases-index td.review-cell {
+    text-align: left;
+}
+
+table.cases-index td.text-cell {
+    white-space: nowrap;
+}
+
+.fecha-form {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+}
+
+.fecha-form .fecha-input {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+}
 
 .badge {
     display: inline-block;
@@ -164,6 +414,24 @@ table.cases tbody tr:hover { background: #f0f6fb; }
     color: var(--color-text-muted);
 }
 
+.form-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-bottom: 4px;
+}
+
+.input-block {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 10px;
+    margin-bottom: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+}
+
 input[type="date"] {
     border: 1px solid var(--color-border);
     border-radius: 4px;
@@ -181,6 +449,34 @@ button.btn-primary {
     cursor: pointer;
 }
 button.btn-primary:hover { background: var(--color-primary); }
+
+button.btn-danger {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+button.btn-danger:hover {
+    color: var(--color-review);
+    background: var(--color-review-bg);
+}
+
+button.btn-outline-danger {
+    background: none;
+    color: var(--color-review);
+    border: 1px solid var(--color-review);
+    border-radius: var(--radius);
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+button.btn-outline-danger:hover { background: var(--color-review-bg); }
 
 .login-shell {
     min-height: 100vh;

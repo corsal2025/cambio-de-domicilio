@@ -75,6 +75,49 @@ public static class EwsMessages
                         new XAttribute("Id", i.Id),
                         new XAttribute("ChangeKey", i.ChangeKey))))));
 
+    /// <summary>Locates the (at most one expected) item with this Internet Message-Id inside
+    /// <paramref name="folder"/> — used to get a live ItemId/ChangeKey right before a move, since a
+    /// ChangeKey stored earlier can go stale if Exchange touched the item since.</summary>
+    public static string BuildFindItemByMessageIdRequest(EwsFolderRef folder, string internetMessageId) =>
+        Envelope(
+            new XElement(M + "FindItem",
+                new XAttribute("Traversal", "Shallow"),
+                new XElement(M + "ItemShape",
+                    new XElement(T + "BaseShape", "IdOnly")),
+                new XElement(M + "Restriction",
+                    new XElement(T + "IsEqualTo",
+                        new XElement(T + "FieldURI", new XAttribute("FieldURI", "message:InternetMessageId")),
+                        new XElement(T + "FieldURIOrConstant",
+                            new XElement(T + "Constant", new XAttribute("Value", internetMessageId))))),
+                new XElement(M + "ParentFolderIds", ParentFolderElement(folder))));
+
+    public static string BuildMoveItemRequest(EwsItemRef item, EwsFolderRef destinationFolder) =>
+        Envelope(
+            new XElement(M + "MoveItem",
+                new XElement(M + "ToFolderId", ParentFolderElement(destinationFolder)),
+                new XElement(M + "ItemIds",
+                    new XElement(T + "ItemId",
+                        new XAttribute("Id", item.Id),
+                        new XAttribute("ChangeKey", item.ChangeKey)))));
+
+    /// <summary>Sets the read/unread flag on an item (e.g. mark unread after an automatic move, so
+    /// it stands out to anyone browsing the folder in Outlook).</summary>
+    public static string BuildUpdateItemSetReadFlagRequest(EwsItemRef item, bool isRead) =>
+        Envelope(
+            new XElement(M + "UpdateItem",
+                new XAttribute("MessageDisposition", "SaveOnly"),
+                new XAttribute("ConflictResolution", "AlwaysOverwrite"),
+                new XElement(M + "ItemChanges",
+                    new XElement(T + "ItemChange",
+                        new XElement(T + "ItemId",
+                            new XAttribute("Id", item.Id),
+                            new XAttribute("ChangeKey", item.ChangeKey)),
+                        new XElement(T + "Updates",
+                            new XElement(T + "SetItemField",
+                                Field("message:IsRead"),
+                                new XElement(T + "Message",
+                                    new XElement(T + "IsRead", isRead ? "true" : "false"))))))));
+
     public static string BuildSendMailRequest(string toAddress, string subject, string body) =>
         Envelope(
             new XElement(M + "CreateItem",

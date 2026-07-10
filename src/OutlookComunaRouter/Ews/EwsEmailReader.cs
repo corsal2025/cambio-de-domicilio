@@ -4,7 +4,7 @@ using OutlookComunaRouter.Mail;
 
 namespace OutlookComunaRouter.Ews;
 
-public sealed class EwsEmailReader(IEwsClient client, ILogger<EwsEmailReader> logger) : IEmailReader
+public sealed class EwsEmailReader(IEwsClient client, ILogger<EwsEmailReader> logger) : IEmailReader, IEmailMover
 {
     /// <summary>Exchange throttling rejects large GetItem batches; 50 stays well under the default policy.</summary>
     private const int GetItemBatchSize = 50;
@@ -59,6 +59,41 @@ public sealed class EwsEmailReader(IEwsClient client, ILogger<EwsEmailReader> lo
         }
 
         return results;
+    }
+
+    public async Task<bool> MoveAndMarkUnreadAsync(string messageId, string sourceFolderDisplayName, string destinationFolderDisplayName, CancellationToken cancellationToken)
+    {
+        var sourceFolder = await ResolveFolderAsync(sourceFolderDisplayName, cancellationToken);
+        var destinationFolder = await ResolveFolderAsync(destinationFolderDisplayName, cancellationToken);
+        if (sourceFolder is null || destinationFolder is null)
+        {
+            logger.LogWarning(
+                "No se pudo resolver '{Source}' o '{Destination}' para mover el correo; se omite el movimiento",
+                sourceFolderDisplayName, destinationFolderDisplayName);
+            return false;
+        }
+
+        var findResponse = await client.SendAsync(
+            EwsMessages.BuildFindItemByMessageIdRequest(sourceFolder, messageId), cancellationToken);
+        var match = EwsResponseParser.ParseFindItemResponse(findResponse).FirstOrDefault();
+        if (match is null)
+        {
+            logger.LogWarning(
+                "No se encontró el correo original en '{Folder}' para moverlo (puede ya haber sido movido)",
+                sourceFolderDisplayName);
+            return false;
+        }
+
+        var moveResponse = await client.SendAsync(EwsMessages.BuildMoveItemRequest(match, destinationFolder), cancellationToken);
+        var movedItem = EwsResponseParser.ParseMoveItemResponse(moveResponse);
+        if (movedItem is not null)
+        {
+            var updateResponse = await client.SendAsync(
+                EwsMessages.BuildUpdateItemSetReadFlagRequest(movedItem, isRead: false), cancellationToken);
+            EwsResponseParser.EnsureSuccess(updateResponse, "UpdateItem");
+        }
+
+        return true;
     }
 
     private async Task<EwsFolderRef?> ResolveFolderAsync(string folderDisplayName, CancellationToken cancellationToken)

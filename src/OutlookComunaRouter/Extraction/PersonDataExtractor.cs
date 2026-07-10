@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace OutlookComunaRouter.Extraction;
 
@@ -46,6 +47,35 @@ public static partial class PersonDataExtractor
 
     private const int NameWindowChars = 90;
 
+    // Reply/forward prefixes Outlook prepends when the request itself sits in the subject line
+    // instead of the body (e.g. "RV: SOLICITUD ANTECEDENTES <NOMBRE> RUN <RUT>").
+    [GeneratedRegex(@"^(?:\s*(?:RV|RE|FW|FWD|RES|ENV)\s*:\s*)+", RegexOptions.IgnoreCase)]
+    private static partial Regex ReplyForwardPrefixPattern();
+
+    // Boilerplate request words that sit directly before the name with no lowercase separator —
+    // left in place they'd get swallowed into the capped-length NameSequencePattern match.
+    // Calibrated from one real sample (2026-07-03); add more terms here as new subject-only
+    // cases surface.
+    [GeneratedRegex(@"\b(SOLICITUD|ANTECEDENTES|PETICI[OÓ]N|CARPETA)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex SubjectBoilerplatePattern();
+
+    /// <summary>
+    /// Finds a RUT in the email subject, for cases where the request sits there instead of the
+    /// body (e.g. a forwarded email). Only the RUT is trusted (it's check-digit validated) — a
+    /// name is NEVER returned even if one is found nearby: unlike the body (calibrated against 38
+    /// real samples with a consistent template), subject phrasing varies wildly per comuna and
+    /// generic instructions ("SUBIR CARPETA PLATAFORMA CONASET") are indistinguishable from a real
+    /// name using this heuristic — one was captured as a contributor's name in production. Callers
+    /// always get NeedsReview=true for a subject-derived contributor so a person confirms the name.
+    /// </summary>
+    public static ExtractedPersonData ExtractFromSubject(string subject)
+    {
+        var text = ReplyForwardPrefixPattern().Replace(subject, "");
+        text = SubjectBoilerplatePattern().Replace(text, " ");
+        var extracted = Extract(text);
+        return new ExtractedPersonData(FullName: null, extracted.Rut);
+    }
+
     public static ExtractedPersonData Extract(string bodyText)
     {
         var text = ExternalBannerPattern().Replace(bodyText, " ");
@@ -58,21 +88,79 @@ public static partial class PersonDataExtractor
             return new ExtractedPersonData(null, null);
         }
 
-        var (rut, matchIndex, matchLength) = rutMatch.Value;
-        var fullName = FindNameNear(text, matchIndex, matchLength);
+        var (rut, matchIndex, matchLength, isSpaceSeparatedFormat) = rutMatch.Value;
+        var (fullName, _) = FindNameNear(text, matchIndex, matchLength);
+        if (fullName is not null && isSpaceSeparatedFormat)
+        {
+            fullName = ReorderGivenNamesFirst(fullName);
+        }
+
         return new ExtractedPersonData(fullName, rut);
     }
 
-    private static (string Rut, int Index, int Length)? FindRut(string text)
+    /// <summary>
+    /// Extracts every contributor listed in the same email — some comunas request folders for
+    /// several people in one message, each as its own "NOMBRE RUT" line. One entry per valid RUT
+    /// found, in the order they appear; each entry's name search is bounded by its neighboring
+    /// RUTs so one person's name never bleeds into another's.
+    /// </summary>
+    public static IReadOnlyList<ExtractedPersonData> ExtractAll(string bodyText)
     {
-        foreach (var pattern in (ReadOnlySpan<Regex>)[PrefixedRutPattern(), BareDottedRutPattern(), BareUndottedRutPattern(), SpaceSeparatedRutPattern()])
+        var text = ExternalBannerPattern().Replace(bodyText, " ");
+        var rutMatches = FindAllRuts(text);
+
+        var results = new List<ExtractedPersonData>(rutMatches.Count);
+        var cursor = 0; // end of text already claimed by a previous contributor's name
+        for (var i = 0; i < rutMatches.Count; i++)
+        {
+            var (rut, index, length, isSpaceSeparatedFormat) = rutMatches[i];
+            var upperBound = i < rutMatches.Count - 1 ? rutMatches[i + 1].Index : text.Length;
+            var (fullName, consumedEnd) = FindNameNear(text, index, length, cursor, upperBound);
+            if (fullName is not null && isSpaceSeparatedFormat)
+            {
+                fullName = ReorderGivenNamesFirst(fullName);
+            }
+
+            results.Add(new ExtractedPersonData(fullName, rut));
+            cursor = Math.Max(index + length, consumedEnd);
+        }
+
+        return results;
+    }
+
+    private static List<(string Rut, int Index, int Length, bool IsSpaceSeparatedFormat)> FindAllRuts(string text)
+    {
+        var found = new List<(string Rut, int Index, int Length, bool IsSpaceSeparatedFormat)>();
+        foreach (var (pattern, isSpaceSeparated) in RutPatternsInPriorityOrder())
+        {
+            foreach (Match match in pattern.Matches(text))
+            {
+                if (found.Any(existing => match.Index < existing.Index + existing.Length && match.Index + match.Length > existing.Index))
+                {
+                    continue; // already matched by a higher-priority pattern
+                }
+
+                var normalized = RutValidator.NormalizeAndValidate(match.Groups[1].Value);
+                if (normalized is not null)
+                {
+                    found.Add((normalized, match.Index, match.Length, isSpaceSeparated));
+                }
+            }
+        }
+
+        return found.OrderBy(m => m.Index).ToList();
+    }
+
+    private static (string Rut, int Index, int Length, bool IsSpaceSeparatedFormat)? FindRut(string text)
+    {
+        foreach (var (pattern, isSpaceSeparated) in RutPatternsInPriorityOrder())
         {
             foreach (Match match in pattern.Matches(text))
             {
                 var normalized = RutValidator.NormalizeAndValidate(match.Groups[1].Value);
                 if (normalized is not null)
                 {
-                    return (normalized, match.Index, match.Length);
+                    return (normalized, match.Index, match.Length, isSpaceSeparated);
                 }
             }
         }
@@ -80,9 +168,42 @@ public static partial class PersonDataExtractor
         return null;
     }
 
-    private static string? FindNameNear(string text, int rutIndex, int rutLength)
+    private static (Regex Pattern, bool IsSpaceSeparated)[] RutPatternsInPriorityOrder() =>
+    [
+        (PrefixedRutPattern(), false),
+        (BareDottedRutPattern(), false),
+        (BareUndottedRutPattern(), false),
+        (SpaceSeparatedRutPattern(), true)
+    ];
+
+    /// <summary>
+    /// Viña del Mar's system (the only source matched via <see cref="SpaceSeparatedRutPattern"/>)
+    /// always exports APELLIDO APELLIDO NOMBRE NOMBRE — swap the two halves so the name reads
+    /// given-names-first like everywhere else in the report. Only safe for an exact 4-word name;
+    /// other word counts aren't reordered since which half is which can't be inferred reliably.
+    /// </summary>
+    private static string ReorderGivenNamesFirst(string fullName)
     {
-        var windowStart = Math.Max(0, rutIndex - NameWindowChars);
+        var words = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length == 4
+            ? $"{words[2]} {words[3]} {words[0]} {words[1]}"
+            : fullName;
+    }
+
+    /// <summary>
+    /// <paramref name="lowerBound"/>/<paramref name="upperBound"/> keep the search from crossing
+    /// into a neighboring contributor's name/RUT when an email lists more than one (see
+    /// <see cref="ExtractAll"/>); single-contributor callers use the whole text. Returns the
+    /// absolute text index where the match ends, so a caller processing a chain of contributors
+    /// ("RUT1 NOMBRE1 RUT2 NOMBRE2 ...") can exclude NOMBRE1 from RUT2's search — otherwise RUT2's
+    /// "before" window would re-claim the previous person's name-after-their-RUT as its own.
+    /// </summary>
+    private static (string? Name, int ConsumedEnd) FindNameNear(string text, int rutIndex, int rutLength, int lowerBound = 0, int? upperBound = null)
+    {
+        var effectiveUpperBound = upperBound ?? text.Length;
+        var rutEnd = rutIndex + rutLength;
+
+        var windowStart = Math.Max(lowerBound, rutIndex - NameWindowChars);
         var before = text[windowStart..rutIndex];
 
         // The name usually ends right where the RUT begins → take the LAST sequence before it.
@@ -92,14 +213,25 @@ public static partial class PersonDataExtractor
             var candidate = CleanName(beforeMatches[^1].Groups[1].Value);
             if (candidate is not null)
             {
-                return candidate;
+                return (candidate, rutEnd); // name sits before the RUT — nothing extra consumed after it
             }
         }
 
-        var afterStart = rutIndex + rutLength;
-        var after = text[afterStart..Math.Min(text.Length, afterStart + NameWindowChars)];
+        var afterEnd = Math.Min(effectiveUpperBound, rutEnd + NameWindowChars);
+        if (afterEnd <= rutEnd)
+        {
+            return (null, rutEnd);
+        }
+
+        var after = text[rutEnd..afterEnd];
         var afterMatch = NameSequencePattern().Match(after);
-        return afterMatch.Success ? CleanName(afterMatch.Groups[1].Value) : null;
+        if (!afterMatch.Success)
+        {
+            return (null, rutEnd);
+        }
+
+        var name = CleanName(afterMatch.Groups[1].Value);
+        return name is null ? (null, rutEnd) : (name, rutEnd + afterMatch.Index + afterMatch.Length);
     }
 
     private static string? CleanName(string raw)

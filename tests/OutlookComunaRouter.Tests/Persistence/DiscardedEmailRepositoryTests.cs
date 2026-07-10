@@ -1,3 +1,4 @@
+using System.Linq;
 using OutlookComunaRouter.Domain;
 using OutlookComunaRouter.Persistence;
 using Xunit;
@@ -35,6 +36,41 @@ public class DiscardedEmailRepositoryTests : IDisposable
         Assert.Equal(2, all.Count);
         Assert.Equal("msg-2", all[0].SourceMessageId);
         Assert.Equal("msg-1", all[1].SourceMessageId);
+    }
+
+    [Fact]
+    public void DeleteBySourceMessageId_RemovesOnlyMatchingRecord()
+    {
+        repository.Insert(NewDiscarded("msg-1"));
+        repository.Insert(NewDiscarded("msg-2"));
+
+        repository.DeleteBySourceMessageId("msg-1");
+
+        Assert.False(repository.ExistsBySourceMessageId("msg-1"));
+        Assert.True(repository.ExistsBySourceMessageId("msg-2"));
+    }
+
+    [Fact]
+    public void DeleteBySourceMessageId_UnknownId_IsNoOp()
+    {
+        repository.Insert(NewDiscarded("msg-1"));
+
+        repository.DeleteBySourceMessageId("msg-no-existe");
+
+        Assert.True(repository.ExistsBySourceMessageId("msg-1"));
+    }
+
+    [Fact]
+    public void Delete_ExistingRecord_RemovesOnlyThatOne()
+    {
+        repository.Insert(NewDiscarded("msg-1"));
+        repository.Insert(NewDiscarded("msg-2"));
+        var toDelete = repository.GetAll().Single(d => d.SourceMessageId == "msg-1");
+
+        repository.Delete(toDelete.Id);
+
+        Assert.False(repository.ExistsBySourceMessageId("msg-1"));
+        Assert.True(repository.ExistsBySourceMessageId("msg-2"));
     }
 
     private static DiscardedEmail NewDiscarded(string messageId) => new()

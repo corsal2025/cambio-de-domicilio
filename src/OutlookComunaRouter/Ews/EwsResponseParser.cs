@@ -55,6 +55,23 @@ public static class EwsResponseParser
             : EwsFolderRef.ByFolderId(id, changeKey);
     }
 
+    /// <summary>The moved item's new ItemId/ChangeKey at its destination folder, or null if the
+    /// response reported success but included no item (shouldn't happen in practice).</summary>
+    public static EwsItemRef? ParseMoveItemResponse(XDocument document)
+    {
+        EnsureSuccess(document, "MoveItem");
+
+        var itemId = document.Descendants(T + "ItemId").FirstOrDefault();
+        if (itemId is null)
+        {
+            return null;
+        }
+
+        var id = itemId.Attribute("Id")?.Value;
+        var changeKey = itemId.Attribute("ChangeKey")?.Value;
+        return string.IsNullOrEmpty(id) || string.IsNullOrEmpty(changeKey) ? null : new EwsItemRef(id, changeKey);
+    }
+
     public static IReadOnlyList<IncomingEmail> ParseGetItemResponse(XDocument document)
     {
         EnsureSuccess(document, "GetItem");

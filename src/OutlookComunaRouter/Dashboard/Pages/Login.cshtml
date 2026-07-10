@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <title>Ingresar — OutlookComunaRouter</title>
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
-    <link rel="stylesheet" href="~/css/dashboard.css" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
 </head>
 <body>
     <div class="login-shell">
@@ -30,6 +30,7 @@
                     <p class="error">@Model.ErrorMessage</p>
                 }
             </form>
+            <p class="subtitle" style="margin-top: 16px;"><a asp-page="/ForgotPassword">¿Olvidaste tu contraseña?</a></p>
             <script>
                 document.getElementById('password-toggle').addEventListener('click', function () {
                     var input = document.getElementById('password-input');

@@ -49,6 +49,15 @@ public sealed class PersonRequest
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
+    /// <summary>Operator-only bookkeeping checkbox, independent of Status — lets the operator tick off
+    /// cases they've already cross-checked manually, with no effect on the routing/confirmation flow.</summary>
+    public bool Marked { get; set; }
+
+    /// <summary>When this case was last included in a printed sector document (see the Sector page's
+    /// "Imprimir / Guardar como PDF" action). Null means it has never been printed. A case is excluded
+    /// from future sector documents once this is set, so re-printing doesn't repeat already-requested names.</summary>
+    public DateTimeOffset? SectorPdfGeneratedAt { get; set; }
+
     /// <summary>Physical location of the folder, derived from the última-carpeta date. Null until the date is entered.</summary>
     public FolderSector? Sector => FechaUltimaCarpeta is { } fecha
         ? fecha < new DateOnly(2023, 7, 1) ? FolderSector.Archivo : FolderSector.Oficina43

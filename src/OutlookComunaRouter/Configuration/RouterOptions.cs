@@ -18,6 +18,10 @@ public sealed class RouterOptions
     public required string ReportCsvPath { get; set; }
     public required string NotificationEmailAddress { get; set; }
     public bool ToastNotificationsEnabled { get; set; } = true;
+
+    /// <summary>Base URL used to build password-reset links in emails — adjust per machine if the
+    /// dashboard is reached via a LAN hostname instead of localhost.</summary>
+    public string PublicBaseUrl { get; set; } = "https://localhost:5001";
 }
 
 public sealed class EwsOptions

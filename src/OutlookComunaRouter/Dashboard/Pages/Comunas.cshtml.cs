@@ -32,6 +32,22 @@ public class ComunasModel(IComunaDirectory directory, RouterOptions options) : P
         return Page();
     }
 
+    public IActionResult OnPostAddContact(string comuna, string domain, string email)
+    {
+        if (directory.AddContact(options.ComunaDirectoryCsvPath, comuna, email, domain))
+        {
+            Message = $"Comuna {comuna} agregada al directorio.";
+        }
+        else
+        {
+            Message = "No se pudo agregar: revise que la comuna, el dominio y el correo tengan un formato válido.";
+            MessageIsError = true;
+        }
+
+        Load();
+        return Page();
+    }
+
     private void Load() =>
         Contacts = directory.LoadFromCsv(options.ComunaDirectoryCsvPath)
             .OrderBy(c => c.Comuna)

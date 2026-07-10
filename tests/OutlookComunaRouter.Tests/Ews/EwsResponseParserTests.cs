@@ -155,6 +155,52 @@ public class EwsResponseParserTests
     }
 
     [Fact]
+    public void ParseMoveItemResponse_ReturnsNewItemIdAtDestination()
+    {
+        var xml = $"""
+            <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+              <soap:Body>
+                <m:MoveItemResponse>
+                  <m:ResponseMessages>
+                    <m:MoveItemResponseMessage ResponseClass="Success">
+                      <m:Items>
+                        <t:Message><t:ItemId Id="NewId1" ChangeKey="NewCk1"/></t:Message>
+                      </m:Items>
+                    </m:MoveItemResponseMessage>
+                  </m:ResponseMessages>
+                </m:MoveItemResponse>
+              </soap:Body>
+            </soap:Envelope>
+            """;
+
+        var moved = EwsResponseParser.ParseMoveItemResponse(XDocument.Parse(xml));
+
+        Assert.NotNull(moved);
+        Assert.Equal("NewId1", moved!.Id);
+        Assert.Equal("NewCk1", moved.ChangeKey);
+    }
+
+    [Fact]
+    public void ParseMoveItemResponse_ErrorResponse_Throws()
+    {
+        var xml = $"""
+            <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+              <soap:Body>
+                <m:MoveItemResponse>
+                  <m:ResponseMessages>
+                    <m:MoveItemResponseMessage ResponseClass="Error">
+                      <m:ResponseCode>ErrorItemNotFound</m:ResponseCode>
+                    </m:MoveItemResponseMessage>
+                  </m:ResponseMessages>
+                </m:MoveItemResponse>
+              </soap:Body>
+            </soap:Envelope>
+            """;
+
+        Assert.Throws<InvalidOperationException>(() => EwsResponseParser.ParseMoveItemResponse(XDocument.Parse(xml)));
+    }
+
+    [Fact]
     public void EnsureSuccess_ErrorResponse_Throws()
     {
         var xml = $"""

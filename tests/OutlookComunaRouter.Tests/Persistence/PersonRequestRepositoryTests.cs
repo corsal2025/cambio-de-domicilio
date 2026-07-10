@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.Data.Sqlite;
 using OutlookComunaRouter.Domain;
 using OutlookComunaRouter.Persistence;
@@ -77,11 +78,155 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void ClearFechaUltimaCarpeta_RemovesDateAndSector()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetFechaUltimaCarpeta(id, new DateOnly(2022, 3, 15));
+
+        repository.ClearFechaUltimaCarpeta(id);
+
+        var stored = repository.FindById(id)!;
+        Assert.Null(stored.FechaUltimaCarpeta);
+        Assert.Null(stored.Sector);
+    }
+
+    [Fact]
     public void Sector_WithoutFecha_IsNull()
     {
         var id = repository.Insert(NewRequest("msg-1"));
 
         Assert.Null(repository.FindById(id)!.Sector);
+    }
+
+    [Fact]
+    public void Insert_DefaultsMarkedToFalse()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        Assert.False(repository.FindById(id)!.Marked);
+    }
+
+    [Fact]
+    public void SetMarked_TogglesFlag()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        repository.SetMarked(id, true);
+        Assert.True(repository.FindById(id)!.Marked);
+
+        repository.SetMarked(id, false);
+        Assert.False(repository.FindById(id)!.Marked);
+    }
+
+    [Fact]
+    public void EnsureSchema_OnPreExistingTableWithoutMarkedColumn_AddsColumnWithoutDataLoss()
+    {
+        // Simulates a database created before the Marked column existed.
+        using (var connection = new SqliteConnection($"Data Source={dbPath}"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                DROP TABLE PersonRequest;
+                CREATE TABLE PersonRequest (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    FullName TEXT NULL,
+                    Rut TEXT NULL,
+                    Comuna TEXT NULL,
+                    SourceMessageId TEXT NOT NULL UNIQUE,
+                    SourceConversationId TEXT NULL,
+                    SourceSubject TEXT NOT NULL,
+                    SourceSender TEXT NOT NULL,
+                    NeedsReview INTEGER NOT NULL,
+                    Status TEXT NOT NULL,
+                    ReceivedAt TEXT NOT NULL,
+                    FechaUltimaCarpeta TEXT NULL,
+                    UploadedAt TEXT NULL,
+                    ConfirmedAt TEXT NULL,
+                    ConfirmedByUserId INTEGER NULL,
+                    CreatedAt TEXT NOT NULL
+                );
+                """;
+            command.ExecuteNonQuery();
+        }
+        var preExistingId = repository.Insert(NewRequest("msg-old"));
+
+        repository.EnsureSchema(); // re-run migration, as happens on every app startup
+
+        var stored = repository.FindById(preExistingId);
+        Assert.NotNull(stored);
+        Assert.False(stored!.Marked);
+        repository.SetMarked(preExistingId, true);
+        Assert.True(repository.FindById(preExistingId)!.Marked);
+    }
+
+    [Fact]
+    public void Insert_TwoRequestsSameSourceMessageId_BothSucceed()
+    {
+        // A single source email can list more than one contributor — all their PersonRequest
+        // rows share the same SourceMessageId, so it must not be a unique constraint.
+        var request1 = NewRequest("msg-multi", rut: "18.552.843-K");
+        request1.FullName = "EDGARD ORLANDO PACHECO CARRASCO";
+        var request2 = NewRequest("msg-multi", rut: "15.409.979-4");
+        request2.FullName = "JUAN CARLOS LORENZO PATIÑO GAMONAL";
+
+        var id1 = repository.Insert(request1);
+        var id2 = repository.Insert(request2);
+
+        Assert.NotEqual(id1, id2);
+        var stored = repository.GetAll().Where(r => r.SourceMessageId == "msg-multi").ToList();
+        Assert.Equal(2, stored.Count);
+        Assert.Contains(stored, r => r.Rut == "18.552.843-K" && r.FullName == "EDGARD ORLANDO PACHECO CARRASCO");
+        Assert.Contains(stored, r => r.Rut == "15.409.979-4" && r.FullName == "JUAN CARLOS LORENZO PATIÑO GAMONAL");
+    }
+
+    [Fact]
+    public void EnsureSchema_OnPreExistingTableWithUniqueSourceMessageId_RemovesConstraintWithoutDataLoss()
+    {
+        // Simulates a database created before multi-contributor emails were supported, where
+        // SourceMessageId was still a UNIQUE column.
+        using (var connection = new SqliteConnection($"Data Source={dbPath}"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                DROP TABLE PersonRequest;
+                CREATE TABLE PersonRequest (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    FullName TEXT NULL,
+                    Rut TEXT NULL,
+                    Comuna TEXT NULL,
+                    SourceMessageId TEXT NOT NULL UNIQUE,
+                    SourceConversationId TEXT NULL,
+                    SourceSubject TEXT NOT NULL,
+                    SourceSender TEXT NOT NULL,
+                    NeedsReview INTEGER NOT NULL,
+                    Status TEXT NOT NULL,
+                    ReceivedAt TEXT NOT NULL,
+                    FechaUltimaCarpeta TEXT NULL,
+                    UploadedAt TEXT NULL,
+                    ConfirmedAt TEXT NULL,
+                    ConfirmedByUserId INTEGER NULL,
+                    CreatedAt TEXT NOT NULL,
+                    Marked INTEGER NOT NULL DEFAULT 0
+                );
+                """;
+            command.ExecuteNonQuery();
+        }
+        var preExistingId = repository.Insert(NewRequest("msg-old"));
+        repository.SetMarked(preExistingId, true);
+
+        repository.EnsureSchema(); // re-run migration, as happens on every app startup
+
+        // Old row preserved, including its Marked flag.
+        var preExisting = repository.FindById(preExistingId);
+        Assert.NotNull(preExisting);
+        Assert.True(preExisting!.Marked);
+
+        // The constraint is gone: a second row with the same SourceMessageId now succeeds.
+        var secondId = repository.Insert(NewRequest("msg-old", rut: "15.409.979-4"));
+        Assert.NotEqual(preExistingId, secondId);
+        Assert.Equal(2, repository.GetAll().Count(r => r.SourceMessageId == "msg-old"));
     }
 
     [Fact]
@@ -95,6 +240,126 @@ public class PersonRequestRepositoryTests : IDisposable
         var stored = repository.FindById(id);
         Assert.Equal(RequestStatus.Confirmed, stored!.Status);
         Assert.Equal(confirmedAt, stored.ConfirmedAt);
+    }
+
+    [Fact]
+    public void Delete_ExistingCase_RemovesItFromGetAll()
+    {
+        var toDelete = repository.Insert(NewRequest("msg-1"));
+        var toKeep = repository.Insert(NewRequest("msg-2", rut: "15.409.979-4"));
+
+        repository.Delete(toDelete);
+
+        Assert.Null(repository.FindById(toDelete));
+        Assert.NotNull(repository.FindById(toKeep));
+        Assert.Single(repository.GetAll());
+    }
+
+    [Fact]
+    public void RevertUploadedBySourceMessageId_UploadedCase_RevertsToPendingAndClearsUploadedAt()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+
+        var reverted = repository.RevertUploadedBySourceMessageId("msg-1");
+
+        Assert.Equal(1, reverted);
+        var stored = repository.FindById(id)!;
+        Assert.Equal(RequestStatus.Pending, stored.Status);
+        Assert.Null(stored.UploadedAt);
+    }
+
+    [Fact]
+    public void RevertUploadedBySourceMessageId_ConfirmedCase_IsNotReverted()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow, confirmedByUserId: 1);
+
+        var reverted = repository.RevertUploadedBySourceMessageId("msg-1");
+
+        Assert.Equal(0, reverted);
+        Assert.Equal(RequestStatus.Confirmed, repository.FindById(id)!.Status);
+    }
+
+    [Fact]
+    public void RevertUploadedBySourceMessageId_PendingCase_ReturnsZeroAndIsUnaffected()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        var reverted = repository.RevertUploadedBySourceMessageId("msg-1");
+
+        Assert.Equal(0, reverted);
+        Assert.Equal(RequestStatus.Pending, repository.FindById(id)!.Status);
+    }
+
+    [Fact]
+    public void RevertUploadedBySourceMessageId_MultipleUploadedRowsSharingMessageId_RevertsAll()
+    {
+        var id1 = repository.Insert(NewRequest("msg-multi", rut: "18.552.843-K"));
+        var id2 = repository.Insert(NewRequest("msg-multi", rut: "15.409.979-4"));
+        repository.MarkUploaded(id1, DateTimeOffset.UtcNow);
+        repository.MarkUploaded(id2, DateTimeOffset.UtcNow);
+
+        var reverted = repository.RevertUploadedBySourceMessageId("msg-multi");
+
+        Assert.Equal(2, reverted);
+        Assert.Equal(RequestStatus.Pending, repository.FindById(id1)!.Status);
+        Assert.Equal(RequestStatus.Pending, repository.FindById(id2)!.Status);
+    }
+
+    [Fact]
+    public void SetSectorPdfGenerated_StoresTimestamp()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        var generatedAt = DateTimeOffset.UtcNow;
+
+        repository.SetSectorPdfGenerated(id, generatedAt);
+
+        Assert.Equal(generatedAt, repository.FindById(id)!.SectorPdfGeneratedAt);
+    }
+
+    [Fact]
+    public void EnsureSchema_OnPreExistingTableWithoutSectorPdfGeneratedAtColumn_AddsColumnWithoutDataLoss()
+    {
+        // Simulates a database created before the SectorPdfGeneratedAt column existed.
+        using (var connection = new SqliteConnection($"Data Source={dbPath}"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                DROP TABLE PersonRequest;
+                CREATE TABLE PersonRequest (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    FullName TEXT NULL,
+                    Rut TEXT NULL,
+                    Comuna TEXT NULL,
+                    SourceMessageId TEXT NOT NULL,
+                    SourceConversationId TEXT NULL,
+                    SourceSubject TEXT NOT NULL,
+                    SourceSender TEXT NOT NULL,
+                    NeedsReview INTEGER NOT NULL,
+                    Status TEXT NOT NULL,
+                    ReceivedAt TEXT NOT NULL,
+                    FechaUltimaCarpeta TEXT NULL,
+                    UploadedAt TEXT NULL,
+                    ConfirmedAt TEXT NULL,
+                    ConfirmedByUserId INTEGER NULL,
+                    CreatedAt TEXT NOT NULL,
+                    Marked INTEGER NOT NULL DEFAULT 0
+                );
+                """;
+            command.ExecuteNonQuery();
+        }
+        var preExistingId = repository.Insert(NewRequest("msg-old"));
+
+        repository.EnsureSchema(); // re-run migration, as happens on every app startup
+
+        var stored = repository.FindById(preExistingId);
+        Assert.NotNull(stored);
+        Assert.Null(stored!.SectorPdfGeneratedAt);
+        repository.SetSectorPdfGenerated(preExistingId, DateTimeOffset.UtcNow);
+        Assert.NotNull(repository.FindById(preExistingId)!.SectorPdfGeneratedAt);
     }
 
     private static PersonRequest NewRequest(string sourceMessageId, string rut = "18.785.387-7") => new()
