@@ -238,8 +238,8 @@
                                 var restantes = Model.DiasHabilesRestantes(item);
                                 var plazoClass = restantes <= 3 ? "badge-review" : restantes <= 7 ? "badge-uploaded" : "badge-ok";
                                 var plazoText = restantes < 0
-                                    ? $"VENCIDO hace {-restantes} días hábiles"
-                                    : $"quedan {restantes} días hábiles";
+                                    ? $"VENCIDO hace {-restantes} días"
+                                    : $"quedan {restantes} días";
                                 <span class="badge @plazoClass">@plazoText</span>
                             }
                             else
