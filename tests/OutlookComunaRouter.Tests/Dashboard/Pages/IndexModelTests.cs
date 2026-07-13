@@ -23,6 +23,7 @@ public class IndexModelTests : IDisposable
     private readonly string csvPath = Path.Combine(Path.GetTempPath(), $"index-page-test-{Guid.NewGuid():N}.csv");
     private readonly IPersonRequestRepository repository;
     private readonly AddressChangeRoutingService routingService;
+    private readonly FakeMailSender mailSender = new();
     private readonly IndexModel model;
 
     public IndexModelTests()
@@ -65,7 +66,7 @@ public class IndexModelTests : IDisposable
             options,
             NullLogger<RouterWorker>.Instance);
 
-        model = new IndexModel(repository, discardedRepository, routingService, routerWorker, options, NullLogger<IndexModel>.Instance)
+        model = new IndexModel(repository, discardedRepository, routingService, routerWorker, options, mailSender, NullLogger<IndexModel>.Instance)
         {
             PageContext = new PageContext
             {
@@ -596,6 +597,74 @@ public class IndexModelTests : IDisposable
         Assert.True(model.MessageIsError);
     }
 
+    [Fact]
+    public void OnPostToggleFolderNotFound_OnValue_SetsFlag()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        model.OnPostToggleFolderNotFound(id, "on");
+
+        Assert.True(repository.FindById(id)!.FolderNotFound);
+    }
+
+    [Fact]
+    public void OnPostToggleFolderNotFound_NoValue_ClearsFlag()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetFolderNotFound(id, true);
+
+        model.OnPostToggleFolderNotFound(id, null);
+
+        Assert.False(repository.FindById(id)!.FolderNotFound);
+    }
+
+    [Fact]
+    public async Task OnPostNotifyFolderNotFoundAsync_NoPendingCases_ReportsErrorAndSendsNothing()
+    {
+        await model.OnPostNotifyFolderNotFoundAsync();
+
+        Assert.True(model.MessageIsError);
+        Assert.Empty(mailSender.SentMessages);
+    }
+
+    [Fact]
+    public async Task OnPostNotifyFolderNotFoundAsync_PendingCases_SendsBatchToMatiasAndAckToComuna()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetFolderNotFound(id, true);
+
+        await model.OnPostNotifyFolderNotFoundAsync();
+
+        Assert.Equal(2, mailSender.SentMessages.Count);
+        Assert.Contains(mailSender.SentMessages, m => m.To == "matias.villalobos@munivalpo.cl" && m.Body.Contains("GUSTAVO ANDRÉS PEÑA CASTRO"));
+        Assert.Contains(mailSender.SentMessages, m => m.To == "rfloresc@municatemu.cl" && m.Body.Contains("18.785.387-7"));
+        Assert.False(model.MessageIsError);
+    }
+
+    [Fact]
+    public async Task OnPostNotifyFolderNotFoundAsync_MarksCasesAsNotified()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetFolderNotFound(id, true);
+
+        await model.OnPostNotifyFolderNotFoundAsync();
+
+        Assert.NotNull(repository.FindById(id)!.FolderNotFoundNotifiedAt);
+    }
+
+    [Fact]
+    public async Task OnPostNotifyFolderNotFoundAsync_AlreadyNotifiedCase_IsExcludedFromNextBatch()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetFolderNotFound(id, true);
+        repository.SetFolderNotFoundNotified(id, DateTimeOffset.UtcNow);
+
+        await model.OnPostNotifyFolderNotFoundAsync();
+
+        Assert.True(model.MessageIsError);
+        Assert.Empty(mailSender.SentMessages);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId) => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",
@@ -625,6 +694,17 @@ public class IndexModelTests : IDisposable
     {
         public Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+    }
+
+    private sealed class FakeMailSender : IMailSender
+    {
+        public List<(string To, string Subject, string Body)> SentMessages { get; } = [];
+
+        public Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken)
+        {
+            SentMessages.Add((toAddress, subject, body));
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class NoOpEmailReader : IEmailReader

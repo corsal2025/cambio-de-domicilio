@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using OutlookComunaRouter.Configuration;
 using OutlookComunaRouter.Domain;
 using OutlookComunaRouter.Extraction;
+using OutlookComunaRouter.Mail;
+using OutlookComunaRouter.Notifications;
 using OutlookComunaRouter.Persistence;
 using OutlookComunaRouter.Routing;
 
@@ -17,6 +19,7 @@ public class IndexModel(
     AddressChangeRoutingService routingService,
     RouterWorker routerWorker,
     RouterOptions options,
+    IMailSender mailSender,
     ILogger<IndexModel> logger) : PageModel
 {
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
@@ -30,6 +33,11 @@ public class IndexModel(
     public bool MessageIsError { get; set; }
     public int PlazoDiasHabiles => options.PlazoDiasHabiles;
     public bool AllVisibleMarked => Cases.Count > 0 && Cases.All(c => c.Marked);
+
+    /// <summary>Whether there is at least one "carpeta no encontrada" case still pending the
+    /// batch notification to Secretaría Municipal — gates the "Avisar certificado" button.</summary>
+    public bool AnyFolderNotFoundPending => repository.GetAll()
+        .Any(c => c.FolderNotFound && c.FolderNotFoundNotifiedAt is null);
 
     public void OnGet(string? status, bool needsReview = false, string? search = null)
     {
@@ -247,6 +255,60 @@ public class IndexModel(
         var marked = markedValue == "on";
         repository.SetMarked(id, marked);
         return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
+    }
+
+    public IActionResult OnPostToggleFolderNotFound(long id, string? folderNotFoundValue)
+    {
+        var folderNotFound = folderNotFoundValue == "on";
+        repository.SetFolderNotFound(id, folderNotFound);
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
+    }
+
+    /// <summary>Sends the batch certification request for every "carpeta no encontrada" case not
+    /// yet notified: one summary email to Secretaría Municipal (<see cref="RouterOptions.CertificateRequestEmailAddress"/>)
+    /// listing everyone, plus one acknowledgement email per contributor to their requesting comuna.
+    /// All matching cases are then stamped with <see cref="PersonRequest.FolderNotFoundNotifiedAt"/>
+    /// so a re-run of this action only picks up newly-marked cases.</summary>
+    public async Task<IActionResult> OnPostNotifyFolderNotFoundAsync()
+    {
+        var pending = repository.GetAll()
+            .Where(c => c.FolderNotFound && c.FolderNotFoundNotifiedAt is null)
+            .ToList();
+
+        if (pending.Count == 0)
+        {
+            Message = "No hay casos con 'carpeta no encontrada' pendientes de aviso.";
+            MessageIsError = true;
+            Load();
+            return Page();
+        }
+
+        var contacts = routingService.LoadDirectory();
+        var rows = pending.Select(c => (
+            FullName: c.FullName ?? string.Empty,
+            Rut: c.Rut ?? string.Empty,
+            Comuna: c.Comuna ?? string.Empty,
+            ComunaEmail: contacts.FirstOrDefault(x => string.Equals(x.Comuna, c.Comuna, StringComparison.OrdinalIgnoreCase))?.ContactEmail ?? "sin correo registrado"
+        )).ToList();
+
+        var (batchSubject, batchBody) = EmailTemplates.CertificateRequestBatch(rows);
+        await mailSender.SendAsync(options.CertificateRequestEmailAddress, batchSubject, batchBody, HttpContext.RequestAborted);
+
+        foreach (var item in pending)
+        {
+            var comunaEmail = contacts.FirstOrDefault(x => string.Equals(x.Comuna, item.Comuna, StringComparison.OrdinalIgnoreCase))?.ContactEmail;
+            if (comunaEmail is not null)
+            {
+                var (subject, body) = EmailTemplates.CertificateAcknowledgement(item.FullName ?? string.Empty, item.Rut ?? string.Empty);
+                await mailSender.SendAsync(comunaEmail, subject, body, HttpContext.RequestAborted);
+            }
+
+            repository.SetFolderNotFoundNotified(item.Id, DateTimeOffset.UtcNow);
+        }
+
+        Message = $"Aviso enviado a Secretaría Municipal por {pending.Count} caso(s).";
+        Load();
+        return Page();
     }
 
     /// <summary>Marks (or unmarks) every case currently visible under the active filter — a

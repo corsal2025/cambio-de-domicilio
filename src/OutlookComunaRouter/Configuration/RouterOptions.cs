@@ -17,6 +17,11 @@ public sealed class RouterOptions
     public required string ComunaDirectoryCsvPath { get; set; }
     public required string ReportCsvPath { get; set; }
     public required string NotificationEmailAddress { get; set; }
+
+    /// <summary>Recipient for the "carpeta no encontrada" batch notification — Secretaría Municipal
+    /// uses this list to produce certification documents for contributors whose physical folder
+    /// couldn't be located.</summary>
+    public string CertificateRequestEmailAddress { get; set; } = "matias.villalobos@munivalpo.cl";
     public bool ToastNotificationsEnabled { get; set; } = true;
 
     /// <summary>Base URL used to build password-reset links in emails — adjust per machine if the

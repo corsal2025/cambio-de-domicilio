@@ -16,6 +16,8 @@ public interface IPersonRequestRepository
     void ClearFechaUltimaCarpeta(long id);
     void SetPersonData(long id, string fullName, string normalizedRut);
     void SetMarked(long id, bool marked);
+    void SetFolderNotFound(long id, bool folderNotFound);
+    void SetFolderNotFoundNotified(long id, DateTimeOffset notifiedAt);
     void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long confirmedByUserId);
 
     /// <summary>Reverts every Uploaded row for this source email back to Pending (clearing UploadedAt) —
@@ -84,6 +86,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
 
         EnsureColumnExists(connection, "Marked", "Marked INTEGER NOT NULL DEFAULT 0");
         EnsureColumnExists(connection, "SectorPdfGeneratedAt", "SectorPdfGeneratedAt TEXT NULL");
+        EnsureColumnExists(connection, "FolderNotFound", "FolderNotFound INTEGER NOT NULL DEFAULT 0");
+        EnsureColumnExists(connection, "FolderNotFoundNotifiedAt", "FolderNotFoundNotifiedAt TEXT NULL");
         RemoveSourceMessageIdUniqueConstraintIfPresent(connection);
     }
 
@@ -125,14 +129,18 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                     ConfirmedByUserId INTEGER NULL,
                     CreatedAt TEXT NOT NULL,
                     Marked INTEGER NOT NULL DEFAULT 0,
-                    SectorPdfGeneratedAt TEXT NULL
+                    SectorPdfGeneratedAt TEXT NULL,
+                    FolderNotFound INTEGER NOT NULL DEFAULT 0,
+                    FolderNotFoundNotifiedAt TEXT NULL
                 );
                 INSERT INTO PersonRequest_new
                     (Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
-                     NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt)
+                     NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
+                     FolderNotFound, FolderNotFoundNotifiedAt)
                 SELECT
                     Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
-                    NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt
+                    NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
+                    FolderNotFound, FolderNotFoundNotifiedAt
                 FROM PersonRequest;
                 DROP TABLE PersonRequest;
                 ALTER TABLE PersonRequest_new RENAME TO PersonRequest;
@@ -373,6 +381,26 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.ExecuteNonQuery();
     }
 
+    public void SetFolderNotFound(long id, bool folderNotFound)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET FolderNotFound = $folderNotFound WHERE Id = $id";
+        command.Parameters.AddWithValue("$folderNotFound", folderNotFound ? 1 : 0);
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void SetFolderNotFoundNotified(long id, DateTimeOffset notifiedAt)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET FolderNotFoundNotifiedAt = $notifiedAt WHERE Id = $id";
+        command.Parameters.AddWithValue("$notifiedAt", notifiedAt.ToString("O"));
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
     public void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long confirmedByUserId)
     {
         using var connection = Open();
@@ -428,6 +456,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         ConfirmedByUserId = reader.IsDBNull(reader.GetOrdinal("ConfirmedByUserId")) ? null : reader.GetInt64(reader.GetOrdinal("ConfirmedByUserId")),
         CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
         Marked = reader.GetInt32(reader.GetOrdinal("Marked")) == 1,
-        SectorPdfGeneratedAt = reader.IsDBNull(reader.GetOrdinal("SectorPdfGeneratedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("SectorPdfGeneratedAt")))
+        SectorPdfGeneratedAt = reader.IsDBNull(reader.GetOrdinal("SectorPdfGeneratedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("SectorPdfGeneratedAt"))),
+        FolderNotFound = reader.GetInt32(reader.GetOrdinal("FolderNotFound")) == 1,
+        FolderNotFoundNotifiedAt = reader.IsDBNull(reader.GetOrdinal("FolderNotFoundNotifiedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("FolderNotFoundNotifiedAt")))
     };
 }

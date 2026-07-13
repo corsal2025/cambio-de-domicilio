@@ -62,4 +62,13 @@ public sealed class PersonRequest
     public FolderSector? Sector => FechaUltimaCarpeta is { } fecha
         ? fecha < new DateOnly(2023, 7, 1) ? FolderSector.Archivo : FolderSector.Oficina43
         : null;
+
+    /// <summary>Operator-ticked flag: the physical folder could not be located, so a certification
+    /// request must go to Secretaría Municipal instead of the normal upload flow.</summary>
+    public bool FolderNotFound { get; set; }
+
+    /// <summary>When this case was last included in a "carpeta no encontrada" batch notification
+    /// (see Index page's "Avisar certificado" action). Null means it hasn't been notified yet —
+    /// a case is excluded from future batches once this is set, so re-sending doesn't repeat names.</summary>
+    public DateTimeOffset? FolderNotFoundNotifiedAt { get; set; }
 }

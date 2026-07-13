@@ -43,24 +43,24 @@ header.app-header {
 header.app-header .brand {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 14px;
     font-weight: 600;
-    font-size: 1.05rem;
+    font-size: 1.35rem;
     letter-spacing: 0.2px;
 }
 
 header.app-header .brand-logo {
-    height: 36px;
+    height: 76px;
     width: auto;
-    border-radius: 4px;
+    border-radius: 6px;
     background: #fff;
-    padding: 2px;
+    padding: 3px;
 }
 
 header.app-header .brand small {
     display: block;
     font-weight: 400;
-    font-size: 0.72rem;
+    font-size: 0.9rem;
     opacity: 0.85;
     letter-spacing: 0.4px;
     text-transform: uppercase;
@@ -202,6 +202,9 @@ body.cases-page main {
     flex: 1;
     display: flex;
     flex-direction: column;
+    max-width: none;
+    padding-left: 14px;
+    padding-right: 14px;
     min-height: 0;
 }
 
@@ -238,9 +241,10 @@ table.cases tbody tr:nth-child(even) { background: #fafbfc; }
 table.cases tbody tr:hover { background: #f0f6fb; }
 
 table.cases-index {
-    table-layout: auto;
+    table-layout: fixed;
     font-size: 0.8rem;
-    min-width: 960px;
+    width: 100%;
+    min-width: 0;
 }
 
 /* Zebra striping is computed server-side into an explicit class instead of relying on
@@ -255,18 +259,34 @@ table.cases-index tbody tr.row-alt {
 }
 
 table.cases-index th {
-    padding: 8px 5px;
-    font-size: 0.64rem;
+    padding: 6px 6px;
+    font-size: 0.66rem;
+    line-height: 1.2;
 }
 
 table.cases-index td {
-    padding: 6px 5px;
+    padding: 5px 6px;
 }
 
 table.cases-index th,
 table.cases-index td {
     text-align: center;
 }
+
+/* Fixed layout needs explicit widths, otherwise all 11 columns split the row evenly and the
+   checkbox columns (which need very little space) starve Nombre/Acción of the room they need. */
+table.cases-index th:nth-child(1), table.cases-index td:nth-child(1) { width: 5%; }
+table.cases-index th:nth-child(2), table.cases-index td:nth-child(2) { width: 6%; }
+table.cases-index th:nth-child(3), table.cases-index td:nth-child(3) { width: 22%; }
+table.cases-index th:nth-child(4), table.cases-index td:nth-child(4) { width: 8%; }
+table.cases-index th:nth-child(5), table.cases-index td:nth-child(5) { width: 8%; }
+table.cases-index th:nth-child(6), table.cases-index td:nth-child(6) { width: 7%; }
+table.cases-index th:nth-child(7), table.cases-index td:nth-child(7) { width: 9%; }
+table.cases-index th:nth-child(8), table.cases-index td:nth-child(8) { width: 6%; }
+table.cases-index th:nth-child(9), table.cases-index td:nth-child(9) { width: 8%; }
+table.cases-index th:nth-child(10), table.cases-index td:nth-child(10) { width: 8%; }
+table.cases-index th:nth-child(11), table.cases-index td:nth-child(11) { width: 13%; }
+
 
 table.cases-index .badge {
     padding: 2px 8px;
@@ -278,6 +298,11 @@ table.cases-index button.btn-primary {
     padding: 4px 10px;
     font-size: 0.76rem;
     white-space: nowrap;
+}
+
+table.cases-index td:last-child {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 table.cases-index td:last-child {
@@ -309,13 +334,23 @@ table.cases-index td.name-cell {
 table.cases-index td.name-cell .name-input {
     width: 100%;
     box-sizing: border-box;
+    font-size: 0.66rem;
+    padding-left: 3px;
+    padding-right: 3px;
 }
 
 table.cases-index td.rut-cell .rut-input {
     width: 100%;
-    min-width: 11ch;
+    min-width: 9ch;
     box-sizing: border-box;
     text-align: center;
+}
+
+table.cases-index td.text-cell,
+table.cases-index td.rut-cell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 table.cases-index .marked-checkbox {
@@ -381,6 +416,7 @@ table.cases-index td.review-cell {
 
 table.cases-index td.text-cell {
     white-space: nowrap;
+    text-align: center;
 }
 
 .fecha-form {
