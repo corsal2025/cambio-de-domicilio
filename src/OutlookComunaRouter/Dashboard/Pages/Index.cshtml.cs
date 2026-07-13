@@ -137,6 +137,92 @@ public class IndexModel(
         return Page();
     }
 
+    /// <summary>Registers several manually-entered cases under one shared comuna in a single
+    /// submission (e.g. a batch of requests received by phone for the same municipality). All
+    /// rows are validated first; if any row fails, nothing is inserted — an all-or-nothing batch,
+    /// same as if the operator had submitted <see cref="OnPostAddManualCase"/> once per row but
+    /// without leaving partial data behind on a mid-batch mistake.</summary>
+    public IActionResult OnPostAddManualCases(string comuna, List<string> nombre, List<string> rut)
+    {
+        var matchedComuna = routingService.LoadDirectory()
+            .FirstOrDefault(c => string.Equals(c.Comuna, comuna, StringComparison.OrdinalIgnoreCase));
+        if (matchedComuna is null)
+        {
+            Message = "La comuna ingresada no está en el directorio. Agréguela primero en la página 'Comunas'.";
+            MessageIsError = true;
+            Load();
+            return Page();
+        }
+
+        var rows = nombre.Zip(rut, (n, r) => (Nombre: n, Rut: r))
+            .Where(row => !string.IsNullOrWhiteSpace(row.Nombre) || !string.IsNullOrWhiteSpace(row.Rut))
+            .ToList();
+
+        if (rows.Count == 0)
+        {
+            Message = "Ingrese al menos un contribuyente.";
+            MessageIsError = true;
+            Load();
+            return Page();
+        }
+
+        var toInsert = new List<PersonRequest>();
+        var errors = new List<string>();
+
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var normalizedRut = RutValidator.NormalizeAndValidate(rows[i].Rut);
+            var nombreNormalizado = (rows[i].Nombre ?? string.Empty).Trim().ToUpperInvariant();
+
+            if (normalizedRut is null || nombreNormalizado.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length < 2)
+            {
+                errors.Add($"Fila {i + 1}: " + (normalizedRut is null
+                    ? "RUT no válido (revise el dígito verificador)."
+                    : "ingrese el nombre completo (al menos nombre y apellido)."));
+                continue;
+            }
+
+            if (repository.FindByRutAndComuna(normalizedRut, matchedComuna.Comuna) is not null
+                || toInsert.Any(p => p.Rut == normalizedRut))
+            {
+                errors.Add($"Fila {i + 1}: ya existe un caso registrado para esta persona y esta comuna.");
+                continue;
+            }
+
+            toInsert.Add(new PersonRequest
+            {
+                FullName = nombreNormalizado,
+                Rut = normalizedRut,
+                Comuna = matchedComuna.Comuna,
+                SourceMessageId = $"manual-{Guid.NewGuid()}",
+                SourceSubject = "Ingresado manualmente por el operador",
+                SourceSender = User.Identity?.Name ?? "operador",
+                NeedsReview = false,
+                Status = RequestStatus.Pending,
+                ReceivedAt = DateTimeOffset.UtcNow
+            });
+        }
+
+        if (errors.Count > 0)
+        {
+            Message = string.Join(" ", errors);
+            MessageIsError = true;
+            Load();
+            return Page();
+        }
+
+        foreach (var request in toInsert)
+        {
+            repository.Insert(request);
+        }
+
+        Message = toInsert.Count == 1
+            ? "Caso agregado manualmente."
+            : $"{toInsert.Count} casos agregados manualmente.";
+        Load();
+        return Page();
+    }
+
     /// <summary>Operator-triggered permanent removal of a case (e.g. a mistaken manual entry, or
     /// one that should never have been tracked) — unlike the automatic revert-to-Pending on a
     /// re-found source email, this actually erases the row.</summary>

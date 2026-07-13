@@ -523,6 +523,79 @@ public class IndexModelTests : IDisposable
         Assert.True(model.MessageIsError);
     }
 
+    [Fact]
+    public void OnPostAddManualCases_ValidRows_InsertsAllUnderSameComuna()
+    {
+        model.OnPostAddManualCases(
+            "Catemu",
+            ["Gustavo Peña Castro", "Ana María Soto"],
+            ["18785387-7", "9098162-5"]);
+
+        var stored = repository.GetAll();
+        Assert.Equal(2, stored.Count);
+        Assert.All(stored, c => Assert.Equal("Catemu", c.Comuna));
+        Assert.Contains(stored, c => c.FullName == "GUSTAVO PEÑA CASTRO" && c.Rut == "18.785.387-7");
+        Assert.Contains(stored, c => c.FullName == "ANA MARÍA SOTO" && c.Rut == "09.098.162-5");
+        Assert.False(model.MessageIsError);
+    }
+
+    [Fact]
+    public void OnPostAddManualCases_BlankTrailingRow_IsIgnored()
+    {
+        model.OnPostAddManualCases(
+            "Catemu",
+            ["Gustavo Peña Castro", ""],
+            ["18785387-7", ""]);
+
+        var stored = Assert.Single(repository.GetAll());
+        Assert.Equal("GUSTAVO PEÑA CASTRO", stored.FullName);
+        Assert.False(model.MessageIsError);
+    }
+
+    [Fact]
+    public void OnPostAddManualCases_OneRowInvalid_InsertsNoneAndReportsRow()
+    {
+        model.OnPostAddManualCases(
+            "Catemu",
+            ["Gustavo Peña Castro", "Ana María Soto"],
+            ["18785387-7", "9098162-1"]); // second RUT has wrong check digit
+
+        Assert.Empty(repository.GetAll());
+        Assert.True(model.MessageIsError);
+        Assert.Contains("Fila 2", model.Message);
+    }
+
+    [Fact]
+    public void OnPostAddManualCases_DuplicateRutWithinSameSubmission_IsRejected()
+    {
+        model.OnPostAddManualCases(
+            "Catemu",
+            ["Gustavo Peña Castro", "Gustavo Andrés Peña Castro"],
+            ["18785387-7", "18785387-7"]);
+
+        Assert.Empty(repository.GetAll());
+        Assert.True(model.MessageIsError);
+        Assert.Contains("Fila 2", model.Message);
+    }
+
+    [Fact]
+    public void OnPostAddManualCases_UnknownComuna_IsRejectedWithoutInserting()
+    {
+        model.OnPostAddManualCases("NoExiste", ["Gustavo Peña Castro"], ["18785387-7"]);
+
+        Assert.Empty(repository.GetAll());
+        Assert.True(model.MessageIsError);
+    }
+
+    [Fact]
+    public void OnPostAddManualCases_NoRows_IsRejected()
+    {
+        model.OnPostAddManualCases("Catemu", [], []);
+
+        Assert.Empty(repository.GetAll());
+        Assert.True(model.MessageIsError);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId) => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",

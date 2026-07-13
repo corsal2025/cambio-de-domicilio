@@ -82,7 +82,8 @@
         }
 
         <div class="card" style="padding: 20px 24px; margin-bottom: 16px;">
-            <form method="post" asp-page-handler="AddManualCase" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+            <form method="post" asp-page-handler="AddManualCases" id="manual-cases-form"
+                  style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
                 <div>
                     <label class="form-label" for="manual-comuna">Comuna</label>
                     <select name="comuna" id="manual-comuna" required
@@ -94,19 +95,55 @@
                         }
                     </select>
                 </div>
-                <div>
-                    <label class="form-label" for="manual-nombre">Nombre completo</label>
-                    <input type="text" name="nombre" id="manual-nombre" required placeholder="ej: Gustavo Peña Castro"
-                           style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem; min-width:220px;" />
+
+                <div id="manual-case-rows" style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <div class="manual-case-row" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+                        <div>
+                            <label class="form-label">Nombre completo</label>
+                            <input type="text" name="nombre" required placeholder="ej: Gustavo Peña Castro"
+                                   style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem; min-width:220px;" />
+                        </div>
+                        <div>
+                            <label class="form-label">RUT</label>
+                            <input type="text" name="rut" required placeholder="ej: 18.785.387-7"
+                                   style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem;" />
+                        </div>
+                        <button type="button" class="manual-case-remove" title="Quitar fila"
+                                style="border:1px solid var(--color-border); border-radius:4px; padding:6px 10px; background:none; cursor:pointer;">&times;</button>
+                    </div>
                 </div>
-                <div>
-                    <label class="form-label" for="manual-rut">RUT</label>
-                    <input type="text" name="rut" id="manual-rut" required placeholder="ej: 18.785.387-7"
-                           style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem;" />
-                </div>
-                <button type="submit" class="btn-primary" style="padding:8px 16px;">Agregar caso</button>
+
+                <button type="button" id="manual-case-add"
+                        style="border:1px solid var(--color-border); border-radius:4px; padding:8px 16px; background:none; cursor:pointer;">+ Agregar otro</button>
+                <button type="submit" class="btn-primary" style="padding:8px 16px;">Agregar caso(s)</button>
             </form>
         </div>
+
+        <script>
+            (function () {
+                var rowsContainer = document.getElementById('manual-case-rows');
+                var addButton = document.getElementById('manual-case-add');
+                if (!rowsContainer || !addButton) return;
+
+                function addRow() {
+                    var first = rowsContainer.querySelector('.manual-case-row');
+                    var clone = first.cloneNode(true);
+                    clone.querySelectorAll('input').forEach(function (input) { input.value = ''; });
+                    rowsContainer.appendChild(clone);
+                    clone.querySelector('input[name="nombre"]').focus();
+                }
+
+                addButton.addEventListener('click', addRow);
+
+                rowsContainer.addEventListener('click', function (event) {
+                    if (!event.target.classList.contains('manual-case-remove')) return;
+                    var rows = rowsContainer.querySelectorAll('.manual-case-row');
+                    if (rows.length > 1) {
+                        event.target.closest('.manual-case-row').remove();
+                    }
+                });
+            })();
+        </script>
 
         <div class="card table-card">
             <table class="cases cases-index">
