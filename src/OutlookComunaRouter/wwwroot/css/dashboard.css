@@ -266,6 +266,11 @@ table.cases-index th {
 
 table.cases-index td {
     padding: 5px 6px;
+    font-weight: 700;
+}
+
+table.cases-index td input {
+    font-weight: 700;
 }
 
 table.cases-index th,
@@ -275,16 +280,16 @@ table.cases-index td {
 
 /* Fixed layout needs explicit widths, otherwise all 11 columns split the row evenly and the
    checkbox columns (which need very little space) starve Nombre/Acción of the room they need. */
-table.cases-index th:nth-child(1), table.cases-index td:nth-child(1) { width: 5%; }
-table.cases-index th:nth-child(2), table.cases-index td:nth-child(2) { width: 6%; }
-table.cases-index th:nth-child(3), table.cases-index td:nth-child(3) { width: 22%; }
-table.cases-index th:nth-child(4), table.cases-index td:nth-child(4) { width: 8%; }
-table.cases-index th:nth-child(5), table.cases-index td:nth-child(5) { width: 8%; }
-table.cases-index th:nth-child(6), table.cases-index td:nth-child(6) { width: 7%; }
-table.cases-index th:nth-child(7), table.cases-index td:nth-child(7) { width: 9%; }
-table.cases-index th:nth-child(8), table.cases-index td:nth-child(8) { width: 6%; }
-table.cases-index th:nth-child(9), table.cases-index td:nth-child(9) { width: 8%; }
-table.cases-index th:nth-child(10), table.cases-index td:nth-child(10) { width: 8%; }
+table.cases-index th:nth-child(1), table.cases-index td:nth-child(1) { width: 4%; }
+table.cases-index th:nth-child(2), table.cases-index td:nth-child(2) { width: 4%; }
+table.cases-index th:nth-child(3), table.cases-index td:nth-child(3) { width: 19%; }
+table.cases-index th:nth-child(4), table.cases-index td:nth-child(4) { width: 10%; }
+table.cases-index th:nth-child(5), table.cases-index td:nth-child(5) { width: 9%; }
+table.cases-index th:nth-child(6), table.cases-index td:nth-child(6) { width: 8%; }
+table.cases-index th:nth-child(7), table.cases-index td:nth-child(7) { width: 10%; }
+table.cases-index th:nth-child(8), table.cases-index td:nth-child(8) { width: 7%; }
+table.cases-index th:nth-child(9), table.cases-index td:nth-child(9) { width: 9%; }
+table.cases-index th:nth-child(10), table.cases-index td:nth-child(10) { width: 7%; }
 table.cases-index th:nth-child(11), table.cases-index td:nth-child(11) { width: 13%; }
 
 
@@ -386,6 +391,30 @@ table.cases-index tbody tr.row-needs-review {
 
 table.cases-index tbody tr.row-needs-review:hover {
     background: #f6d0d8 !important;
+}
+
+/* F8 pending: reminder that this case still needs its physical folder requested/picked up.
+   !important wins over row-confirmed/row-needs-review since F8 is the more actionable reminder
+   for the operator once it's ticked. */
+table.cases-index tbody tr.row-f8-pending {
+    background: #8c8c8c !important;
+}
+
+table.cases-index tbody tr.row-f8-pending:hover {
+    background: #7c7c7c !important;
+}
+
+table.cases-index tbody tr.row-f8-pending td.marked-cell:nth-child(2) {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+table.cases-index tbody tr.row-f8-pending td.marked-cell:nth-child(2)::after {
+    content: "⚠";
+    color: #b8860b;
 }
 
 /* Groups the alert symbol and the name input on one row — without this, the input's own

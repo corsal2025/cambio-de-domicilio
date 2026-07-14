@@ -75,6 +75,8 @@
                     <button type="submit" @(Model.AnyFolderNotFoundPending ? "" : "disabled")
                             title="Envía a Secretaría Municipal el listado de carpetas no encontradas para elaborar los certificados">Avisar certificado (Matías)</button>
                 </form>
+                <a asp-page-handler="ExportFolderNotFound" class="btn-secondary" style="padding:8px 16px; text-decoration:none;"
+                   title="Descarga un Excel con todos los casos F8 marcados">Exportar F8 (Excel)</a>
                 <a asp-page="/ChangePassword">Cambiar contraseña</a>
                 <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
             </div>
@@ -167,7 +169,7 @@
                                 </form>
                             </span>
                         </th>
-                        <th title="Marca un caso cuya carpeta física no fue posible localizar">Carpeta no encontrada</th>
+                        <th title="Marca un caso cuya carpeta física no fue posible localizar (solo fichas sin fecha o anteriores a 2000)">F8</th>
                         <th>Nombre</th>
                         <th>RUT</th>
                         <th>Comuna</th>
@@ -187,8 +189,9 @@
                     var statusRowClass = item.Status == RequestStatus.Confirmed
                         ? "row-confirmed"
                         : (item.NeedsReview ? "row-needs-review" : "");
+                    var f8PendingClass = (item.FolderNotFound && item.FolderNotFoundNotifiedAt is null) ? "row-f8-pending" : "";
                     rowIndex++;
-                    <tr class="@rowClass @statusRowClass">
+                    <tr class="@rowClass @statusRowClass @f8PendingClass">
                         <td class="marked-cell">
                             <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
                                 <input type="hidden" name="id" value="@item.Id" />
@@ -203,7 +206,9 @@
                                 <input type="checkbox" name="folderNotFoundValue" class="marked-checkbox"
                                        @(item.FolderNotFound ? "checked" : "") onchange="this.form.submit()"
                                        @(item.FolderNotFoundNotifiedAt is not null ? "disabled" : "")
-                                       title="@(item.FolderNotFoundNotifiedAt is not null ? $"Ya avisado el {item.FolderNotFoundNotifiedAt.Value.LocalDateTime:dd-MM-yyyy HH:mm}" : "Carpeta no encontrada")" />
+                                       title="@(item.FolderNotFoundNotifiedAt is not null
+                                            ? $"Ya avisado el {item.FolderNotFoundNotifiedAt.Value.LocalDateTime:dd-MM-yyyy HH:mm}"
+                                            : "F8 - Carpeta no encontrada")" />
                             </form>
                         </td>
                         <td class="name-cell">

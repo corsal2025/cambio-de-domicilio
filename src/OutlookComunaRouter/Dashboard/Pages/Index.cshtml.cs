@@ -37,7 +37,7 @@ public class IndexModel(
     /// <summary>Whether there is at least one "carpeta no encontrada" case still pending the
     /// batch notification to Secretaría Municipal — gates the "Avisar certificado" button.</summary>
     public bool AnyFolderNotFoundPending => repository.GetAll()
-        .Any(c => c.FolderNotFound && c.FolderNotFoundNotifiedAt is null);
+        .Any(c => c.FolderNotFound && c.FolderNotFoundNotifiedAt is null && c.IsEligibleForFolderNotFound);
 
     public void OnGet(string? status, bool needsReview = false, string? search = null)
     {
@@ -272,12 +272,12 @@ public class IndexModel(
     public async Task<IActionResult> OnPostNotifyFolderNotFoundAsync()
     {
         var pending = repository.GetAll()
-            .Where(c => c.FolderNotFound && c.FolderNotFoundNotifiedAt is null)
+            .Where(c => c.FolderNotFound && c.FolderNotFoundNotifiedAt is null && c.IsEligibleForFolderNotFound)
             .ToList();
 
         if (pending.Count == 0)
         {
-            Message = "No hay casos con 'carpeta no encontrada' pendientes de aviso.";
+            Message = "No hay casos F8 anteriores al año 2000 (o sin fecha) pendientes de aviso.";
             MessageIsError = true;
             Load();
             return Page();
@@ -309,6 +309,45 @@ public class IndexModel(
         Message = $"Aviso enviado a Secretaría Municipal por {pending.Count} caso(s).";
         Load();
         return Page();
+    }
+
+    /// <summary>Exports every "F8" case currently marked (<see cref="PersonRequest.FolderNotFound"/>)
+    /// to an .xlsx workbook, regardless of whether it has already been notified — this lets the
+    /// operator hand the list to Secretaría Municipal for the physical certificate request.</summary>
+    public IActionResult OnGetExportFolderNotFound()
+    {
+        var cases = repository.GetAll()
+            .Where(c => c.FolderNotFound)
+            .OrderBy(c => c.Comuna)
+            .ThenBy(c => c.FullName)
+            .ToList();
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var sheet = workbook.Worksheets.Add("F8");
+        sheet.Cell(1, 1).Value = "Nombre";
+        sheet.Cell(1, 2).Value = "RUT";
+        sheet.Cell(1, 3).Value = "Comuna";
+        sheet.Cell(1, 4).Value = "Fecha última carpeta";
+        sheet.Cell(1, 5).Value = "Avisado";
+        sheet.Row(1).Style.Font.Bold = true;
+
+        var row = 2;
+        foreach (var item in cases)
+        {
+            sheet.Cell(row, 1).Value = item.FullName ?? string.Empty;
+            sheet.Cell(row, 2).Value = item.Rut ?? string.Empty;
+            sheet.Cell(row, 3).Value = item.Comuna ?? string.Empty;
+            sheet.Cell(row, 4).Value = item.FechaUltimaCarpeta?.ToString("dd-MM-yyyy") ?? "sin fecha";
+            sheet.Cell(row, 5).Value = item.FolderNotFoundNotifiedAt is not null ? "Sí" : "No";
+            row++;
+        }
+
+        sheet.Columns().AdjustToContents();
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        var fileName = $"F8_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+        return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
     }
 
     /// <summary>Marks (or unmarks) every case currently visible under the active filter — a

@@ -153,6 +153,16 @@ public sealed class AddressChangeRoutingService(
             return;
         }
 
+        // No RUT extracted (needsReview) — the RUT-based check above can't run, so fall back to
+        // matching by full name + comuna. Without this, resent emails with unreadable RUTs would
+        // duplicate the same person every time the sender re-sends the request.
+        if (needsReview && extracted.FullName is not null
+            && repository.FindByFullNameAndComuna(extracted.FullName, comunaContact.Comuna) is not null)
+        {
+            logger.LogInformation("Solicitud ya registrada para esta persona (por nombre) y comuna, se omite duplicado");
+            return;
+        }
+
         var request = new PersonRequest
         {
             // PersonDataExtractor preserves the source email's original casing (see

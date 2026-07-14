@@ -8,6 +8,7 @@ public interface IPersonRequestRepository
     void EnsureSchema();
     bool ExistsBySourceMessageId(string sourceMessageId);
     PersonRequest? FindByRutAndComuna(string rut, string comuna);
+    PersonRequest? FindByFullNameAndComuna(string fullName, string comuna);
     PersonRequest? FindPendingBySourceMessageId(string sourceMessageId);
     PersonRequest? FindById(long id);
     long Insert(PersonRequest request);
@@ -194,6 +195,24 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             ORDER BY Id DESC LIMIT 1
             """;
         command.Parameters.AddWithValue("$rut", rut);
+        command.Parameters.AddWithValue("$comuna", comuna);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? Map(reader) : null;
+    }
+
+    /// <summary>Any existing record for this (full name, comuna) — used to catch duplicates when
+    /// the incoming email has no RUT to key off of (needsReview cases), matched case-insensitively
+    /// since PersonDataExtractor preserves the source email's original casing.</summary>
+    public PersonRequest? FindByFullNameAndComuna(string fullName, string comuna)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT * FROM PersonRequest
+            WHERE UPPER(FullName) = UPPER($fullName) AND Comuna = $comuna
+            ORDER BY Id DESC LIMIT 1
+            """;
+        command.Parameters.AddWithValue("$fullName", fullName);
         command.Parameters.AddWithValue("$comuna", comuna);
         using var reader = command.ExecuteReader();
         return reader.Read() ? Map(reader) : null;
