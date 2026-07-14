@@ -37,7 +37,9 @@ public static partial class PersonDataExtractor
     private static partial Regex SpaceSeparatedRutPattern();
 
     // 2-5 capitalized words (all-caps or title case), used only in the window adjacent to the RUT.
-    [GeneratedRegex(@"([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+){1,4})")]
+    // Words may be joined by a hyphen (e.g. "MARIA-ANTONIA") — a plain \s+ separator would drop
+    // the first half of a hyphenated compound given name.
+    [GeneratedRegex(@"([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+(?:[\s-]+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ]+){1,4})")]
     private static partial Regex NameSequencePattern();
 
     // Honorifics, connectors and filler words stripped from the edges of a name candidate

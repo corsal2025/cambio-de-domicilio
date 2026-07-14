@@ -17,6 +17,17 @@ public class PersonDataExtractorTests
     }
 
     [Fact]
+    public void Extract_HyphenatedCompoundFirstName_IsNotTruncated()
+    {
+        var body = "MARIA-ANTONIA RECULE RIVERA, RUT: 18.586.259-3.";
+
+        var result = PersonDataExtractor.Extract(body);
+
+        Assert.Equal("MARIA-ANTONIA RECULE RIVERA", result.FullName);
+        Assert.Equal("18.586.259-3", result.Rut);
+    }
+
+    [Fact]
     public void Extract_RunPrefixVariant_IsRecognized()
     {
         var body = "carpeta de don Gustavo Andrés Peña Castro RUN 18785387-7, gracias.";
