@@ -70,11 +70,6 @@
                       title="Marca todos los casos cuya última carpeta es julio 2023 en adelante (sector Oficina 43)">
                     <button type="submit">Marcar todo Oficina 43</button>
                 </form>
-                <form method="post" asp-page-handler="NotifyFolderNotFound"
-                      onsubmit="return confirm('Esto enviará un correo a Secretaría Municipal con el listado de carpetas no encontradas, más un correo de aviso a cada comuna involucrada. ¿Confirmar?');">
-                    <button type="submit" @(Model.AnyFolderNotFoundPending ? "" : "disabled")
-                            title="Envía a Secretaría Municipal el listado de carpetas no encontradas para elaborar los certificados">Avisar certificado (Matías)</button>
-                </form>
                 <a asp-page-handler="ExportFolderNotFound" class="btn-secondary" style="padding:8px 16px; text-decoration:none;"
                    title="Descarga un Excel con todos los casos F8 marcados">Exportar F8 (Excel)</a>
                 <a asp-page="/ChangePassword">Cambiar contraseña</a>
