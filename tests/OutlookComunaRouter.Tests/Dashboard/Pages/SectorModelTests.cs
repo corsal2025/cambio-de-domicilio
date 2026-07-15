@@ -78,6 +78,48 @@ public class SectorModelTests : IDisposable
     }
 
     [Fact]
+    public void OnGet_ExcludesCasesAlreadyTransferredToF8()
+    {
+        // Once a case is transferred to F8 it belongs to the F8-specific sector document
+        // (SectorF8Model) instead — it must not also show up in the Cambio de Domicilio one.
+        var transferredId = repository.Insert(NewRequest("msg-1", "Persona Traspasada"));
+        repository.SetFechaUltimaCarpeta(transferredId, new DateOnly(2022, 1, 1));
+        repository.SetMarked(transferredId, true);
+        repository.SetDestination(transferredId, CaseDestination.F8, DateTimeOffset.UtcNow);
+
+        var normalId = repository.Insert(NewRequest("msg-2", "Persona Normal"));
+        repository.SetFechaUltimaCarpeta(normalId, new DateOnly(2022, 1, 1));
+        repository.SetMarked(normalId, true);
+
+        var model = new SectorModel(repository);
+        model.OnGet(FolderSector.Archivo);
+
+        var result = Assert.Single(model.Cases);
+        Assert.Equal("Persona Normal", result.FullName);
+    }
+
+    [Fact]
+    public void OnGet_ExcludesCasesAlreadyTransferredToCertificado()
+    {
+        // A case transferred to Certificado belongs to that dedicated screen instead — it must
+        // not also show up in the normal Cambio de Domicilio PDF, same as F8-transferred cases.
+        var transferredId = repository.Insert(NewRequest("msg-1", "Persona Traspasada Certificado"));
+        repository.SetFechaUltimaCarpeta(transferredId, new DateOnly(2022, 1, 1));
+        repository.SetMarked(transferredId, true);
+        repository.SetDestination(transferredId, CaseDestination.Certificado, DateTimeOffset.UtcNow);
+
+        var normalId = repository.Insert(NewRequest("msg-2", "Persona Normal"));
+        repository.SetFechaUltimaCarpeta(normalId, new DateOnly(2022, 1, 1));
+        repository.SetMarked(normalId, true);
+
+        var model = new SectorModel(repository);
+        model.OnGet(FolderSector.Archivo);
+
+        var result = Assert.Single(model.Cases);
+        Assert.Equal("Persona Normal", result.FullName);
+    }
+
+    [Fact]
     public void OnPostMarkPrinted_MarksEveryCurrentlyVisibleCaseInThatSector()
     {
         var archivoId = repository.Insert(NewRequest("msg-1", "Persona Archivo"));

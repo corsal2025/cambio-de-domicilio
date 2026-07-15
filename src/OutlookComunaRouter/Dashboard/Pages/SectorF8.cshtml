@@ -1,10 +1,10 @@
 @page "{sector?}"
-@model OutlookComunaRouter.Dashboard.Pages.SectorModel
+@model OutlookComunaRouter.Dashboard.Pages.SectorF8Model
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
-    <title>Documento — @Model.SelectedSector</title>
+    <title>Documento F8 — @Model.SelectedSector</title>
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
     <style>
@@ -167,17 +167,17 @@
     <header class="app-header">
         <div class="brand">
             OutlookComunaRouter
-            <small>Municipalidad de Valparaíso — Documento por sector</small>
+            <small>Municipalidad de Valparaíso — Documento F8 por sector</small>
         </div>
         <nav class="app-nav">
-            <a asp-page="/Index">Casos</a>
-            <a asp-page="/Sector" asp-route-sector="Archivo" class="@(Model.SelectedSector == OutlookComunaRouter.Domain.FolderSector.Archivo ? "active" : "")">PDF Archivo</a>
-            <a asp-page="/Sector" asp-route-sector="Oficina43" class="@(Model.SelectedSector == OutlookComunaRouter.Domain.FolderSector.Oficina43 ? "active" : "")">PDF Oficina 43</a>
+            <a asp-page="/SectorF8" asp-route-sector="Archivo" class="@(Model.SelectedSector == OutlookComunaRouter.Domain.FolderSector.Archivo ? "active" : "")">PDF Archivo</a>
+            <a asp-page="/SectorF8" asp-route-sector="Oficina43" class="@(Model.SelectedSector == OutlookComunaRouter.Domain.FolderSector.Oficina43 ? "active" : "")">PDF Oficina 43</a>
             <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
         </nav>
     </header>
     <div class="app-subnav">
         <span class="app-subnav-label">Otros sistemas</span>
+        <a asp-page="/Index">Casos</a>
         <a asp-page="/F8" class="nav-f8">F8</a>
         <a asp-page="/Certificado" class="nav-certificado">Certificado</a>
     </div>
@@ -200,7 +200,7 @@
                 </select>
             </span>
             <span style="font-size:0.8rem; color:var(--color-text-muted);">
-                Este listado muestra solo los nombres marcados (checkbox "Marcar") en la pantalla de Casos.
+                Este listado muestra solo los nombres marcados (checkbox "Marcar") entre los casos ya traspasados a F8.
             </span>
         </div>
 
@@ -210,16 +210,16 @@
                     <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="doc-seal" />
                     <div>
                         <p class="doc-org">Municipalidad de Valparaíso — Dirección de Tránsito</p>
-                        <h2>Cambio de Domicilio — Listado de carpetas — Sector @(Model.SelectedSector == OutlookComunaRouter.Domain.FolderSector.Oficina43 ? "Oficina 43" : "Archivo")</h2>
+                        <h2>F8 — Listado de carpetas — Sector @(Model.SelectedSector == OutlookComunaRouter.Domain.FolderSector.Oficina43 ? "Oficina 43" : "Archivo")</h2>
                     </div>
                 </div>
                 <div class="doc-meta">
-                    <div>Folio: <strong>@Model.SelectedSector-@DateTimeOffset.Now.ToString("yyyyMMdd-HHmm")</strong></div>
+                    <div>Folio: <strong>F8-@Model.SelectedSector-@DateTimeOffset.Now.ToString("yyyyMMdd-HHmm")</strong></div>
                     <div>Generado: <strong>@DateTimeOffset.Now.ToString("dd-MM-yyyy HH:mm")</strong></div>
                 </div>
             </div>
             <div class="doc-subheader">
-                <span>Solicitudes de cambio de domicilio — carpetas físicas a retirar</span>
+                <span>Casos F8 — carpetas físicas a retirar</span>
                 <span>@Model.Cases.Count registro(s)</span>
             </div>
 
@@ -228,7 +228,7 @@
                 {
                     <p class="doc-empty">
                         No hay carpetas en este sector todavía. Marca el checkbox "Marcar" de los
-                        casos correspondientes en la pantalla de Casos (con su "Fecha última carpeta"
+                        casos correspondientes en la pantalla F8 (con su "Fecha penúltima carpeta"
                         ya ingresada) para que aparezcan aquí.
                     </p>
                 }
@@ -241,7 +241,7 @@
                                 <th style="text-align:left;">Nombre completo</th>
                                 <th>RUT</th>
                                 <th>Comuna</th>
-                                <th>Fecha última carpeta</th>
+                                <th>Fecha penúltima carpeta</th>
                             </tr>
                         </thead>
                         <tbody>

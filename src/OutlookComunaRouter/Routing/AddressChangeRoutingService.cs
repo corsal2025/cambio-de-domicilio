@@ -212,7 +212,7 @@ public sealed class AddressChangeRoutingService(
     /// (e.g. already moved manually, or a mailbox hiccup), the case still advances — the operator
     /// explicitly asked for this outcome, so a mailbox-side inconsistency shouldn't block it.
     /// </summary>
-    public async Task<ConfirmationResult> MarkUploadedAndConfirmAsync(long requestId, long confirmedByUserId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken)
+    public async Task<ConfirmationResult> MarkUploadedAndConfirmAsync(long requestId, long confirmedByUserId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false)
     {
         var request = repository.FindById(requestId);
         if (request is null)
@@ -245,11 +245,11 @@ public sealed class AddressChangeRoutingService(
         }
 
         repository.MarkUploaded(request.Id, DateTimeOffset.UtcNow);
-        return await SendConfirmationAsync(requestId, confirmedByUserId, contacts, cancellationToken);
+        return await SendConfirmationAsync(requestId, confirmedByUserId, contacts, cancellationToken, viaF8);
     }
 
     /// <summary>Operator-triggered (button): sends the confirmation email for an Uploaded case.</summary>
-    public async Task<ConfirmationResult> SendConfirmationAsync(long requestId, long confirmedByUserId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken)
+    public async Task<ConfirmationResult> SendConfirmationAsync(long requestId, long confirmedByUserId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false)
     {
         var request = repository.FindById(requestId);
         if (request is null)
@@ -282,7 +282,9 @@ public sealed class AddressChangeRoutingService(
             return new ConfirmationResult(false, $"La comuna {request.Comuna} no está en el directorio de contactos");
         }
 
-        var (subject, body) = EmailTemplates.UploadConfirmation(request.FullName, request.Rut);
+        var (subject, body) = viaF8
+            ? EmailTemplates.UploadConfirmationF8(request.FullName, request.Rut)
+            : EmailTemplates.UploadConfirmation(request.FullName, request.Rut);
         await mailSender.SendAsync(comunaContact.ContactEmail, subject, AppendFooter(body, confirmedByUserId), cancellationToken);
         repository.UpdateStatusToConfirmed(request.Id, DateTimeOffset.UtcNow, confirmedByUserId);
         logger.LogInformation("Confirmación de subida enviada a la comuna correspondiente");

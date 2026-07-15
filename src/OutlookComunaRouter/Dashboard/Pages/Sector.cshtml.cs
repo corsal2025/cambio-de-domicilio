@@ -19,7 +19,7 @@ public class SectorModel(IPersonRequestRepository repository) : PageModel
     {
         SelectedSector = sector;
         Cases = repository.GetAll()
-            .Where(c => c.Sector == sector && c.Marked && c.SectorPdfGeneratedAt is null)
+            .Where(c => c.Sector == sector && c.Marked && c.SectorPdfGeneratedAt is null && c.TransferredAt is null)
             .OrderBy(c => c.FullName)
             .ToList();
     }
@@ -54,7 +54,7 @@ public class SectorModel(IPersonRequestRepository repository) : PageModel
     private void MarkAllVisibleAsPrinted(FolderSector sector)
     {
         var now = DateTimeOffset.UtcNow;
-        foreach (var item in repository.GetAll().Where(c => c.Sector == sector && c.Marked && c.SectorPdfGeneratedAt is null))
+        foreach (var item in repository.GetAll().Where(c => c.Sector == sector && c.Marked && c.SectorPdfGeneratedAt is null && c.TransferredAt is null))
         {
             repository.SetSectorPdfGenerated(item.Id, now);
         }

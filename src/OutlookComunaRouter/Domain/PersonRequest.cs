@@ -67,14 +67,31 @@ public sealed class PersonRequest
     /// request must go to Secretaría Municipal instead of the normal upload flow.</summary>
     public bool FolderNotFound { get; set; }
 
-    /// <summary>Whether this F8-marked case is eligible for the batch certification-request email to
-    /// Secretaría Municipal (Matías) and the requesting comuna: the última-carpeta date is unknown
-    /// (folder never found) or predates year 2000. F8 itself can be ticked on any case — this only
-    /// gates the "Avisar certificado" notification, not the checkbox.</summary>
-    public bool IsEligibleForFolderNotFound => FechaUltimaCarpeta is null || FechaUltimaCarpeta.Value.Year < 2000;
+    /// <summary>Manually-entered F8 case code, editable by the operator at any time — free text, no fixed format enforced.</summary>
+    public string? CodigoF8 { get; set; }
 
-    /// <summary>When this case was last included in a "carpeta no encontrada" batch notification
-    /// (see Index page's "Avisar certificado" action). Null means it hasn't been notified yet —
-    /// a case is excluded from future batches once this is set, so re-sending doesn't repeat names.</summary>
-    public DateTimeOffset? FolderNotFoundNotifiedAt { get; set; }
+    /// <summary>Which dedicated screen this case was transferred to, if any. None means it still
+    /// shows in Casos (Index) — ticking the FolderNotFound checkbox alone does not change this,
+    /// only clicking "Traspaso a F8" or "Traspaso a Certificado" does.</summary>
+    public CaseDestination Destination { get; set; } = CaseDestination.None;
+
+    /// <summary>When the operator confirmed the transfer to whichever Destination is set. Null means
+    /// not yet transferred. Once set, the case is excluded from Casos (Index) and shows only on its
+    /// Destination's dedicated screen.</summary>
+    public DateTimeOffset? TransferredAt { get; set; }
+
+    /// <summary>When this Certificado case was last included in the "Avisar certificado" batch email
+    /// to Secretaría Municipal + acknowledgement to its comuna. Null means not yet notified — a case
+    /// is excluded from future batches once this is set, so re-sending doesn't repeat names.</summary>
+    public DateTimeOffset? CertificadoNotifiedAt { get; set; }
+}
+
+public enum CaseDestination
+{
+    /// <summary>Not yet transferred out of Casos — default for every case.</summary>
+    None,
+    /// <summary>Transferred to the /F8 screen.</summary>
+    F8,
+    /// <summary>Transferred to the /Certificado screen.</summary>
+    Certificado
 }

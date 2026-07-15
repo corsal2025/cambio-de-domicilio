@@ -18,7 +18,16 @@ public interface IPersonRequestRepository
     void SetPersonData(long id, string fullName, string normalizedRut);
     void SetMarked(long id, bool marked);
     void SetFolderNotFound(long id, bool folderNotFound);
-    void SetFolderNotFoundNotified(long id, DateTimeOffset notifiedAt);
+    void SetCodigoF8(long id, string? codigoF8);
+
+    /// <summary>Sets the destination screen the case is transferred to, recording when the
+    /// transfer happened — used by "Traspaso a F8" and "Traspaso a Certificado".</summary>
+    void SetDestination(long id, CaseDestination destination, DateTimeOffset transferredAt);
+
+    /// <summary>Undoes a transfer: the case goes back to Casos (Index).</summary>
+    void ClearDestination(long id);
+
+    void SetCertificadoNotified(long id, DateTimeOffset notifiedAt);
     void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long confirmedByUserId);
 
     /// <summary>Reverts every Uploaded row for this source email back to Pending (clearing UploadedAt) —
@@ -89,7 +98,26 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         EnsureColumnExists(connection, "SectorPdfGeneratedAt", "SectorPdfGeneratedAt TEXT NULL");
         EnsureColumnExists(connection, "FolderNotFound", "FolderNotFound INTEGER NOT NULL DEFAULT 0");
         EnsureColumnExists(connection, "FolderNotFoundNotifiedAt", "FolderNotFoundNotifiedAt TEXT NULL");
+        EnsureColumnExists(connection, "CodigoF8", "CodigoF8 TEXT NULL");
+        EnsureColumnExists(connection, "MovedToF8At", "MovedToF8At TEXT NULL");
+        EnsureColumnExists(connection, "Destination", "Destination TEXT NOT NULL DEFAULT 'None'");
+        EnsureColumnExists(connection, "TransferredAt", "TransferredAt TEXT NULL");
+        EnsureColumnExists(connection, "CertificadoNotifiedAt", "CertificadoNotifiedAt TEXT NULL");
         RemoveSourceMessageIdUniqueConstraintIfPresent(connection);
+
+        // Backfill migration: cases transferred under the old single-destination mechanism
+        // (MovedToF8At) must be recognized under the new generic Destination/TransferredAt
+        // mechanism, or they'd silently disappear from the F8 page. MovedToF8At itself is left
+        // in place (not dropped) per this project's additive-schema convention. Safe/idempotent:
+        // on a fresh database MovedToF8At is always NULL, so the UPDATE affects zero rows.
+        using (var backfillCommand = connection.CreateCommand())
+        {
+            backfillCommand.CommandText = """
+                UPDATE PersonRequest SET Destination = 'F8', TransferredAt = MovedToF8At
+                WHERE MovedToF8At IS NOT NULL AND Destination = 'None'
+                """;
+            backfillCommand.ExecuteNonQuery();
+        }
     }
 
     /// <summary>Additive migration for databases created before multiple contributors per email were
@@ -132,16 +160,21 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                     Marked INTEGER NOT NULL DEFAULT 0,
                     SectorPdfGeneratedAt TEXT NULL,
                     FolderNotFound INTEGER NOT NULL DEFAULT 0,
-                    FolderNotFoundNotifiedAt TEXT NULL
+                    FolderNotFoundNotifiedAt TEXT NULL,
+                    CodigoF8 TEXT NULL,
+                    MovedToF8At TEXT NULL,
+                    Destination TEXT NOT NULL DEFAULT 'None',
+                    TransferredAt TEXT NULL,
+                    CertificadoNotifiedAt TEXT NULL
                 );
                 INSERT INTO PersonRequest_new
                     (Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
                      NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
-                     FolderNotFound, FolderNotFoundNotifiedAt)
+                     FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt)
                 SELECT
                     Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
                     NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
-                    FolderNotFound, FolderNotFoundNotifiedAt
+                    FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt
                 FROM PersonRequest;
                 DROP TABLE PersonRequest;
                 ALTER TABLE PersonRequest_new RENAME TO PersonRequest;
@@ -410,11 +443,41 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.ExecuteNonQuery();
     }
 
-    public void SetFolderNotFoundNotified(long id, DateTimeOffset notifiedAt)
+    public void SetCodigoF8(long id, string? codigoF8)
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
-        command.CommandText = "UPDATE PersonRequest SET FolderNotFoundNotifiedAt = $notifiedAt WHERE Id = $id";
+        command.CommandText = "UPDATE PersonRequest SET CodigoF8 = $codigoF8 WHERE Id = $id";
+        command.Parameters.AddWithValue("$codigoF8", (object?)codigoF8 ?? DBNull.Value);
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void SetDestination(long id, CaseDestination destination, DateTimeOffset transferredAt)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET Destination = $destination, TransferredAt = $transferredAt WHERE Id = $id";
+        command.Parameters.AddWithValue("$destination", destination.ToString());
+        command.Parameters.AddWithValue("$transferredAt", transferredAt.ToString("O"));
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void ClearDestination(long id)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET Destination = 'None', TransferredAt = NULL WHERE Id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void SetCertificadoNotified(long id, DateTimeOffset notifiedAt)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET CertificadoNotifiedAt = $notifiedAt WHERE Id = $id";
         command.Parameters.AddWithValue("$notifiedAt", notifiedAt.ToString("O"));
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
@@ -477,6 +540,9 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         Marked = reader.GetInt32(reader.GetOrdinal("Marked")) == 1,
         SectorPdfGeneratedAt = reader.IsDBNull(reader.GetOrdinal("SectorPdfGeneratedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("SectorPdfGeneratedAt"))),
         FolderNotFound = reader.GetInt32(reader.GetOrdinal("FolderNotFound")) == 1,
-        FolderNotFoundNotifiedAt = reader.IsDBNull(reader.GetOrdinal("FolderNotFoundNotifiedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("FolderNotFoundNotifiedAt")))
+        CodigoF8 = reader.IsDBNull(reader.GetOrdinal("CodigoF8")) ? null : reader.GetString(reader.GetOrdinal("CodigoF8")),
+        Destination = Enum.Parse<CaseDestination>(reader.GetString(reader.GetOrdinal("Destination"))),
+        TransferredAt = reader.IsDBNull(reader.GetOrdinal("TransferredAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("TransferredAt"))),
+        CertificadoNotifiedAt = reader.IsDBNull(reader.GetOrdinal("CertificadoNotifiedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CertificadoNotifiedAt")))
     };
 }

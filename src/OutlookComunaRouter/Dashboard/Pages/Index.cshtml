@@ -70,13 +70,16 @@
                       title="Marca todos los casos cuya última carpeta es julio 2023 en adelante (sector Oficina 43)">
                     <button type="submit">Marcar todo Oficina 43</button>
                 </form>
-                <a asp-page-handler="ExportFolderNotFound" class="btn-secondary" style="padding:8px 16px; text-decoration:none;"
-                   title="Descarga un Excel con todos los casos F8 marcados">Exportar F8 (Excel)</a>
                 <a asp-page="/ChangePassword">Cambiar contraseña</a>
                 <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
             </div>
         </nav>
     </header>
+    <div class="app-subnav">
+        <span class="app-subnav-label">Otros sistemas</span>
+        <a asp-page="/F8" class="nav-f8">F8</a>
+        <a asp-page="/Certificado" class="nav-certificado">Certificado</a>
+    </div>
 
     <main>
         @if (Model.Message is not null)
@@ -184,7 +187,7 @@
                     var statusRowClass = item.Status == RequestStatus.Confirmed
                         ? "row-confirmed"
                         : (item.NeedsReview ? "row-needs-review" : "");
-                    var f8PendingClass = (item.FolderNotFound && item.FolderNotFoundNotifiedAt is null) ? "row-f8-pending" : "";
+                    var f8PendingClass = item.FolderNotFound ? "row-f8-pending" : "";
                     rowIndex++;
                     <tr class="@rowClass @statusRowClass @f8PendingClass">
                         <td class="marked-cell">
@@ -200,10 +203,7 @@
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="checkbox" name="folderNotFoundValue" class="marked-checkbox"
                                        @(item.FolderNotFound ? "checked" : "") onchange="this.form.submit()"
-                                       @(item.FolderNotFoundNotifiedAt is not null ? "disabled" : "")
-                                       title="@(item.FolderNotFoundNotifiedAt is not null
-                                            ? $"Ya avisado el {item.FolderNotFoundNotifiedAt.Value.LocalDateTime:dd-MM-yyyy HH:mm}"
-                                            : "F8 - Carpeta no encontrada")" />
+                                       title="F8 - Carpeta no encontrada" />
                             </form>
                         </td>
                         <td class="name-cell">
@@ -271,7 +271,22 @@
                         </td>
                         <td class="text-cell">@(item.Sector?.ToString() ?? "—")</td>
                         <td>
-                            @if (item.Status == RequestStatus.Pending && !item.NeedsReview)
+                            @if (item.FolderNotFound)
+                            {
+                                <div class="transfer-choice">
+                                    <form method="post" asp-page-handler="TransferToF8"
+                                          onsubmit="return confirm('Esto moverá el caso a la pantalla F8 y desaparecerá de Casos. ¿Confirmar?');">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="btn-primary" title="Trasladar caso a la pantalla F8">Traspaso a F8</button>
+                                    </form>
+                                    <form method="post" asp-page-handler="TransferToCertificado"
+                                          onsubmit="return confirm('Esto moverá el caso a la pantalla Certificado y desaparecerá de Casos. ¿Confirmar?');">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="btn-primary" title="Trasladar caso a la pantalla Certificado">Traspaso a Certificado</button>
+                                    </form>
+                                </div>
+                            }
+                            else if (item.Status == RequestStatus.Pending && !item.NeedsReview)
                             {
                                 <form method="post" asp-page-handler="MarkUploadedAndConfirm"
                                       onsubmit="return confirm('Esto moverá el correo a \'CARP. YA SUBIDAS\' y enviará la confirmación a la comuna de inmediato. ¿Confirmar?');">

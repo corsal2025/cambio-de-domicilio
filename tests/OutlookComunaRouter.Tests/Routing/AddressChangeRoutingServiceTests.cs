@@ -457,6 +457,22 @@ public class AddressChangeRoutingServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SendConfirmationAsync_ViaF8_SendsF8SpecificWording()
+    {
+        var id = InsertPending();
+        sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
+
+        var result = await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None, viaF8: true);
+
+        Assert.True(result.Sent);
+        var sent = Assert.Single(mailSender.SentMessages);
+        var (expectedSubject, expectedBody) = OutlookComunaRouter.Notifications.EmailTemplates.UploadConfirmationF8("GUSTAVO ANDRÉS PEÑA CASTRO", "18.785.387-7");
+        Assert.Equal(expectedSubject, sent.Subject);
+        Assert.Equal(expectedBody, sent.Body);
+        Assert.Contains("proceso F8", sent.Body);
+    }
+
+    [Fact]
     public async Task SendConfirmationAsync_ComunaCasingDiffersFromDirectory_StillMatchesAndSends()
     {
         // A case tracked before the directory's casing was normalized (e.g. "Catemu" vs the

@@ -257,43 +257,21 @@ public class IndexModel(
         return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
     }
 
-    /// <summary>Exports every "F8" case currently marked (<see cref="PersonRequest.FolderNotFound"/>)
-    /// to an .xlsx workbook, regardless of whether it has already been notified — this lets the
-    /// operator hand the list to Secretaría Municipal for the physical certificate request.</summary>
-    public IActionResult OnGetExportFolderNotFound()
+    /// <summary>Operator-confirmed move to F8: the case disappears from Casos and starts showing
+    /// in the F8 page. Ticking the F8 checkbox alone (<see cref="OnPostToggleFolderNotFound"/>)
+    /// does not do this by itself — it only marks the case as an F8 candidate.</summary>
+    public IActionResult OnPostTransferToF8(long id)
     {
-        var cases = repository.GetAll()
-            .Where(c => c.FolderNotFound)
-            .OrderBy(c => c.Comuna)
-            .ThenBy(c => c.FullName)
-            .ToList();
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
+    }
 
-        using var workbook = new ClosedXML.Excel.XLWorkbook();
-        var sheet = workbook.Worksheets.Add("F8");
-        sheet.Cell(1, 1).Value = "Nombre";
-        sheet.Cell(1, 2).Value = "RUT";
-        sheet.Cell(1, 3).Value = "Comuna";
-        sheet.Cell(1, 4).Value = "Fecha última carpeta";
-        sheet.Cell(1, 5).Value = "Avisado";
-        sheet.Row(1).Style.Font.Bold = true;
-
-        var row = 2;
-        foreach (var item in cases)
-        {
-            sheet.Cell(row, 1).Value = item.FullName ?? string.Empty;
-            sheet.Cell(row, 2).Value = item.Rut ?? string.Empty;
-            sheet.Cell(row, 3).Value = item.Comuna ?? string.Empty;
-            sheet.Cell(row, 4).Value = item.FechaUltimaCarpeta?.ToString("dd-MM-yyyy") ?? "sin fecha";
-            sheet.Cell(row, 5).Value = item.FolderNotFoundNotifiedAt is not null ? "Sí" : "No";
-            row++;
-        }
-
-        sheet.Columns().AdjustToContents();
-
-        using var stream = new MemoryStream();
-        workbook.SaveAs(stream);
-        var fileName = $"F8_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
-        return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    /// <summary>Operator-confirmed move to Certificado: the case disappears from Casos and starts
+    /// showing in the Certificado page, where the "Avisar certificado" batch email flow lives.</summary>
+    public IActionResult OnPostTransferToCertificado(long id)
+    {
+        repository.SetDestination(id, CaseDestination.Certificado, DateTimeOffset.UtcNow);
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
     }
 
     /// <summary>Marks (or unmarks) every case currently visible under the active filter — a
@@ -400,6 +378,11 @@ public class IndexModel(
             .ToList();
 
         var all = everything.AsEnumerable();
+
+        // Cases already transferred to F8 or Certificado (see OnPostTransferToF8 /
+        // OnPostTransferToCertificado) live in their own dedicated page instead — ticking the F8
+        // checkbox alone does not remove a case from here.
+        all = all.Where(c => c.TransferredAt is null);
 
         if (!string.IsNullOrEmpty(StatusFilter) && Enum.TryParse<RequestStatus>(StatusFilter, out var status))
         {

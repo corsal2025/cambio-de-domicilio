@@ -22,6 +22,11 @@
             <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
         </nav>
     </header>
+    <div class="app-subnav">
+        <span class="app-subnav-label">Otros sistemas</span>
+        <a asp-page="/F8" class="nav-f8">F8</a>
+        <a asp-page="/Certificado" class="nav-certificado">Certificado</a>
+    </div>
 
     <main>
         @if (Model.Message is not null)

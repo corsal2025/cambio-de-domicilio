@@ -1,0 +1,170 @@
+@page
+@model OutlookComunaRouter.Dashboard.Pages.CertificadoModel
+@using OutlookComunaRouter.Domain
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Certificado — OutlookComunaRouter</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+</head>
+<body class="cases-page">
+    <header class="app-header">
+        <div class="brand">
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                OutlookComunaRouter
+                <small>Municipalidad de Valparaíso</small>
+                <small>Casos Certificado</small>
+            </span>
+        </div>
+        <nav class="app-nav">
+            <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
+        </nav>
+    </header>
+    <div class="app-subnav">
+        <span class="app-subnav-label">Otros sistemas</span>
+        <a asp-page="/Index">Casos</a>
+        <a asp-page="/F8" class="nav-f8">F8</a>
+        <a asp-page="/Certificado" class="nav-certificado active">Certificado</a>
+    </div>
+
+    <main>
+        @if (Model.Message is not null)
+        {
+            <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
+        }
+
+        <div class="card" style="padding: 12px 24px; margin-bottom: 16px;">
+            <form method="post" asp-page-handler="NotifyCertificado"
+                  onsubmit="return confirm('Esto enviará el correo de aviso de certificado a Secretaría Municipal, más una respuesta a cada comuna de los casos pendientes. ¿Confirmar?');">
+                <button type="submit" class="btn-primary" style="padding:8px 16px;">
+                    Avisar certificado (@Model.Cases.Count(c => c.CertificadoNotifiedAt is null) pendiente(s))
+                </button>
+            </form>
+        </div>
+
+        <div class="card table-card">
+            <table class="cases cases-index cases-f8">
+                <thead>
+                    <tr>
+                        <th title="Selecciona los casos que deben incluirse en el próximo PDF Archivo/Oficina 43">Marcar</th>
+                        <th>Nombre</th>
+                        <th>RUT</th>
+                        <th>Comuna</th>
+                        <th>Recibido</th>
+                        <th>Plazo (15 días hábiles)</th>
+                        <th>Estado</th>
+                        <th>Fecha última carpeta</th>
+                        <th>Sector</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @{ var rowIndex = 0; }
+                @foreach (var item in Model.Cases)
+                {
+                    var rowClass = rowIndex % 2 == 1 ? "row-alt" : "";
+                    var statusRowClass = item.Status == RequestStatus.Confirmed
+                        ? "row-confirmed"
+                        : (item.NeedsReview ? "row-needs-review" : "");
+                    rowIndex++;
+                    <tr class="@rowClass @statusRowClass">
+                        <td class="marked-cell">
+                            <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="checkbox" name="markedValue" class="marked-checkbox"
+                                       @(item.Marked ? "checked" : "") onchange="this.form.submit()"
+                                       title="@(item.Marked ? "Desmarcar caso" : "Marcar caso")" />
+                            </form>
+                        </td>
+                        <td class="name-cell">
+                            <form method="post" asp-page-handler="SetPersonData" id="person-form-@item.Id">
+                                <input type="hidden" name="id" value="@item.Id" />
+                            </form>
+                            <span class="name-with-alert">
+                            @if (item.NeedsReview)
+                            {
+                                <span class="review-alert" aria-label="Requiere revisión"
+                                      title="Requiere revisión — datos no extraíbles del correo (asunto: @item.SourceSubject)">⚠</span>
+                            }
+                            <input type="text" name="nombre" value="@item.FullName" placeholder="Nombre completo" required
+                                   class="input-inline name-input" form="person-form-@item.Id" onchange="this.form.submit()"
+                                   title="@(item.NeedsReview ? $"Requiere revisión — datos no extraíbles del correo (asunto: {item.SourceSubject})" : "")" />
+                            </span>
+                        </td>
+                        <td class="text-cell rut-cell">
+                            <input type="text" name="rut" value="@item.Rut" placeholder="RUT" required size="13"
+                                   class="input-inline rut-input" form="person-form-@item.Id" onchange="this.form.submit()"
+                                   oncopy="var s=this.value.substring(this.selectionStart,this.selectionEnd)||this.value; event.clipboardData.setData('text/plain', s.replace(/\./g,'')); event.preventDefault();" />
+                        </td>
+                        <td class="text-cell">@item.Comuna</td>
+                        <td class="text-cell">@item.ReceivedAt.LocalDateTime.ToString("dd-MM-yyyy")</td>
+                        <td>
+                            @if (item.Status == RequestStatus.Pending)
+                            {
+                                var restantes = Model.DiasHabilesRestantes(item);
+                                var plazoClass = restantes <= 3 ? "badge-review" : restantes <= 7 ? "badge-uploaded" : "badge-ok";
+                                var plazoText = restantes < 0
+                                    ? $"VENCIDO hace {-restantes} días"
+                                    : $"quedan {restantes} días";
+                                <span class="badge @plazoClass">@plazoText</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-confirmed">cumplido</span>
+                            }
+                        </td>
+                        <td>
+                            @{
+                                var (badgeClass, badgeText) = item.Status switch
+                                {
+                                    RequestStatus.Pending => ("badge-pending", "Pendiente"),
+                                    RequestStatus.Uploaded => ("badge-uploaded", "Subido"),
+                                    RequestStatus.Confirmed => ("badge-confirmed", "Confirmado"),
+                                    _ => ("badge-pending", item.Status.ToString())
+                                };
+                            }
+                            <span class="badge @badgeClass">@badgeText</span>
+                        </td>
+                        <td>
+                            <form method="post" asp-page-handler="SetFecha" class="fecha-form">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="text" name="fecha" class="input-inline fecha-input" size="16"
+                                       placeholder="ej: 15/03/2024"
+                                       title="Formatos aceptados: 15/03/2024 o 15 marzo 2024"
+                                       value="@(item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")"
+                                       onchange="this.form.submit()" />
+                            </form>
+                        </td>
+                        <td class="text-cell">@(item.Sector?.ToString() ?? "—")</td>
+                        <td>
+                            <form method="post" asp-page-handler="DeleteCase"
+                                  onsubmit="return confirm('Esto elimina el caso de forma permanente, no se puede deshacer. ¿Confirmar?');">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <button type="submit" class="btn-danger" title="Eliminar caso permanentemente" aria-label="Eliminar caso">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 6h18" />
+                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                        <line x1="10" y1="11" x2="10" y2="17" />
+                                        <line x1="14" y1="11" x2="14" y2="17" />
+                                    </svg>
+                                </button>
+                            </form>
+                            <form method="post" asp-page-handler="UndoTransfer"
+                                  onsubmit="return confirm('Esto deshace el traspaso a Certificado: el caso vuelve a aparecer en Casos. ¿Confirmar?');">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <button type="submit" class="btn-outline-danger" style="padding:4px 10px; font-size:0.72rem;"
+                                        title="Deshacer traspaso a Certificado y volver el caso a Casos">Deshacer traspaso</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>

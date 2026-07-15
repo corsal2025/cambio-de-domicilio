@@ -66,6 +66,27 @@ header.app-header .brand small {
     text-transform: uppercase;
 }
 
+/* F8 and Certificado are their own separate systems (own screens, own data, own emails) — pulled
+   out of the main nav into a distinct strip so they read as "somewhere else", not mixed in with
+   the Cambio de Domicilio view filters and tools. */
+div.app-subnav {
+    background: #12212f;
+    padding: 8px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+div.app-subnav span.app-subnav-label {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-right: 4px;
+}
+
 nav.app-nav {
     display: flex;
     align-items: center;
@@ -86,6 +107,34 @@ nav.app-nav a {
 
 nav.app-nav a:hover { background: rgba(255, 255, 255, 0.15); }
 nav.app-nav a.active { background: rgba(255, 255, 255, 0.22); font-weight: 600; }
+
+/* F8 and Certificado are separate tracks from the normal Cambio de Domicilio flow (their own
+   screens, own data, own emails) — a distinct pill style marks them as "a different system".
+   Not scoped to nav.app-nav since they now live in their own div.app-subnav strip. */
+a.nav-f8,
+a.nav-certificado {
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 6px 14px;
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+
+a.nav-f8 {
+    background: rgba(255, 196, 0, 0.18);
+    border: 1px solid rgba(255, 196, 0, 0.6);
+    color: #ffe28a;
+}
+a.nav-f8:hover { background: rgba(255, 196, 0, 0.3); }
+a.nav-f8.active { background: rgba(255, 196, 0, 0.4); }
+
+a.nav-certificado {
+    background: rgba(84, 199, 165, 0.18);
+    border: 1px solid rgba(84, 199, 165, 0.6);
+    color: #a7ecd8;
+}
+a.nav-certificado:hover { background: rgba(84, 199, 165, 0.3); }
+a.nav-certificado.active { background: rgba(84, 199, 165, 0.4); }
 
 nav.app-nav form button {
     background: rgba(255, 255, 255, 0.12);
@@ -282,15 +331,39 @@ table.cases-index td {
    checkbox columns (which need very little space) starve Nombre/Acción of the room they need. */
 table.cases-index th:nth-child(1), table.cases-index td:nth-child(1) { width: 4%; }
 table.cases-index th:nth-child(2), table.cases-index td:nth-child(2) { width: 4%; }
-table.cases-index th:nth-child(3), table.cases-index td:nth-child(3) { width: 19%; }
-table.cases-index th:nth-child(4), table.cases-index td:nth-child(4) { width: 10%; }
-table.cases-index th:nth-child(5), table.cases-index td:nth-child(5) { width: 9%; }
-table.cases-index th:nth-child(6), table.cases-index td:nth-child(6) { width: 8%; }
-table.cases-index th:nth-child(7), table.cases-index td:nth-child(7) { width: 10%; }
-table.cases-index th:nth-child(8), table.cases-index td:nth-child(8) { width: 7%; }
+table.cases-index th:nth-child(3), table.cases-index td:nth-child(3) { width: 24%; }
+table.cases-index th:nth-child(4), table.cases-index td:nth-child(4) { width: 9%; }
+table.cases-index th:nth-child(5), table.cases-index td:nth-child(5) { width: 8%; }
+table.cases-index th:nth-child(6), table.cases-index td:nth-child(6) { width: 7%; }
+table.cases-index th:nth-child(7), table.cases-index td:nth-child(7) { width: 9%; }
+table.cases-index th:nth-child(8), table.cases-index td:nth-child(8) { width: 6%; }
 table.cases-index th:nth-child(9), table.cases-index td:nth-child(9) { width: 9%; }
 table.cases-index th:nth-child(10), table.cases-index td:nth-child(10) { width: 7%; }
 table.cases-index th:nth-child(11), table.cases-index td:nth-child(11) { width: 13%; }
+
+/* F8 page table: auto layout instead of cases-index's fixed % columns, so each column shrinks to
+   fit its actual content (short RUT/badges/buttons) instead of leaving fixed-% whitespace. */
+table.cases-f8.cases-index {
+    table-layout: auto;
+    width: auto;
+}
+
+table.cases-f8.cases-index th,
+table.cases-f8.cases-index td {
+    width: auto;
+    white-space: nowrap;
+}
+
+table.cases-f8.cases-index td.name-cell {
+    white-space: normal;
+}
+
+/* Auto layout doesn't grow a column to fit an <input>'s value — inputs have a fixed default
+   intrinsic width unlike plain text. Give the name field enough room for a full "Nombre Apellido
+   Apellido" without a min-width tied to the fixed cases-index percentage columns. */
+table.cases-f8.cases-index .name-input {
+    min-width: 30ch;
+}
 
 
 table.cases-index .badge {
@@ -303,6 +376,21 @@ table.cases-index button.btn-primary {
     padding: 4px 10px;
     font-size: 0.76rem;
     white-space: nowrap;
+}
+
+/* The two F8/Certificado transfer choices stack instead of squeezing side by side into the
+   Acción column next to the delete icon — they're mutually exclusive alternatives, not
+   simultaneous actions, so a column reads better than a cramped row. */
+table.cases-index .transfer-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+table.cases-index .transfer-choice button.btn-primary {
+    padding: 3px 8px;
+    font-size: 0.68rem;
+    width: 100%;
 }
 
 table.cases-index td:last-child {
@@ -338,6 +426,7 @@ table.cases-index td.name-cell {
    column sizing once a CSS width is set. */
 table.cases-index td.name-cell .name-input {
     width: 100%;
+    min-width: 26ch;
     box-sizing: border-box;
     font-size: 0.66rem;
     padding-left: 3px;
@@ -347,6 +436,12 @@ table.cases-index td.name-cell .name-input {
 table.cases-index td.rut-cell .rut-input {
     width: 100%;
     min-width: 9ch;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+table.cases-index .codigo-f8-input {
+    width: 100%;
     box-sizing: border-box;
     text-align: center;
 }
@@ -404,17 +499,27 @@ table.cases-index tbody tr.row-f8-pending:hover {
     background: #7c7c7c !important;
 }
 
+/* Checkbox + alert badge sit side by side as one centered unit under the F8 header — nowrap so
+   they never stack onto separate lines (that previously misaligned this row's height against
+   its neighbors), and overflow:visible so the larger badge isn't clipped by the narrow
+   fixed-width column. */
 table.cases-index tbody tr.row-f8-pending td.marked-cell:nth-child(2) {
     display: flex;
-    flex-direction: row-reverse;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 3px;
+    overflow: visible;
 }
 
 table.cases-index tbody tr.row-f8-pending td.marked-cell:nth-child(2)::after {
     content: "⚠";
-    color: #b8860b;
+    color: #ffd400;
+    font-size: 1.4rem;
+    font-weight: 700;
+    text-shadow: 0 0 3px #000;
+    line-height: 1;
+    flex: none;
 }
 
 /* Groups the alert symbol and the name input on one row — without this, the input's own

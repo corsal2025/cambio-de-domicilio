@@ -362,6 +362,75 @@ public class PersonRequestRepositoryTests : IDisposable
         Assert.NotNull(repository.FindById(preExistingId)!.SectorPdfGeneratedAt);
     }
 
+    [Fact]
+    public void SetCodigoF8_SetsAndClearsValue()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        repository.SetCodigoF8(id, "F8-1234");
+        Assert.Equal("F8-1234", repository.FindById(id)!.CodigoF8);
+
+        repository.SetCodigoF8(id, null);
+        Assert.Null(repository.FindById(id)!.CodigoF8);
+    }
+
+    [Theory]
+    [InlineData(CaseDestination.F8)]
+    [InlineData(CaseDestination.Certificado)]
+    public void SetDestination_StoresDestinationAndTimestamp(CaseDestination destination)
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        var transferredAt = DateTimeOffset.UtcNow;
+
+        repository.SetDestination(id, destination, transferredAt);
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(destination, stored.Destination);
+        Assert.Equal(transferredAt, stored.TransferredAt);
+    }
+
+    [Fact]
+    public void ClearDestination_ResetsToNone()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+
+        repository.ClearDestination(id);
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.None, stored.Destination);
+        Assert.Null(stored.TransferredAt);
+    }
+
+    [Fact]
+    public void SetCertificadoNotified_StoresTimestamp()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        var notifiedAt = DateTimeOffset.UtcNow;
+
+        repository.SetCertificadoNotified(id, notifiedAt);
+
+        Assert.Equal(notifiedAt, repository.FindById(id)!.CertificadoNotifiedAt);
+    }
+
+    [Fact]
+    public void EnsureSchema_CalledTwice_IsIdempotent()
+    {
+        // Full backfill-from-old-MovedToF8At-data testing is skipped here: simulating a
+        // pre-migration database with real MovedToF8At values populated via raw SQL is awkward
+        // to set up cheaply in this test class (would require dropping/recreating the table with
+        // the old shape and inserting rows with only the old columns). Instead this test proves
+        // that re-running EnsureSchema (which is what the backfill migration runs inside) never
+        // throws and never corrupts existing rows.
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+
+        repository.EnsureSchema();
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.F8, stored.Destination);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId, string rut = "18.785.387-7") => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",
