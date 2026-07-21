@@ -17,4 +17,4 @@
 
 ## 4. Verification
 - [x] 4.1 `dotnet build` + `dotnet test` green (44/44 passing)
-- [ ] 4.2 Manual verification against the real mailbox: move an old email into "Para pedir", confirm it is picked up next cycle — pending, requires live access to the production mailbox
+- [x] 4.2 Manual verification against the real mailbox: confirmed live in production (operator-verified, real mailbox, 2026-07-20)

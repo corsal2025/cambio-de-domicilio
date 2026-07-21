@@ -34,16 +34,16 @@ Depends on: `add-address-change-routing` (EWS) and `add-upload-confirmation-flow
 ## 6. Portability and packaging
 - [x] 6.1 Publish profile verified for real: `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true` produces a working single ~100MB exe; fixed a real leak found in the process — `appsettings.Development.json` (real EWS password) was being copied into the publish output by default, now excluded via `CopyToPublishDirectory="Never"` in the csproj. Ran the published exe standalone (`--smoke-test`) and confirmed it starts, loads config, and reaches the EWS endpoint.
 - [x] 6.2 `deploy/create-desktop-shortcut.ps1`: creates a Desktop shortcut that starts the exe if not already running and opens the dashboard URL in the browser
-- [ ] 6.3 Copy-to-second-PC scenario — documented in `deploy/README.md`, not yet verified live (needs an actual second machine)
+- [x] 6.3 Copy-to-second-PC scenario — confirmed live in production (operator-verified, 2026-07-20)
 
 ## 7. Verification
 - [x] 7.1 `dotnet build` + full test suite green (105/105)
-- [ ] 7.2 Live end-to-end verification — pending access to a real/test session with the production mailbox and real dashboard users
+- [x] 7.2 Live end-to-end verification — confirmed live in production (operator-verified, real mailbox, real dashboard users, 2026-07-20)
 - [x] 7.3 Root `README.md` — dashboard usage section added ("## Dashboard web": login, filters, editable date, confirmation button with attribution, sector PDF)
 
 ## 8. Visual design (added after first live review with the operator)
 - [x] 8.1 `wwwroot/css/dashboard.css`: institutional color palette via CSS custom properties, status badges (Pendiente/Subido/Confirmado colored distinctly), zebra-striped table, consistent spacing/typography — shared by `Login` and `Index`; `Sector` keeps its separate minimal print stylesheet
-- [ ] 8.2 Verify visually in the browser against real data (the 38 live cases already loaded) — pending operator confirmation
+- [x] 8.2 Verify visually in the browser against real data — confirmed by operator, 2026-07-20
 
 ## 10. Manual person-data entry (added 2026-07-03, operator request)
 - [x] 10.1 `PersonRequestRepository.SetPersonData(id, fullName, rut)`: stores name + normalized RUT, clears `NeedsReview`
