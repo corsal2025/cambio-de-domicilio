@@ -37,6 +37,25 @@ public class SectorF8ModelTests : IDisposable
     }
 
     [Fact]
+    public void OnGet_IncludesCasesFlaggedPendienteCarpetaEvenWhenNotMarked()
+    {
+        var pendienteId = repository.Insert(NewRequest("msg-1", "Persona Pendiente Carpeta"));
+        repository.SetFechaUltimaCarpeta(pendienteId, new DateOnly(2022, 1, 1));
+        repository.SetPendienteCarpeta(pendienteId, true);
+        repository.SetDestination(pendienteId, CaseDestination.F8, DateTimeOffset.UtcNow);
+
+        var neitherId = repository.Insert(NewRequest("msg-2", "Persona Sin Ninguna Marca"));
+        repository.SetFechaUltimaCarpeta(neitherId, new DateOnly(2022, 1, 1));
+        repository.SetDestination(neitherId, CaseDestination.F8, DateTimeOffset.UtcNow);
+
+        var model = new SectorF8Model(repository);
+        model.OnGet(FolderSector.Archivo);
+
+        var result = Assert.Single(model.Cases);
+        Assert.Equal("Persona Pendiente Carpeta", result.FullName);
+    }
+
+    [Fact]
     public void OnGet_FiltersToRequestedSectorOnly()
     {
         var archivoId = repository.Insert(NewRequest("msg-1", "Persona Archivo"));

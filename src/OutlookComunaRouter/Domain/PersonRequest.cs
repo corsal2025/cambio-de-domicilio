@@ -67,6 +67,11 @@ public sealed class PersonRequest
     /// request must go to Secretaría Municipal instead of the normal upload flow.</summary>
     public bool FolderNotFound { get; set; }
 
+    /// <summary>Operator-ticked flag: the physical folder is pending retrieval. Purely a visual
+    /// work-in-progress marker (highlights the row yellow) — independent of Marked/FolderNotFound
+    /// and has no effect on the routing/confirmation flow or sector-PDF selection.</summary>
+    public bool PendienteCarpeta { get; set; }
+
     /// <summary>Manually-entered F8 case code, editable by the operator at any time — free text, no fixed format enforced.</summary>
     public string? CodigoF8 { get; set; }
 

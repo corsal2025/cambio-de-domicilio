@@ -53,30 +53,31 @@
                     <input type="hidden" name="status" value="@Model.StatusFilter" />
                     <input type="hidden" name="needsReview" value="@Model.OnlyNeedsReview" />
                     <input type="text" name="search" placeholder="Buscar por RUT o nombre..." value="@Model.SearchQuery" />
-                    <button type="submit">Buscar</button>
+                    <button type="submit" class="nav-pill">Buscar</button>
                     @if (!string.IsNullOrEmpty(Model.SearchQuery))
                     {
                         <a asp-page="/Index" asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" class="nav-search-clear">Limpiar</a>
                     }
                 </form>
-                <form method="post" asp-page-handler="SyncNow"><button type="submit">Sincronizar ahora</button></form>
+                <form method="post" asp-page-handler="SyncNow"><button type="submit" class="nav-pill nav-sync">Sincronizar ahora</button></form>
                 <form method="post" asp-page-handler="MarkAllBySector" asp-route-sector="Archivo"
                       asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" asp-route-search="@Model.SearchQuery"
                       title="Marca todos los casos cuya última carpeta es anterior a julio 2023 (sector Archivo)">
-                    <button type="submit">Marcar todo Archivo</button>
+                    <button type="submit" class="nav-pill nav-doc">Marcar todo Archivo</button>
                 </form>
                 <form method="post" asp-page-handler="MarkAllBySector" asp-route-sector="Oficina43"
                       asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" asp-route-search="@Model.SearchQuery"
                       title="Marca todos los casos cuya última carpeta es julio 2023 en adelante (sector Oficina 43)">
-                    <button type="submit">Marcar todo Oficina 43</button>
+                    <button type="submit" class="nav-pill nav-doc">Marcar todo Oficina 43</button>
                 </form>
-                <a asp-page="/ChangePassword">Cambiar contraseña</a>
-                <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
+                <a asp-page="/ChangePassword" class="nav-pill nav-account">Cambiar contraseña</a>
+                <form asp-page="/Logout" method="post"><button type="submit" class="nav-pill nav-logout">Salir</button></form>
             </div>
         </nav>
     </header>
     <div class="app-subnav">
         <span class="app-subnav-label">Otros sistemas</span>
+        <a asp-page="/Index" class="nav-casos active">Cambio de Domicilio</a>
         <a asp-page="/F8" class="nav-f8">F8</a>
         <a asp-page="/Certificado" class="nav-certificado">Certificado</a>
     </div>
@@ -152,7 +153,7 @@
         </script>
 
         <div class="card table-card">
-            <table class="cases cases-index">
+            <table class="cases cases-index cases-f8">
                 <thead>
                     <tr>
                         <th style="white-space:nowrap;">
@@ -168,6 +169,7 @@
                             </span>
                         </th>
                         <th title="Marca un caso cuya carpeta física no fue posible localizar (solo fichas sin fecha o anteriores a 2000)">F8</th>
+                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en amarillo">Pendiente<br />Carpeta</th>
                         <th>Nombre</th>
                         <th>RUT</th>
                         <th>Comuna</th>
@@ -188,13 +190,14 @@
                         ? "row-confirmed"
                         : (item.NeedsReview ? "row-needs-review" : "");
                     var f8PendingClass = item.FolderNotFound ? "row-f8-pending" : "";
+                    var pendienteCarpetaClass = item.PendienteCarpeta ? "row-pendiente-carpeta" : "";
                     rowIndex++;
-                    <tr class="@rowClass @statusRowClass @f8PendingClass">
+                    <tr class="@rowClass @statusRowClass @f8PendingClass @pendienteCarpetaClass">
                         <td class="marked-cell">
                             <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="checkbox" name="markedValue" class="marked-checkbox"
-                                       @(item.Marked ? "checked" : "") onchange="this.form.submit()"
+                                       @(item.Marked ? "checked" : "") onchange="toggleMutuallyExclusive(this, 'markedValue', 'pendienteCarpetaValue')"
                                        title="@(item.Marked ? "Desmarcar caso" : "Marcar caso")" />
                             </form>
                         </td>
@@ -202,8 +205,16 @@
                             <form method="post" asp-page-handler="ToggleFolderNotFound" class="marked-form">
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="checkbox" name="folderNotFoundValue" class="marked-checkbox"
-                                       @(item.FolderNotFound ? "checked" : "") onchange="this.form.submit()"
+                                       @(item.FolderNotFound ? "checked" : "") onchange="submitCheckboxToggle(this, 'folderNotFoundValue')"
                                        title="F8 - Carpeta no encontrada" />
+                            </form>
+                        </td>
+                        <td class="marked-cell">
+                            <form method="post" asp-page-handler="TogglePendienteCarpeta" class="marked-form">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="checkbox" name="pendienteCarpetaValue" class="marked-checkbox"
+                                       @(item.PendienteCarpeta ? "checked" : "") onchange="toggleMutuallyExclusive(this, 'pendienteCarpetaValue', 'markedValue')"
+                                       title="@(item.PendienteCarpeta ? "Desmarcar pendiente carpeta" : "Marcar pendiente carpeta")" />
                             </form>
                         </td>
                         <td class="name-cell">
@@ -221,13 +232,13 @@
                                let the column collapse below what the actual text needs. width:100% (see CSS) then
                                lets each row's input still fill any extra space the widest name in the column grants it. *@
                             <input type="text" name="nombre" value="@item.FullName" placeholder="Nombre completo" required
-                                   class="input-inline name-input" form="person-form-@item.Id" onchange="this.form.submit()"
+                                   class="input-inline name-input" form="person-form-@item.Id" onchange="savePersonFieldIfDoneEditing(this)"
                                    title="@(item.NeedsReview ? $"Requiere revisión — datos no extraíbles del correo (asunto: {item.SourceSubject})" : "")" />
                             </span>
                         </td>
                         <td class="text-cell rut-cell">
                             <input type="text" name="rut" value="@item.Rut" placeholder="RUT" required size="13"
-                                   class="input-inline rut-input" form="person-form-@item.Id" onchange="this.form.submit()"
+                                   class="input-inline rut-input" form="person-form-@item.Id" onchange="savePersonFieldIfDoneEditing(this)"
                                    oncopy="var s=this.value.substring(this.selectionStart,this.selectionEnd)||this.value; event.clipboardData.setData('text/plain', s.replace(/\./g,'')); event.preventDefault();" />
                         </td>
                         <td class="text-cell">@item.Comuna</td>
@@ -271,7 +282,31 @@
                         </td>
                         <td class="text-cell">@(item.Sector?.ToString() ?? "—")</td>
                         <td>
-                            @if (item.FolderNotFound)
+                            @if (item.Status == RequestStatus.Pending && !item.NeedsReview)
+                            {
+                                <!-- Both blocks always render for Pending cases; CSS (tr:has(input[name="folderNotFoundValue"]:checked))
+                                     picks which one shows, live, the instant the F8 checkbox is toggled — ticking F8 goes through
+                                     fetch() now (see submitCheckboxToggle), not a full-page reload, so without this the button here
+                                     stayed frozen on whatever was true when the page last rendered until the operator refreshed. -->
+                                <div class="transfer-choice f8-only">
+                                    <form method="post" asp-page-handler="TransferToF8"
+                                          onsubmit="return confirm('Esto moverá el caso a la pantalla F8 y desaparecerá de Casos. ¿Confirmar?');">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="btn-primary" title="Trasladar caso a la pantalla F8">Traspaso a F8</button>
+                                    </form>
+                                    <form method="post" asp-page-handler="TransferToCertificado"
+                                          onsubmit="return confirm('Esto moverá el caso a la pantalla Certificado y desaparecerá de Casos. ¿Confirmar?');">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="btn-primary" title="Trasladar caso a la pantalla Certificado">Traspaso a Certificado</button>
+                                    </form>
+                                </div>
+                                <form method="post" asp-page-handler="MarkUploadedAndConfirm" class="no-f8-only"
+                                      onsubmit="return confirm('Esto moverá el correo a \'CARP. YA SUBIDAS\' y enviará la confirmación a la comuna de inmediato. ¿Confirmar?');">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-primary" title="Mover correo a 'CARP. YA SUBIDAS' y enviar confirmación">Marcar subida</button>
+                                </form>
+                            }
+                            else if (item.FolderNotFound)
                             {
                                 <div class="transfer-choice">
                                     <form method="post" asp-page-handler="TransferToF8"
@@ -285,14 +320,6 @@
                                         <button type="submit" class="btn-primary" title="Trasladar caso a la pantalla Certificado">Traspaso a Certificado</button>
                                     </form>
                                 </div>
-                            }
-                            else if (item.Status == RequestStatus.Pending && !item.NeedsReview)
-                            {
-                                <form method="post" asp-page-handler="MarkUploadedAndConfirm"
-                                      onsubmit="return confirm('Esto moverá el correo a \'CARP. YA SUBIDAS\' y enviará la confirmación a la comuna de inmediato. ¿Confirmar?');">
-                                    <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn-primary" title="Mover correo a 'CARP. YA SUBIDAS' y enviar confirmación">Marcar subida</button>
-                                </form>
                             }
                             else if (item.Status == RequestStatus.Uploaded && !item.NeedsReview)
                             {
@@ -329,6 +356,57 @@
             </table>
         </div>
     </main>
+    <script>
+        // nombre and rut are two separate inputs sharing one form (person-form-ID), each
+        // autosaving independently on change. Submitting on the nombre field's own onchange fires
+        // as soon as it loses focus (e.g. tabbing into rut) — before rut has been typed — which
+        // sends the request with rut still blank/stale and trips "RUT no válido". Deferring one
+        // tick lets focus land on rut first; only submit once focus has actually left the form.
+        function savePersonFieldIfDoneEditing(input) {
+            var form = input.form;
+            setTimeout(function () {
+                if (document.activeElement && document.activeElement.form === form) {
+                    return;
+                }
+                form.submit();
+            }, 0);
+        }
+
+        // Marcar/F8 checkboxes used this.form.submit() (full-page navigation) before. Ticking
+        // several rows quickly fired one navigation per checkbox, but a browser only runs one
+        // navigation at a time — earlier ones got cancelled mid-flight, so only the last checkbox
+        // (or whichever one wins the race) actually persisted, silently losing the rest. fetch()
+        // keeps each toggle an independent request that can't cancel its siblings.
+        function submitCheckboxToggle(checkbox, fieldName) {
+            var form = checkbox.form;
+            var id = form.querySelector('input[name="id"]').value;
+            var token = form.querySelector('input[name="__RequestVerificationToken"]').value;
+            var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&id=' + encodeURIComponent(id);
+            if (checkbox.checked) {
+                body += '&' + fieldName + '=on';
+            }
+            fetch(form.action, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body
+            });
+        }
+
+        // Marcar and Pendiente Carpeta are mutually exclusive (a row is either green or yellow,
+        // never both) but not locked — checking one clears the other automatically, and the
+        // cleared one can still be re-checked manually afterward at any time.
+        function toggleMutuallyExclusive(checkbox, fieldName, otherFieldName) {
+            submitCheckboxToggle(checkbox, fieldName);
+            if (checkbox.checked) {
+                var row = checkbox.closest('tr');
+                var other = row ? row.querySelector('input[name="' + otherFieldName + '"]') : null;
+                if (other && other.checked) {
+                    other.checked = false;
+                    submitCheckboxToggle(other, otherFieldName);
+                }
+            }
+        }
+    </script>
     <script>
         // The page reloads constantly (every table action submits a form, plus the 2-minute
         // auto-refresh above) — without this, the browser resets scroll to the top every time,

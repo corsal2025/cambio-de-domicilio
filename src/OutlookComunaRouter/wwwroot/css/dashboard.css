@@ -99,26 +99,122 @@ nav.app-nav {
 nav.app-nav a {
     color: #eaf2fa;
     text-decoration: none;
-    padding: 6px 12px;
+    padding: 4px 9px;
     border-radius: var(--radius);
-    font-size: 0.88rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
     transition: background 0.15s ease;
 }
 
 nav.app-nav a:hover { background: rgba(255, 255, 255, 0.15); }
 nav.app-nav a.active { background: rgba(255, 255, 255, 0.22); font-weight: 600; }
 
-/* F8 and Certificado are separate tracks from the normal Cambio de Domicilio flow (their own
-   screens, own data, own emails) — a distinct pill style marks them as "a different system".
-   Not scoped to nav.app-nav since they now live in their own div.app-subnav strip. */
+/* Every nav link/button is colored by what it does, reusing the same status colors already used
+   on the case-list badges (Pendiente/Subido/Confirmado/Requiere revisión) so a filter pill and the
+   rows it filters to visually agree — plus three more groups (documents, reference views, and
+   sync) that don't otherwise have an established color of their own. Pill shape + uppercase
+   matches the Casos/F8/Certificado subnav strip so the whole header reads as one system. */
+nav.app-nav a.nav-pill,
+nav.app-nav form button.nav-pill {
+    border-radius: 999px;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+nav.app-nav a.nav-filter-pending { background: rgba(107, 114, 128, 0.2); border-color: rgba(107, 114, 128, 0.7); color: #d7dbe0; }
+nav.app-nav a.nav-filter-pending:hover { background: rgba(107, 114, 128, 0.32); }
+nav.app-nav a.nav-filter-pending.active { background: rgba(107, 114, 128, 0.45); }
+
+nav.app-nav a.nav-filter-uploaded { background: rgba(255, 178, 29, 0.2); border-color: rgba(255, 178, 29, 0.7); color: #ffd479; }
+nav.app-nav a.nav-filter-uploaded:hover { background: rgba(255, 178, 29, 0.32); }
+nav.app-nav a.nav-filter-uploaded.active { background: rgba(255, 178, 29, 0.45); }
+
+nav.app-nav a.nav-filter-confirmed { background: rgba(30, 122, 61, 0.25); border-color: rgba(52, 199, 107, 0.7); color: #86efac; }
+nav.app-nav a.nav-filter-confirmed:hover { background: rgba(30, 122, 61, 0.38); }
+nav.app-nav a.nav-filter-confirmed.active { background: rgba(30, 122, 61, 0.5); }
+
+nav.app-nav a.nav-filter-review { background: rgba(161, 29, 51, 0.25); border-color: rgba(239, 68, 68, 0.7); color: #fca5a5; }
+nav.app-nav a.nav-filter-review:hover { background: rgba(161, 29, 51, 0.38); }
+nav.app-nav a.nav-filter-review.active { background: rgba(161, 29, 51, 0.5); }
+
+/* Documents: PDF generation and the bulk "select for this sector" actions that feed it — same
+   amber family as the F8 subnav pill, since both are ultimately about the printed folder list. */
+nav.app-nav a.nav-doc,
+nav.app-nav form button.nav-doc {
+    background: rgba(255, 196, 0, 0.18);
+    border-color: rgba(255, 196, 0, 0.6);
+    color: #ffe28a;
+}
+nav.app-nav a.nav-doc:hover, nav.app-nav form button.nav-doc:hover { background: rgba(255, 196, 0, 0.3); }
+
+/* Reference views: read-only lookups, not actions — kept neutral/muted on purpose. */
+nav.app-nav a.nav-reference {
+    background: rgba(148, 163, 184, 0.16);
+    border-color: rgba(148, 163, 184, 0.55);
+    color: #cbd5e1;
+}
+nav.app-nav a.nav-reference:hover { background: rgba(148, 163, 184, 0.28); }
+
+/* Sync/search: teal, same family as the Certificado subnav pill — an active, positive action. */
+nav.app-nav form.nav-search,
+nav.app-nav form button.nav-sync {
+    background: transparent;
+}
+nav.app-nav .nav-search button.nav-pill,
+nav.app-nav form button.nav-sync {
+    background: rgba(84, 199, 165, 0.18);
+    border-color: rgba(84, 199, 165, 0.6);
+    color: #a7ecd8;
+}
+nav.app-nav .nav-search button.nav-pill:hover,
+nav.app-nav form button.nav-sync:hover {
+    background: rgba(84, 199, 165, 0.3);
+}
+
+/* Account: neutral, same muted family as the reference-view pills. */
+nav.app-nav a.nav-account {
+    background: rgba(148, 163, 184, 0.16);
+    border-color: rgba(148, 163, 184, 0.55);
+    color: #cbd5e1;
+}
+nav.app-nav a.nav-account:hover { background: rgba(148, 163, 184, 0.28); }
+
+/* Logout: same red as Requiere revisión / btn-danger elsewhere in the app — an exit action. */
+nav.app-nav form button.nav-logout {
+    background: rgba(161, 29, 51, 0.25);
+    border-color: rgba(239, 68, 68, 0.7);
+    color: #fca5a5;
+}
+nav.app-nav form button.nav-logout:hover { background: rgba(161, 29, 51, 0.4); }
+
+/* Casos (Cambio de Domicilio), F8 and Certificado are the three separate tracks (their own
+   screens, own data, own emails) — a distinct pill per track marks each as "a different system".
+   Not scoped to nav.app-nav since they now live in their own div.app-subnav strip, always shown
+   together (including on each track's own page) so switching between them is one click from
+   anywhere. */
+a.nav-casos,
 a.nav-f8,
 a.nav-certificado {
     font-weight: 600;
     border-radius: 999px;
     padding: 6px 14px;
     text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-size: 0.82rem;
     transition: background 0.15s ease;
 }
+
+/* Sky blue — distinct from F8's amber and Certificado's teal. */
+a.nav-casos {
+    background: rgba(56, 189, 248, 0.18);
+    border: 1px solid rgba(56, 189, 248, 0.6);
+    color: #a8e2fb;
+}
+a.nav-casos:hover { background: rgba(56, 189, 248, 0.3); }
+a.nav-casos.active { background: rgba(56, 189, 248, 0.4); }
 
 a.nav-f8 {
     background: rgba(255, 196, 0, 0.18);
@@ -141,8 +237,11 @@ nav.app-nav form button {
     color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: var(--radius);
-    padding: 6px 12px;
-    font-size: 0.85rem;
+    padding: 4px 9px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
     cursor: pointer;
 }
 nav.app-nav form button:hover { background: rgba(255, 255, 255, 0.22); }
@@ -154,9 +253,9 @@ nav.app-nav form button:hover { background: rgba(255, 255, 255, 0.22); }
 .nav-group {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     flex-wrap: wrap;
-    padding: 4px 14px;
+    padding: 2px 8px;
     border-left: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -165,18 +264,17 @@ nav.app-nav form button:hover { background: rgba(255, 255, 255, 0.22); }
     border-left: none;
 }
 
-/* Own row, full width — centers its own contents so it lines up under the row above (which
-   nav.app-nav centers as a whole line), instead of hugging left or right. */
+/* No longer forced onto its own row (flex-basis:100%) — with the smaller pill size below, all
+   three groups (filters | tools | search+actions) now fit on one line at normal window widths,
+   which is the point of a single continuous nav strip instead of it wrapping into separate rows. */
 .nav-group-end {
-    flex-basis: 100%;
-    justify-content: center;
-    padding-left: 0;
-    border-left: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    padding-left: 8px;
 }
 
 .nav-search {
     display: flex;
-    gap: 6px;
+    gap: 4px;
     align-items: center;
 }
 
@@ -185,9 +283,9 @@ nav.app-nav form button:hover { background: rgba(255, 255, 255, 0.22); }
     color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: var(--radius);
-    padding: 6px 10px;
-    font-size: 0.85rem;
-    min-width: 180px;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    min-width: 140px;
 }
 
 .nav-search input[type="text"]::placeholder {
@@ -199,14 +297,16 @@ nav.app-nav form button:hover { background: rgba(255, 255, 255, 0.22); }
     color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: var(--radius);
-    padding: 6px 12px;
-    font-size: 0.85rem;
+    padding: 4px 9px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
     cursor: pointer;
 }
 .nav-search button:hover { background: rgba(255, 255, 255, 0.22); }
 
 .nav-search-clear {
-    font-size: 0.8rem;
+    font-size: 0.68rem;
     text-decoration: underline;
     white-space: nowrap;
 }
@@ -291,7 +391,7 @@ table.cases tbody tr:hover { background: #f0f6fb; }
 
 table.cases-index {
     table-layout: fixed;
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     width: 100%;
     min-width: 0;
 }
@@ -362,7 +462,7 @@ table.cases-f8.cases-index td.name-cell {
    intrinsic width unlike plain text. Give the name field enough room for a full "Nombre Apellido
    Apellido" without a min-width tied to the fixed cases-index percentage columns. */
 table.cases-f8.cases-index .name-input {
-    min-width: 30ch;
+    min-width: 46ch;
 }
 
 
@@ -385,6 +485,24 @@ table.cases-index .transfer-choice {
     display: flex;
     flex-direction: column;
     gap: 4px;
+}
+
+/* Both the transfer-choice buttons (.f8-only) and "Marcar subida" (.no-f8-only) are always
+   rendered for a Pending case (see Index.cshtml's Acción column) — this picks which one shows,
+   reacting live to the F8 checkbox via :has() instead of waiting for a page reload, same reasoning
+   as the row-tint rules above. Default state (hidden) matches an unchecked checkbox; the :has()
+   override below flips it the instant F8 is ticked, and back the instant it's unticked, since
+   :has() tracks live checked state, not the original rendered attribute. */
+table.cases-index td .f8-only {
+    display: none;
+}
+
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .f8-only {
+    display: flex !important;
+}
+
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no-f8-only {
+    display: none !important;
 }
 
 table.cases-index .transfer-choice button.btn-primary {
@@ -426,7 +544,7 @@ table.cases-index td.name-cell {
    column sizing once a CSS width is set. */
 table.cases-index td.name-cell .name-input {
     width: 100%;
-    min-width: 26ch;
+    min-width: 46ch;
     box-sizing: border-box;
     font-size: 0.66rem;
     padding-left: 3px;
@@ -435,7 +553,7 @@ table.cases-index td.name-cell .name-input {
 
 table.cases-index td.rut-cell .rut-input {
     width: 100%;
-    min-width: 9ch;
+    min-width: 12ch;
     box-sizing: border-box;
     text-align: center;
 }
@@ -446,11 +564,12 @@ table.cases-index .codigo-f8-input {
     text-align: center;
 }
 
+/* No overflow/ellipsis clipping here on purpose — every cases table now uses table-layout:auto
+   (see .cases-f8 override, applied to all three case-list pages), which grows each column to fit
+   its widest cell instead of clipping. Long comuna names or RUTs stay fully visible. */
 table.cases-index td.text-cell,
 table.cases-index td.rut-cell {
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 table.cases-index .marked-checkbox {
@@ -459,12 +578,27 @@ table.cases-index .marked-checkbox {
     cursor: pointer;
 }
 
-table.cases-index tbody tr:has(.marked-checkbox:checked) {
-    background: #bfe3b4;
+/* Scoped to the markedValue checkbox specifically (not the shared .marked-checkbox class, which
+   the F8/Pendiente Carpeta checkboxes also use) — :has() reacts live to the checkbox's checked
+   state, so the tint appears instantly on click. This matters now that toggling goes through
+   fetch() (see submitCheckboxToggle) instead of a full-page reload: the old row-*-pending classes
+   are computed server-side and only update on the next render, so relying on them alone left the
+   row showing no color change at all until a manual refresh. */
+table.cases-index tbody tr:has(input[name="markedValue"]:checked) {
+    background: #bfe3b4 !important;
 }
 
-table.cases-index tbody tr:has(.marked-checkbox:checked):hover {
-    background: #aed89f;
+table.cases-index tbody tr:has(input[name="markedValue"]:checked):hover {
+    background: #aed89f !important;
+}
+
+/* Same live-update reasoning as the markedValue rule above, for the Pendiente Carpeta checkbox. */
+table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked) {
+    background: #fff3b0 !important;
+}
+
+table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover {
+    background: #ffe98a !important;
 }
 
 /* Confirmed (folder already uploaded + comuna already notified) is the most important
@@ -488,38 +622,51 @@ table.cases-index tbody tr.row-needs-review:hover {
     background: #f6d0d8 !important;
 }
 
-/* F8 pending: reminder that this case still needs its physical folder requested/picked up.
-   !important wins over row-confirmed/row-needs-review since F8 is the more actionable reminder
-   for the operator once it's ticked. */
-table.cases-index tbody tr.row-f8-pending {
+/* Pendiente Carpeta and F8 pending backgrounds are driven ONLY by the live :has() rules above/below
+   — no server-rendered class version. A class-based rule (tr.row-pendiente-carpeta / .row-f8-pending)
+   is baked into the HTML at render time and never removed by fetch()-based toggling (see
+   submitCheckboxToggle): pairing it with a live :has() rule as an OR meant unchecking the box
+   cleared the live half but left the stale class still matching, so the color never went away.
+   :has() alone is correct in both directions since it always reflects the checkbox's current
+   state, checked or not. */
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) {
     background: #8c8c8c !important;
 }
 
-table.cases-index tbody tr.row-f8-pending:hover {
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover {
     background: #7c7c7c !important;
 }
 
-/* Checkbox + alert badge sit side by side as one centered unit under the F8 header — nowrap so
-   they never stack onto separate lines (that previously misaligned this row's height against
-   its neighbors), and overflow:visible so the larger badge isn't clipped by the narrow
-   fixed-width column. */
-table.cases-index tbody tr.row-f8-pending td.marked-cell:nth-child(2) {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
+/* Reserved padding-right applies to EVERY row in this column, checked or not — not just the ones
+   showing the glyph. That keeps the checkbox's centered position identical across all rows; if the
+   padding only applied to checked rows, the checkbox itself would shift between checked/unchecked
+   rows even though the column width (shared across the whole auto-layout column) stays the same
+   either way. The glyph is then absolutely positioned inside that reserved space, so it never
+   touches the checkbox's own layout. */
+table.cases-index tbody tr td.marked-cell:nth-child(2) {
+    position: relative;
     overflow: visible;
+    padding-right: 20px;
 }
 
-table.cases-index tbody tr.row-f8-pending td.marked-cell:nth-child(2)::after {
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td.marked-cell:nth-child(2)::after {
     content: "⚠";
+    position: absolute;
+    top: 50%;
+    right: 2px;
     color: #ffd400;
     font-size: 1.4rem;
     font-weight: 700;
     text-shadow: 0 0 3px #000;
     line-height: 1;
-    flex: none;
+    animation: f8-alert-blink 1s step-start infinite;
+}
+
+/* transform is set inside the keyframe (not as a static property above) because the animation
+   overrides any transform declared outside it — centering vertically has to happen at each step. */
+@keyframes f8-alert-blink {
+    0%, 49% { opacity: 1; transform: translateY(-50%); }
+    50%, 100% { opacity: 0; transform: translateY(-50%); }
 }
 
 /* Groups the alert symbol and the name input on one row — without this, the input's own

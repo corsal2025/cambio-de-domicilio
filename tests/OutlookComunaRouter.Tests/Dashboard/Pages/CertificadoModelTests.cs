@@ -108,6 +108,19 @@ public class CertificadoModelTests : IDisposable
     }
 
     [Fact]
+    public void OnPostTogglePendienteCarpeta_SetsAndClearsFlag()
+    {
+        var id = repository.Insert(NewRequest("msg-1", "Persona"));
+        repository.SetDestination(id, CaseDestination.Certificado, DateTimeOffset.UtcNow);
+
+        model.OnPostTogglePendienteCarpeta(id, "on");
+        Assert.True(repository.FindById(id)!.PendienteCarpeta);
+
+        model.OnPostTogglePendienteCarpeta(id, null);
+        Assert.False(repository.FindById(id)!.PendienteCarpeta);
+    }
+
+    [Fact]
     public void OnPostUndoTransfer_ClearsDestination()
     {
         var id = repository.Insert(NewRequest("msg-1", "Persona"));

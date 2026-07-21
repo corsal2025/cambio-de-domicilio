@@ -12,14 +12,15 @@ public class SectorModel(IPersonRequestRepository repository) : PageModel
     public FolderSector SelectedSector { get; private set; }
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
 
-    /// <summary>Only cases the operator checked (Marcar, on Casos) show up here — that checkbox
-    /// is how the operator picks which contributors get categorized into a sector document,
-    /// before printing.</summary>
+    /// <summary>Cases the operator checked (Marcar or Pendiente Carpeta, on Casos) show up here —
+    /// either checkbox is how the operator picks which contributors get categorized into a sector
+    /// document, before printing. The two are mutually exclusive in the UI, but both mean
+    /// "include this case" for this purpose.</summary>
     public void OnGet(FolderSector sector)
     {
         SelectedSector = sector;
         Cases = repository.GetAll()
-            .Where(c => c.Sector == sector && c.Marked && c.SectorPdfGeneratedAt is null && c.TransferredAt is null)
+            .Where(c => c.Sector == sector && (c.Marked || c.PendienteCarpeta) && c.SectorPdfGeneratedAt is null && c.TransferredAt is null)
             .OrderBy(c => c.FullName)
             .ToList();
     }
@@ -54,7 +55,7 @@ public class SectorModel(IPersonRequestRepository repository) : PageModel
     private void MarkAllVisibleAsPrinted(FolderSector sector)
     {
         var now = DateTimeOffset.UtcNow;
-        foreach (var item in repository.GetAll().Where(c => c.Sector == sector && c.Marked && c.SectorPdfGeneratedAt is null && c.TransferredAt is null))
+        foreach (var item in repository.GetAll().Where(c => c.Sector == sector && (c.Marked || c.PendienteCarpeta) && c.SectorPdfGeneratedAt is null && c.TransferredAt is null))
         {
             repository.SetSectorPdfGenerated(item.Id, now);
         }

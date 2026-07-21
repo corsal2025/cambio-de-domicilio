@@ -20,14 +20,14 @@
             </span>
         </div>
         <nav class="app-nav">
-            <a asp-page="/SectorF8" asp-route-sector="Archivo">PDF Archivo</a>
-            <a asp-page="/SectorF8" asp-route-sector="Oficina43">PDF Oficina 43</a>
-            <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
+            <a asp-page="/SectorF8" asp-route-sector="Archivo" class="nav-pill nav-doc">PDF Archivo</a>
+            <a asp-page="/SectorF8" asp-route-sector="Oficina43" class="nav-pill nav-doc">PDF Oficina 43</a>
+            <form asp-page="/Logout" method="post"><button type="submit" class="nav-pill nav-logout">Salir</button></form>
         </nav>
     </header>
     <div class="app-subnav">
         <span class="app-subnav-label">Otros sistemas</span>
-        <a asp-page="/Index">Casos</a>
+        <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
         <a asp-page="/F8" class="nav-f8 active">F8</a>
         <a asp-page="/Certificado" class="nav-certificado">Certificado</a>
     </div>
@@ -43,6 +43,7 @@
                 <thead>
                     <tr>
                         <th title="Selecciona los casos que deben incluirse en el próximo PDF Archivo/Oficina 43">Marcar</th>
+                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en amarillo">Pendiente<br />Carpeta</th>
                         <th>Nombre</th>
                         <th>RUT</th>
                         <th>Comuna</th>
@@ -63,14 +64,23 @@
                     var statusRowClass = item.Status == RequestStatus.Confirmed
                         ? "row-confirmed"
                         : (item.NeedsReview ? "row-needs-review" : "");
+                    var pendienteCarpetaClass = item.PendienteCarpeta ? "row-pendiente-carpeta" : "";
                     rowIndex++;
-                    <tr class="@rowClass @statusRowClass">
+                    <tr class="@rowClass @statusRowClass @pendienteCarpetaClass">
                         <td class="marked-cell">
                             <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="checkbox" name="markedValue" class="marked-checkbox"
-                                       @(item.Marked ? "checked" : "") onchange="this.form.submit()"
+                                       @(item.Marked ? "checked" : "") onchange="toggleMutuallyExclusive(this, 'markedValue', 'pendienteCarpetaValue')"
                                        title="@(item.Marked ? "Desmarcar caso" : "Marcar caso")" />
+                            </form>
+                        </td>
+                        <td class="marked-cell">
+                            <form method="post" asp-page-handler="TogglePendienteCarpeta" class="marked-form">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="checkbox" name="pendienteCarpetaValue" class="marked-checkbox"
+                                       @(item.PendienteCarpeta ? "checked" : "") onchange="toggleMutuallyExclusive(this, 'pendienteCarpetaValue', 'markedValue')"
+                                       title="@(item.PendienteCarpeta ? "Desmarcar pendiente carpeta" : "Marcar pendiente carpeta")" />
                             </form>
                         </td>
                         <td class="name-cell">
@@ -84,13 +94,13 @@
                                       title="Requiere revisión — datos no extraíbles del correo (asunto: @item.SourceSubject)">⚠</span>
                             }
                             <input type="text" name="nombre" value="@item.FullName" placeholder="Nombre completo" required
-                                   class="input-inline name-input" form="person-form-@item.Id" onchange="this.form.submit()"
+                                   class="input-inline name-input" form="person-form-@item.Id" onchange="savePersonFieldIfDoneEditing(this)"
                                    title="@(item.NeedsReview ? $"Requiere revisión — datos no extraíbles del correo (asunto: {item.SourceSubject})" : "")" />
                             </span>
                         </td>
                         <td class="text-cell rut-cell">
                             <input type="text" name="rut" value="@item.Rut" placeholder="RUT" required size="13"
-                                   class="input-inline rut-input" form="person-form-@item.Id" onchange="this.form.submit()"
+                                   class="input-inline rut-input" form="person-form-@item.Id" onchange="savePersonFieldIfDoneEditing(this)"
                                    oncopy="var s=this.value.substring(this.selectionStart,this.selectionEnd)||this.value; event.clipboardData.setData('text/plain', s.replace(/\./g,'')); event.preventDefault();" />
                         </td>
                         <td class="text-cell">@item.Comuna</td>
@@ -192,5 +202,51 @@
             </table>
         </div>
     </main>
+    <script>
+        // Same fix as Index.cshtml's Casos table: nombre/rut share one form, each with its own
+        // onchange — tabbing from nombre into rut fired nombre's submit before rut was filled in.
+        function savePersonFieldIfDoneEditing(input) {
+            var form = input.form;
+            setTimeout(function () {
+                if (document.activeElement && document.activeElement.form === form) {
+                    return;
+                }
+                form.submit();
+            }, 0);
+        }
+
+        // Same fix as Index.cshtml's Marcar/F8 checkboxes: this.form.submit() is a full-page
+        // navigation, so ticking several rows quickly cancelled all but one mid-flight and only
+        // that one ever reached the server. fetch() makes each toggle independent.
+        function submitCheckboxToggle(checkbox, fieldName) {
+            var form = checkbox.form;
+            var id = form.querySelector('input[name="id"]').value;
+            var token = form.querySelector('input[name="__RequestVerificationToken"]').value;
+            var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&id=' + encodeURIComponent(id);
+            if (checkbox.checked) {
+                body += '&' + fieldName + '=on';
+            }
+            fetch(form.action, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body
+            });
+        }
+
+        // Marcar and Pendiente Carpeta are mutually exclusive (a row is either green or yellow,
+        // never both) but not locked — checking one clears the other automatically, and the
+        // cleared one can still be re-checked manually afterward at any time.
+        function toggleMutuallyExclusive(checkbox, fieldName, otherFieldName) {
+            submitCheckboxToggle(checkbox, fieldName);
+            if (checkbox.checked) {
+                var row = checkbox.closest('tr');
+                var other = row ? row.querySelector('input[name="' + otherFieldName + '"]') : null;
+                if (other && other.checked) {
+                    other.checked = false;
+                    submitCheckboxToggle(other, otherFieldName);
+                }
+            }
+        }
+    </script>
 </body>
 </html>

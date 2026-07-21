@@ -119,6 +119,18 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void SetPendienteCarpeta_TogglesFlag()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        repository.SetPendienteCarpeta(id, true);
+        Assert.True(repository.FindById(id)!.PendienteCarpeta);
+
+        repository.SetPendienteCarpeta(id, false);
+        Assert.False(repository.FindById(id)!.PendienteCarpeta);
+    }
+
+    [Fact]
     public void EnsureSchema_OnPreExistingTableWithoutMarkedColumn_AddsColumnWithoutDataLoss()
     {
         // Simulates a database created before the Marked column existed.

@@ -158,6 +158,19 @@ public class F8ModelTests : IDisposable
         Assert.False(repository.FindById(id)!.Marked);
     }
 
+    [Fact]
+    public void OnPostTogglePendienteCarpeta_SetsAndClearsFlag()
+    {
+        var id = repository.Insert(NewRequest("msg-1", "Persona F8"));
+        repository.SetFolderNotFound(id, true);
+
+        model.OnPostTogglePendienteCarpeta(id, "on");
+        Assert.True(repository.FindById(id)!.PendienteCarpeta);
+
+        model.OnPostTogglePendienteCarpeta(id, null);
+        Assert.False(repository.FindById(id)!.PendienteCarpeta);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId, string fullName) => new()
     {
         FullName = fullName,

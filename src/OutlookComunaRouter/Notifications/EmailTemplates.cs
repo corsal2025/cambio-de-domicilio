@@ -22,7 +22,7 @@ public static class EmailTemplates
         Body: $"""
             Junto con saludar,
 
-            Se informa que la carpeta del contribuyente {fullName}, RUT {rut},
+            Se informa que la información del contribuyente {fullName}, RUT {rut},
             solicitada por su comuna, ya fue subida al sistema de Conaset.
 
             Cabe hacer presente que, dado que no fue posible ubicar la carpeta física en nuestro

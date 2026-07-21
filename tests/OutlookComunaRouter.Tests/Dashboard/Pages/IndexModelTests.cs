@@ -618,6 +618,27 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
+    public void OnPostTogglePendienteCarpeta_OnValue_SetsFlag()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        model.OnPostTogglePendienteCarpeta(id, "on");
+
+        Assert.True(repository.FindById(id)!.PendienteCarpeta);
+    }
+
+    [Fact]
+    public void OnPostTogglePendienteCarpeta_NoValue_ClearsFlag()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetPendienteCarpeta(id, true);
+
+        model.OnPostTogglePendienteCarpeta(id, null);
+
+        Assert.False(repository.FindById(id)!.PendienteCarpeta);
+    }
+
+    [Fact]
     public void OnGet_CaseMovedToF8_IsExcludedFromCases()
     {
         var movedId = repository.Insert(NewRequest("msg-1"));

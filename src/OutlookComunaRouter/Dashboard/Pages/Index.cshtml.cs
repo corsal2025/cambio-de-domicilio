@@ -257,6 +257,13 @@ public class IndexModel(
         return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
     }
 
+    public IActionResult OnPostTogglePendienteCarpeta(long id, string? pendienteCarpetaValue)
+    {
+        var pendienteCarpeta = pendienteCarpetaValue == "on";
+        repository.SetPendienteCarpeta(id, pendienteCarpeta);
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
+    }
+
     /// <summary>Operator-confirmed move to F8: the case disappears from Casos and starts showing
     /// in the F8 page. Ticking the F8 checkbox alone (<see cref="OnPostToggleFolderNotFound"/>)
     /// does not do this by itself — it only marks the case as an F8 candidate.</summary>

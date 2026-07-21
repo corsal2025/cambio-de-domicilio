@@ -83,6 +83,13 @@ public class CertificadoModel(
         return RedirectToPage();
     }
 
+    public IActionResult OnPostTogglePendienteCarpeta(long id, string? pendienteCarpetaValue)
+    {
+        var pendienteCarpeta = pendienteCarpetaValue == "on";
+        repository.SetPendienteCarpeta(id, pendienteCarpeta);
+        return RedirectToPage();
+    }
+
     public IActionResult OnPostDeleteCase(long id)
     {
         var sourceMessageId = repository.FindById(id)?.SourceMessageId;

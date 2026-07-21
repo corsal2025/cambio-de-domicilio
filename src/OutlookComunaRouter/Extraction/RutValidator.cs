@@ -9,8 +9,13 @@ public static class RutValidator
     /// dotted form (e.g. "18.785.387-7") and validates its check digit.
     /// Returns null if the input is not shaped like a RUT or fails the check digit.
     /// </summary>
-    public static string? NormalizeAndValidate(string rawRut)
+    public static string? NormalizeAndValidate(string? rawRut)
     {
+        if (rawRut is null)
+        {
+            return null;
+        }
+
         var digitsAndK = new StringBuilder();
         foreach (var c in rawRut)
         {

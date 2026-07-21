@@ -18,6 +18,7 @@ public interface IPersonRequestRepository
     void SetPersonData(long id, string fullName, string normalizedRut);
     void SetMarked(long id, bool marked);
     void SetFolderNotFound(long id, bool folderNotFound);
+    void SetPendienteCarpeta(long id, bool pendienteCarpeta);
     void SetCodigoF8(long id, string? codigoF8);
 
     /// <summary>Sets the destination screen the case is transferred to, recording when the
@@ -103,6 +104,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         EnsureColumnExists(connection, "Destination", "Destination TEXT NOT NULL DEFAULT 'None'");
         EnsureColumnExists(connection, "TransferredAt", "TransferredAt TEXT NULL");
         EnsureColumnExists(connection, "CertificadoNotifiedAt", "CertificadoNotifiedAt TEXT NULL");
+        EnsureColumnExists(connection, "PendienteCarpeta", "PendienteCarpeta INTEGER NOT NULL DEFAULT 0");
         RemoveSourceMessageIdUniqueConstraintIfPresent(connection);
 
         // Backfill migration: cases transferred under the old single-destination mechanism
@@ -165,16 +167,17 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                     MovedToF8At TEXT NULL,
                     Destination TEXT NOT NULL DEFAULT 'None',
                     TransferredAt TEXT NULL,
-                    CertificadoNotifiedAt TEXT NULL
+                    CertificadoNotifiedAt TEXT NULL,
+                    PendienteCarpeta INTEGER NOT NULL DEFAULT 0
                 );
                 INSERT INTO PersonRequest_new
                     (Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
                      NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
-                     FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt)
+                     FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta)
                 SELECT
                     Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
                     NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
-                    FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt
+                    FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta
                 FROM PersonRequest;
                 DROP TABLE PersonRequest;
                 ALTER TABLE PersonRequest_new RENAME TO PersonRequest;
@@ -443,6 +446,16 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.ExecuteNonQuery();
     }
 
+    public void SetPendienteCarpeta(long id, bool pendienteCarpeta)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET PendienteCarpeta = $pendienteCarpeta WHERE Id = $id";
+        command.Parameters.AddWithValue("$pendienteCarpeta", pendienteCarpeta ? 1 : 0);
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
     public void SetCodigoF8(long id, string? codigoF8)
     {
         using var connection = Open();
@@ -540,6 +553,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         Marked = reader.GetInt32(reader.GetOrdinal("Marked")) == 1,
         SectorPdfGeneratedAt = reader.IsDBNull(reader.GetOrdinal("SectorPdfGeneratedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("SectorPdfGeneratedAt"))),
         FolderNotFound = reader.GetInt32(reader.GetOrdinal("FolderNotFound")) == 1,
+        PendienteCarpeta = reader.GetInt32(reader.GetOrdinal("PendienteCarpeta")) == 1,
         CodigoF8 = reader.IsDBNull(reader.GetOrdinal("CodigoF8")) ? null : reader.GetString(reader.GetOrdinal("CodigoF8")),
         Destination = Enum.Parse<CaseDestination>(reader.GetString(reader.GetOrdinal("Destination"))),
         TransferredAt = reader.IsDBNull(reader.GetOrdinal("TransferredAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("TransferredAt"))),
