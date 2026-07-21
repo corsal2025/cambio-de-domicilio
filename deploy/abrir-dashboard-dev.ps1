@@ -4,8 +4,11 @@ $projectPath = "C:\Users\raul.salazar\Desktop\PROYECTOS RAUL\outlook-comuna-rout
 $exePath = Join-Path $projectPath "bin\Debug\net10.0\OutlookComunaRouter.exe"
 $dashboardUrl = "https://localhost:5001"
 
-$listening = Get-NetTCPConnection -LocalPort 5001 -State Listen -ErrorAction SilentlyContinue
-if (-not $listening) {
+# Get-NetTCPConnection -State Listen is unreliable here (observed returning no rows even
+# while the exe was demonstrably serving requests on 5001) — checking the process itself
+# is what every manual check in this project actually relies on, so match that here too.
+$running = Get-Process -Name "OutlookComunaRouter" -ErrorAction SilentlyContinue
+if (-not $running) {
     # Launching the built exe directly (instead of "dotnet run") keeps this to a single
     # process: "dotnet run" spawns the real app as a separate child whose console window
     # doesn't inherit -WindowStyle Hidden from the wrapper, which is what caused two
