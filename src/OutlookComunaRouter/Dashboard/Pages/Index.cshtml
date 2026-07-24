@@ -430,19 +430,43 @@
         })();
     </script>
     <script>
-        // The page reloads constantly (every table action submits a form, plus the 2-minute
-        // auto-refresh above) — without this, the browser resets scroll to the top every time,
-        // forcing the operator to scroll back down to wherever they were working. beforeunload
-        // covers every way the page can go away: form submits, the meta refresh, manual reloads.
+        // The page reloads constantly (every table action submits a form, e.g. setting the fecha
+        // field, plus the auto-refresh above) — without this, the browser resets scroll to the top
+        // AND back to the leftmost column every time, forcing the operator to scroll back down and
+        // right to wherever they were working. The table also scrolls independently of the window
+        // (see .table-card's own overflow-x/y), so its scrollLeft/Top needs saving separately from
+        // window.scrollY. beforeunload covers every way the page can go away: form submits, the
+        // auto-refresh, manual reloads.
         (function () {
             var scrollKey = 'casesScrollY';
+            var tableScrollXKey = 'casesTableScrollX';
+            var tableScrollYKey = 'casesTableScrollY';
+            var table = document.querySelector('.table-card');
+
             var savedScroll = sessionStorage.getItem(scrollKey);
             if (savedScroll !== null) {
                 window.scrollTo(0, parseInt(savedScroll, 10));
                 sessionStorage.removeItem(scrollKey);
             }
+            if (table) {
+                var savedTableX = sessionStorage.getItem(tableScrollXKey);
+                var savedTableY = sessionStorage.getItem(tableScrollYKey);
+                if (savedTableX !== null) {
+                    table.scrollLeft = parseInt(savedTableX, 10);
+                    sessionStorage.removeItem(tableScrollXKey);
+                }
+                if (savedTableY !== null) {
+                    table.scrollTop = parseInt(savedTableY, 10);
+                    sessionStorage.removeItem(tableScrollYKey);
+                }
+            }
+
             window.addEventListener('beforeunload', function () {
                 sessionStorage.setItem(scrollKey, window.scrollY);
+                if (table) {
+                    sessionStorage.setItem(tableScrollXKey, table.scrollLeft);
+                    sessionStorage.setItem(tableScrollYKey, table.scrollTop);
+                }
             });
         })();
     </script>
