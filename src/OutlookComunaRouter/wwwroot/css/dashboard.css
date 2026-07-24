@@ -890,3 +890,72 @@ button.btn-outline-danger:hover { background: var(--color-review-bg); }
     font-size: 0.82rem;
     margin-top: 10px;
 }
+
+/* Tablet and phone breakpoints. The layout is already flex-wrap based (header, nav groups,
+   .card) and the cases table already scrolls horizontally inside .table-card, so nothing here
+   restructures those — it only shrinks paddings/fonts and lets the brand/logo/subnav shrink so
+   the same composition (header -> subnav -> filters -> table) still fits without overflowing
+   the viewport or clipping controls off-screen. */
+@media (max-width: 900px) {
+    header.app-header {
+        padding: 10px 14px;
+    }
+
+    header.app-header .brand-logo {
+        height: 52px;
+    }
+
+    header.app-header .brand {
+        font-size: 1.05rem;
+    }
+
+    main {
+        padding: 14px 12px 28px;
+    }
+
+    body.cases-page main {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .nav-search input[type="text"] {
+        min-width: 100px;
+    }
+}
+
+@media (max-width: 600px) {
+    header.app-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    header.app-header .brand {
+        justify-content: center;
+        text-align: center;
+    }
+
+    nav.app-nav {
+        justify-content: flex-start;
+    }
+
+    .nav-group {
+        justify-content: center;
+        width: 100%;
+        border-left: none;
+        padding-left: 0;
+    }
+
+    .nav-group-end {
+        border-left: none;
+    }
+
+    div.app-subnav {
+        flex-wrap: wrap;
+        padding: 8px 12px;
+    }
+
+    .login-card {
+        width: 100%;
+        padding: 24px 20px;
+    }
+}

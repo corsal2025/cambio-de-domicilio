@@ -5,7 +5,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="120" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Casos — OutlookComunaRouter</title>
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
@@ -52,7 +52,7 @@
                 <form method="get" class="nav-search">
                     <input type="hidden" name="status" value="@Model.StatusFilter" />
                     <input type="hidden" name="needsReview" value="@Model.OnlyNeedsReview" />
-                    <input type="text" name="search" placeholder="Buscar por RUT o nombre..." value="@Model.SearchQuery" />
+                    <input type="text" name="search" id="search-input" placeholder="Buscar por RUT o nombre..." value="@Model.SearchQuery" data-had-value="@(!string.IsNullOrEmpty(Model.SearchQuery) ? "true" : "false")" oninput="formatSearchRut(this); clearSearchIfEmpty(this)" />
                     <button type="submit" class="nav-pill">Buscar</button>
                     @if (!string.IsNullOrEmpty(Model.SearchQuery))
                     {
@@ -408,6 +408,28 @@
         }
     </script>
     <script>
+        // Replaces the old <meta http-equiv="refresh" content="120"> — that one fired blind, even
+        // while the tab was minimized or the operator had a field focused mid-edit, silently
+        // discarding whatever they were typing. This checks document.hidden and activeElement
+        // before reloading, and just reschedules for later instead of skipping the refresh outright.
+        (function () {
+            var REFRESH_MS = 120000;
+            function scheduleRefresh() {
+                setTimeout(function () {
+                    var typing = document.activeElement && document.activeElement !== document.body
+                        && document.activeElement.tagName !== 'BUTTON'
+                        && document.activeElement.tagName !== 'A';
+                    if (document.hidden || typing) {
+                        scheduleRefresh();
+                        return;
+                    }
+                    window.location.reload();
+                }, REFRESH_MS);
+            }
+            scheduleRefresh();
+        })();
+    </script>
+    <script>
         // The page reloads constantly (every table action submits a form, plus the 2-minute
         // auto-refresh above) — without this, the browser resets scroll to the top every time,
         // forcing the operator to scroll back down to wherever they were working. beforeunload
@@ -423,6 +445,38 @@
                 sessionStorage.setItem(scrollKey, window.scrollY);
             });
         })();
+    </script>
+    <script>
+        // Auto-formats a RUT typed as raw digits (e.g. "135516122") into the standard
+        // "13.551.612-2" shape as the operator types. Only kicks in when the field is all
+        // digits (plus an optional trailing K check digit) — a name search is left untouched.
+        function formatSearchRut(input) {
+            var raw = input.value;
+            if (!/^\d+[kK]?$/.test(raw.replace(/[.\-]/g, ''))) {
+                return;
+            }
+
+            var clean = raw.replace(/[.\-]/g, '');
+            if (clean.length < 2) {
+                return;
+            }
+
+            var body = clean.slice(0, -1);
+            var dv = clean.slice(-1).toUpperCase();
+            var formattedBody = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+            input.value = formattedBody + '-' + dv;
+        }
+
+        // Deleting the search text down to empty submits the search form right away, so the
+        // table snaps back to the full unfiltered list instead of waiting for the operator to
+        // hit "Buscar" or notice the "Limpiar" link.
+        function clearSearchIfEmpty(input) {
+            if (input.value === '' && input.dataset.hadValue === 'true') {
+                input.form.submit();
+            }
+            input.dataset.hadValue = input.value !== '' ? 'true' : 'false';
+        }
     </script>
 </body>
 </html>

@@ -59,22 +59,18 @@ public class SectorModelTests : IDisposable
     }
 
     [Fact]
-    public void OnGet_IncludesCasesFlaggedPendienteCarpetaEvenWhenNotMarked()
+    public void OnGet_ExcludesCasesFlaggedPendienteCarpetaAloneWithoutMarcar()
     {
-        // Marcar and Pendiente Carpeta are two mutually-exclusive ways (in the UI) of selecting a
-        // case for the sector document — either one alone is enough for it to show up here.
+        // Only the "Marcar" checkbox selects a case for the sector document — Pendiente Carpeta
+        // alone is not enough, since it means something else on the Casos screen.
         var pendienteId = repository.Insert(NewRequest("msg-1", "Persona Pendiente Carpeta"));
         repository.SetFechaUltimaCarpeta(pendienteId, new DateOnly(2022, 1, 1));
         repository.SetPendienteCarpeta(pendienteId, true);
 
-        var neitherId = repository.Insert(NewRequest("msg-2", "Persona Sin Ninguna Marca"));
-        repository.SetFechaUltimaCarpeta(neitherId, new DateOnly(2022, 1, 1));
-
         var model = new SectorModel(repository);
         model.OnGet(FolderSector.Archivo);
 
-        var result = Assert.Single(model.Cases);
-        Assert.Equal("Persona Pendiente Carpeta", result.FullName);
+        Assert.Empty(model.Cases);
     }
 
     [Fact]
