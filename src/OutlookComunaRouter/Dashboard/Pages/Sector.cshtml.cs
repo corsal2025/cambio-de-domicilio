@@ -18,9 +18,11 @@ public class SectorModel(IPersonRequestRepository repository) : PageModel
     public void OnGet(FolderSector sector)
     {
         SelectedSector = sector;
+        // Ordered by MarkedAt (the order the operator ticked "Marcar" in on Casos), so the PDF
+        // prints in the same order the cases appear at the top of that list.
         Cases = repository.GetAll()
             .Where(c => c.Sector == sector && c.Marked && c.SectorPdfGeneratedAt is null && c.TransferredAt is null)
-            .OrderBy(c => c.FullName)
+            .OrderBy(c => c.MarkedAt)
             .ToList();
     }
 

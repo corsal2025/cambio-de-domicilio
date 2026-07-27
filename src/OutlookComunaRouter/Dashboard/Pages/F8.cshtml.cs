@@ -38,6 +38,12 @@ public class F8Model(
             return RedirectToPage();
         }
 
+        if (fecha.Trim().Equals("S/C", StringComparison.OrdinalIgnoreCase))
+        {
+            repository.SetSinCarpeta(id);
+            return RedirectToPage();
+        }
+
         if (!SpanishDate.TryParse(fecha, out var parsed))
         {
             Message = "Fecha no reconocida. Formatos aceptados: 15/03/2024 o 15 marzo 2024.";
@@ -129,6 +135,15 @@ public class F8Model(
         var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var contacts = routingService.LoadDirectory();
         var result = await routingService.MarkUploadedAndConfirmAsync(id, userId, contacts, HttpContext.RequestAborted, viaF8: true);
+
+        // Once confirmed, the row goes fully blue (row-confirmed) — any leftover Marcar/Pendiente
+        // Carpeta tick would otherwise still highlight it yellow (row-pendiente-carpeta) or keep it
+        // selected for the next PDF run, both of which no longer make sense for a closed case.
+        if (result.Sent)
+        {
+            repository.SetMarked(id, false);
+            repository.SetPendienteCarpeta(id, false);
+        }
 
         Message = result.Reason;
         MessageIsError = !result.Sent;

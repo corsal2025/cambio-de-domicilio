@@ -15,6 +15,9 @@ public interface IPersonRequestRepository
     void MarkUploaded(long id, DateTimeOffset uploadedAt);
     void SetFechaUltimaCarpeta(long id, DateOnly fecha);
     void ClearFechaUltimaCarpeta(long id);
+
+    /// <summary>Sets "S/C" (Sin Carpeta) in place of a date, clearing FechaUltimaCarpeta.</summary>
+    void SetSinCarpeta(long id);
     void SetPersonData(long id, string fullName, string normalizedRut);
     void SetMarked(long id, bool marked);
     void SetFolderNotFound(long id, bool folderNotFound);
@@ -105,6 +108,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         EnsureColumnExists(connection, "TransferredAt", "TransferredAt TEXT NULL");
         EnsureColumnExists(connection, "CertificadoNotifiedAt", "CertificadoNotifiedAt TEXT NULL");
         EnsureColumnExists(connection, "PendienteCarpeta", "PendienteCarpeta INTEGER NOT NULL DEFAULT 0");
+        EnsureColumnExists(connection, "MarkedAt", "MarkedAt TEXT NULL");
+        EnsureColumnExists(connection, "SinCarpeta", "SinCarpeta INTEGER NOT NULL DEFAULT 0");
         RemoveSourceMessageIdUniqueConstraintIfPresent(connection);
 
         // Backfill migration: cases transferred under the old single-destination mechanism
@@ -168,16 +173,18 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                     Destination TEXT NOT NULL DEFAULT 'None',
                     TransferredAt TEXT NULL,
                     CertificadoNotifiedAt TEXT NULL,
-                    PendienteCarpeta INTEGER NOT NULL DEFAULT 0
+                    PendienteCarpeta INTEGER NOT NULL DEFAULT 0,
+                    MarkedAt TEXT NULL,
+                    SinCarpeta INTEGER NOT NULL DEFAULT 0
                 );
                 INSERT INTO PersonRequest_new
                     (Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
                      NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
-                     FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta)
+                     FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta)
                 SELECT
                     Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
                     NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
-                    FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta
+                    FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta
                 FROM PersonRequest;
                 DROP TABLE PersonRequest;
                 ALTER TABLE PersonRequest_new RENAME TO PersonRequest;
@@ -327,8 +334,17 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
-        command.CommandText = "UPDATE PersonRequest SET FechaUltimaCarpeta = $fecha WHERE Id = $id";
+        command.CommandText = "UPDATE PersonRequest SET FechaUltimaCarpeta = $fecha, SinCarpeta = 0 WHERE Id = $id";
         command.Parameters.AddWithValue("$fecha", fecha.ToString("yyyy-MM-dd"));
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void SetSinCarpeta(long id)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET FechaUltimaCarpeta = NULL, SinCarpeta = 1 WHERE Id = $id";
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
@@ -337,7 +353,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
-        command.CommandText = "UPDATE PersonRequest SET FechaUltimaCarpeta = NULL WHERE Id = $id";
+        command.CommandText = "UPDATE PersonRequest SET FechaUltimaCarpeta = NULL, SinCarpeta = 0 WHERE Id = $id";
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
@@ -430,8 +446,19 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
-        command.CommandText = "UPDATE PersonRequest SET Marked = $marked WHERE Id = $id";
+        // Re-ticking "Marcar" clears SectorPdfGeneratedAt so an already-printed case comes back
+        // into the next PDF batch — the operator marks it again specifically to re-print it
+        // (e.g. a case that needs to be analyzed separately from the rest). MarkedAt records the
+        // order cases were ticked in, so the marked set stays sorted the same way on screen and
+        // in the printed PDF.
+        command.CommandText = marked
+            ? "UPDATE PersonRequest SET Marked = $marked, SectorPdfGeneratedAt = NULL, MarkedAt = $markedAt WHERE Id = $id"
+            : "UPDATE PersonRequest SET Marked = $marked, MarkedAt = NULL WHERE Id = $id";
         command.Parameters.AddWithValue("$marked", marked ? 1 : 0);
+        if (marked)
+        {
+            command.Parameters.AddWithValue("$markedAt", DateTimeOffset.UtcNow.ToString("O"));
+        }
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
@@ -551,6 +578,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         ConfirmedByUserId = reader.IsDBNull(reader.GetOrdinal("ConfirmedByUserId")) ? null : reader.GetInt64(reader.GetOrdinal("ConfirmedByUserId")),
         CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
         Marked = reader.GetInt32(reader.GetOrdinal("Marked")) == 1,
+        MarkedAt = reader.IsDBNull(reader.GetOrdinal("MarkedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("MarkedAt"))),
+        SinCarpeta = reader.GetInt32(reader.GetOrdinal("SinCarpeta")) == 1,
         SectorPdfGeneratedAt = reader.IsDBNull(reader.GetOrdinal("SectorPdfGeneratedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("SectorPdfGeneratedAt"))),
         FolderNotFound = reader.GetInt32(reader.GetOrdinal("FolderNotFound")) == 1,
         PendienteCarpeta = reader.GetInt32(reader.GetOrdinal("PendienteCarpeta")) == 1,

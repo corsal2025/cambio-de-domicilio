@@ -35,10 +35,12 @@ $launcherPath = Join-Path $PublishPath "abrir-dashboard.ps1"
 $launcherContent = @"
 `$running = Get-Process -Name "OutlookComunaRouter" -ErrorAction SilentlyContinue
 if (-not `$running) {
+    # The app opens its own browser tab ~2s after it starts binding (see Program.cs).
+    # Only open a tab here when it was already running, otherwise the user gets 2 tabs.
     Start-Process -FilePath "$exePath" -WorkingDirectory "$PublishPath" -WindowStyle Hidden
-    Start-Sleep -Seconds 3
+} else {
+    Start-Process "$DashboardUrl"
 }
-Start-Process "$DashboardUrl"
 "@
 Set-Content -Path $launcherPath -Value $launcherContent -Encoding UTF8
 

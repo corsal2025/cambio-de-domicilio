@@ -230,7 +230,7 @@ public sealed class AddressChangeRoutingService(
             return new ConfirmationResult(false, "El caso tiene datos incompletos, corregir antes de marcar como subido");
         }
 
-        if (request.FechaUltimaCarpeta is null)
+        if (request.FechaUltimaCarpeta is null && !request.SinCarpeta)
         {
             return new ConfirmationResult(false, "Debe ingresar la fecha de última carpeta antes de marcar como subido y confirmar");
         }
@@ -267,7 +267,7 @@ public sealed class AddressChangeRoutingService(
             return new ConfirmationResult(false, "El caso tiene datos incompletos, corregir antes de confirmar");
         }
 
-        if (request.FechaUltimaCarpeta is null)
+        if (request.FechaUltimaCarpeta is null && !request.SinCarpeta)
         {
             return new ConfirmationResult(false, "Debe ingresar la fecha de última carpeta antes de confirmar");
         }

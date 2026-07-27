@@ -20,9 +20,10 @@ public class SectorF8Model(IPersonRequestRepository repository) : PageModel
     public void OnGet(FolderSector sector)
     {
         SelectedSector = sector;
+        // Ordered by MarkedAt (the order the operator ticked "Marcar" in), matching Sector.cshtml.cs.
         Cases = repository.GetAll()
             .Where(c => c.Destination == CaseDestination.F8 && c.Sector == sector && (c.Marked || c.PendienteCarpeta) && c.SectorPdfGeneratedAt is null)
-            .OrderBy(c => c.FullName)
+            .OrderBy(c => c.MarkedAt)
             .ToList();
     }
 

@@ -269,6 +269,10 @@ public class IndexModel(
     /// does not do this by itself — it only marks the case as an F8 candidate.</summary>
     public IActionResult OnPostTransferToF8(long id)
     {
+        // F8's "Fecha penúltima carpeta" is a distinct date from Casos' última carpeta — carrying
+        // the old value over would read as already filled in, so it's cleared here and the
+        // operator fills it in fresh on the F8 screen.
+        repository.ClearFechaUltimaCarpeta(id);
         repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
         return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
     }
@@ -293,23 +297,6 @@ public class IndexModel(
         foreach (var item in Cases)
         {
             repository.SetMarked(item.Id, marked);
-        }
-
-        return RedirectToPage(new { status, needsReview, search });
-    }
-
-    /// <summary>Selects exactly the still-outstanding cases in the given sector (derived from
-    /// Fecha última carpeta) — marks every matching, not-yet-Confirmed case AND unmarks every
-    /// other one, regardless of the current filter, so the checked set on screen always reflects
-    /// only that sector's pending work. Confirmed (blue) cases are excluded: they're already
-    /// done, selecting them again for a new PDF run makes no sense. A shortcut so the operator
-    /// doesn't have to hunt down and tick every Archivo (or Oficina 43) case one by one before
-    /// generating that sector's PDF.</summary>
-    public IActionResult OnPostMarkAllBySector(FolderSector sector, string? status, bool needsReview, string? search)
-    {
-        foreach (var item in repository.GetAll())
-        {
-            repository.SetMarked(item.Id, item.Sector == sector && item.Status != RequestStatus.Confirmed);
         }
 
         return RedirectToPage(new { status, needsReview, search });
@@ -412,17 +399,20 @@ public class IndexModel(
             );
         }
 
-        // Confirmed cases (blue row — folder uploaded, comuna already emailed) sink to the very
-        // end, ordered by ConfirmedAt ascending, so confirmations show in the order they
-        // happened instead of mixed in with outstanding work. The Marcar checkbox is pure
-        // personal bookkeeping (see PersonRequest.Marked) and does NOT affect sort order —
-        // ticking it just highlights the row, it never moves. Everything not Confirmed stays on
-        // top, ordered by ReceivedAt (fecha de ingreso — when the email actually arrived), not by
-        // CreatedAt (when the row was inserted): a case re-tracked later (e.g. after being
-        // reverted from Uploaded back to Pending) must stay in its original position instead of
-        // jumping to the top just because its database row is newer.
+        // Marked cases (checkbox "Marcar") float to the very top, ordered by MarkedAt ascending —
+        // the order the operator ticked them in — so the marked set on screen lines up with the
+        // order they'll print in on the next PDF run (see SetMarked/Sector.cshtml.cs). Confirmed
+        // cases (blue row — folder uploaded, comuna already emailed) sink to the very end, ordered
+        // by ConfirmedAt ascending, so confirmations show in the order they happened instead of
+        // mixed in with outstanding work. Everything else stays in the middle, ordered by
+        // ReceivedAt (fecha de ingreso — when the email actually arrived), not by CreatedAt (when
+        // the row was inserted): a case re-tracked later (e.g. after being reverted from Uploaded
+        // back to Pending) must stay in its original position instead of jumping to the top just
+        // because its database row is newer.
         Cases = all
-            .OrderBy(c => c.Status == RequestStatus.Confirmed)
+            .OrderByDescending(c => c.Marked)
+            .ThenBy(c => c.MarkedAt)
+            .ThenBy(c => c.Status == RequestStatus.Confirmed)
             .ThenBy(c => c.ConfirmedAt)
             .ThenByDescending(c => c.ReceivedAt)
             .ToList();

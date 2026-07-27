@@ -21,7 +21,8 @@ if (-not $running) {
     # "data/router.db" path resolved against the exe's own bin folder, which doesn't exist there.
     $env:ASPNETCORE_ENVIRONMENT = "Development"
     Start-Process -FilePath $exePath -WorkingDirectory $projectPath -WindowStyle Hidden
-    Start-Sleep -Seconds 8
+    # The app opens its own browser tab ~2s after it starts binding (see Program.cs).
+    # Don't open one here too, otherwise the user gets 2 tabs.
+} else {
+    Start-Process $dashboardUrl
 }
-
-Start-Process $dashboardUrl

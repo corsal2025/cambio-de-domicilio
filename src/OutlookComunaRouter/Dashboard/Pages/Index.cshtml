@@ -60,16 +60,6 @@
                     }
                 </form>
                 <form method="post" asp-page-handler="SyncNow"><button type="submit" class="nav-pill nav-sync">Sincronizar ahora</button></form>
-                <form method="post" asp-page-handler="MarkAllBySector" asp-route-sector="Archivo"
-                      asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" asp-route-search="@Model.SearchQuery"
-                      title="Marca todos los casos cuya última carpeta es anterior a julio 2023 (sector Archivo)">
-                    <button type="submit" class="nav-pill nav-doc">Marcar todo Archivo</button>
-                </form>
-                <form method="post" asp-page-handler="MarkAllBySector" asp-route-sector="Oficina43"
-                      asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" asp-route-search="@Model.SearchQuery"
-                      title="Marca todos los casos cuya última carpeta es julio 2023 en adelante (sector Oficina 43)">
-                    <button type="submit" class="nav-pill nav-doc">Marcar todo Oficina 43</button>
-                </form>
                 <a asp-page="/ChangePassword" class="nav-pill nav-account">Cambiar contraseña</a>
                 <form asp-page="/Logout" method="post"><button type="submit" class="nav-pill nav-logout">Salir</button></form>
             </div>
@@ -197,6 +187,7 @@
                             <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="checkbox" name="markedValue" class="marked-checkbox"
+                                       data-pdf-generated-at="@(item.SectorPdfGeneratedAt is { } pdfAt ? SpanishDate.Format(DateOnly.FromDateTime(pdfAt.LocalDateTime)) : "")"
                                        @(item.Marked ? "checked" : "") onchange="toggleMutuallyExclusive(this, 'markedValue', 'pendienteCarpetaValue')"
                                        title="@(item.Marked ? "Desmarcar caso" : "Marcar caso")" />
                             </form>
@@ -396,6 +387,11 @@
         // never both) but not locked — checking one clears the other automatically, and the
         // cleared one can still be re-checked manually afterward at any time.
         function toggleMutuallyExclusive(checkbox, fieldName, otherFieldName) {
+            // Re-marking a case that already had a PDF generated resets SectorPdfGeneratedAt
+            // server-side so it prints again — let the operator know that's what's happening.
+            if (fieldName === 'markedValue' && checkbox.checked && checkbox.dataset.pdfGeneratedAt) {
+                alert('Ya se había generado un PDF para esta persona el ' + checkbox.dataset.pdfGeneratedAt + '. Se incluirá de nuevo en el próximo PDF.');
+            }
             submitCheckboxToggle(checkbox, fieldName);
             if (checkbox.checked) {
                 var row = checkbox.closest('tr');
@@ -444,21 +440,43 @@
             var table = document.querySelector('.table-card');
 
             var savedScroll = sessionStorage.getItem(scrollKey);
-            if (savedScroll !== null) {
-                window.scrollTo(0, parseInt(savedScroll, 10));
-                sessionStorage.removeItem(scrollKey);
+            var savedTableX = table ? sessionStorage.getItem(tableScrollXKey) : null;
+            var savedTableY = table ? sessionStorage.getItem(tableScrollYKey) : null;
+
+            // Restoring here is a no-op if the window is minimized: the browser hasn't laid out
+            // the page (table.scrollWidth is still 0), so scrollLeft/scrollTop assignments get
+            // clamped back to 0 and the values are lost since we already removed them from
+            // storage. Keep the saved values around and re-apply on visibilitychange so a
+            // restore-while-minimized retries once the tab is actually visible and laid out.
+            function applyRestore() {
+                if (savedScroll !== null) {
+                    window.scrollTo(0, parseInt(savedScroll, 10));
+                }
+                if (table) {
+                    if (savedTableX !== null) {
+                        table.scrollLeft = parseInt(savedTableX, 10);
+                    }
+                    if (savedTableY !== null) {
+                        table.scrollTop = parseInt(savedTableY, 10);
+                    }
+                }
             }
-            if (table) {
-                var savedTableX = sessionStorage.getItem(tableScrollXKey);
-                var savedTableY = sessionStorage.getItem(tableScrollYKey);
-                if (savedTableX !== null) {
-                    table.scrollLeft = parseInt(savedTableX, 10);
-                    sessionStorage.removeItem(tableScrollXKey);
-                }
-                if (savedTableY !== null) {
-                    table.scrollTop = parseInt(savedTableY, 10);
-                    sessionStorage.removeItem(tableScrollYKey);
-                }
+
+            if (document.hidden) {
+                document.addEventListener('visibilitychange', function onVisible() {
+                    if (!document.hidden) {
+                        document.removeEventListener('visibilitychange', onVisible);
+                        applyRestore();
+                        sessionStorage.removeItem(scrollKey);
+                        sessionStorage.removeItem(tableScrollXKey);
+                        sessionStorage.removeItem(tableScrollYKey);
+                    }
+                });
+            } else {
+                applyRestore();
+                sessionStorage.removeItem(scrollKey);
+                sessionStorage.removeItem(tableScrollXKey);
+                sessionStorage.removeItem(tableScrollYKey);
             }
 
             window.addEventListener('beforeunload', function () {

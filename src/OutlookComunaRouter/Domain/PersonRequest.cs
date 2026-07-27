@@ -41,6 +41,10 @@ public sealed class PersonRequest
     /// <summary>Date of the contributor's última carpeta, typed in manually by the operator (paso 4).</summary>
     public DateOnly? FechaUltimaCarpeta { get; set; }
 
+    /// <summary>Operator-entered "S/C" (Sin Carpeta) in place of a date — the contributor has no
+    /// previous folder. Mutually exclusive with FechaUltimaCarpeta: setting one clears the other.</summary>
+    public bool SinCarpeta { get; set; }
+
     public DateTimeOffset? UploadedAt { get; set; }
     public DateTimeOffset? ConfirmedAt { get; set; }
 
@@ -52,6 +56,10 @@ public sealed class PersonRequest
     /// <summary>Operator-only bookkeeping checkbox, independent of Status — lets the operator tick off
     /// cases they've already cross-checked manually, with no effect on the routing/confirmation flow.</summary>
     public bool Marked { get; set; }
+
+    /// <summary>When Marked was last ticked on. Drives the display/print order of marked cases —
+    /// null while unmarked.</summary>
+    public DateTimeOffset? MarkedAt { get; set; }
 
     /// <summary>When this case was last included in a printed sector document (see the Sector page's
     /// "Imprimir / Guardar como PDF" action). Null means it has never been printed. A case is excluded

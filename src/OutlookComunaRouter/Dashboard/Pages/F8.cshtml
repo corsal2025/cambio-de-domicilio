@@ -146,9 +146,9 @@
                             <form method="post" asp-page-handler="SetFecha" class="fecha-form">
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="text" name="fecha" class="input-inline fecha-input" size="16"
-                                       placeholder="ej: 15/03/2024"
-                                       title="Formatos aceptados: 15/03/2024 o 15 marzo 2024"
-                                       value="@(item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")"
+                                       placeholder="ej: 15/03/2024 o S/C"
+                                       title="Formatos aceptados: 15/03/2024, 15 marzo 2024, o S/C (sin carpeta)"
+                                       value="@(item.SinCarpeta ? "S/C" : item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")"
                                        onchange="this.form.submit()" />
                             </form>
                         </td>
