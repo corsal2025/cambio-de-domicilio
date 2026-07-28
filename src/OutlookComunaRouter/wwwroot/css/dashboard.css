@@ -209,7 +209,8 @@ a.nav-casos,
 a.nav-f8,
 a.nav-certificado,
 a.nav-estadisticas,
-a.nav-pdf {
+a.nav-pdf-archivo,
+a.nav-pdf-oficina43 {
     font-weight: 600;
     border-radius: 999px;
     padding: 6px 14px;
@@ -255,14 +256,22 @@ a.nav-estadisticas {
 a.nav-estadisticas:hover { background: rgba(167, 139, 250, 0.3); }
 a.nav-estadisticas.active { background: rgba(167, 139, 250, 0.4); }
 
-/* Amber — same document/print family already used for the F8 subnav pill and the top-nav "PDF"
-   pills these replace; both are ultimately about the printed folder list. */
-a.nav-pdf {
+/* Archivo vs Oficina 43 get their own distinct colors (not both the same pill) so they read as
+   two different documents at a glance, matching the Archivo/Oficina43 sector split shown on the
+   case rows themselves. */
+a.nav-pdf-archivo {
+    background: rgba(148, 163, 184, 0.2);
+    border: 1px solid rgba(148, 163, 184, 0.7);
+    color: #dde3ea;
+}
+a.nav-pdf-archivo:hover { background: rgba(148, 163, 184, 0.32); }
+
+a.nav-pdf-oficina43 {
     background: rgba(255, 196, 0, 0.18);
     border: 1px solid rgba(255, 196, 0, 0.6);
     color: #ffe28a;
 }
-a.nav-pdf:hover { background: rgba(255, 196, 0, 0.3); }
+a.nav-pdf-oficina43:hover { background: rgba(255, 196, 0, 0.3); }
 
 nav.app-nav form button {
     background: rgba(255, 255, 255, 0.12);
