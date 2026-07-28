@@ -146,3 +146,23 @@ flowchart TB
     BG --> CSVOUT
     RP <--> SQLITE
 ```
+
+## 6. Estadísticas — pantalla de solo lectura (2026-07-28)
+
+```mermaid
+flowchart TB
+    SQLITE["SQLite<br/>(PersonRequest + DiscardedEmail)"] --> SVC["StatisticsService<br/>(agregación en memoria, LINQ)"]
+    SVC --> EST["/Estadisticas<br/>(EstadisticasModel.OnGet)"]
+    EST --> CHARTS["Chart.js vendorizado<br/>(sin CDN, un solo archivo)"]
+
+    subgraph Metricas["Métricas por proceso"]
+        M1["Casos: estado, ingresos por semana,<br/>top comunas, turnaround promedio,<br/>sector Archivo/Oficina43"]
+        M2["F8: plazo 15 días hábiles<br/>(dentro/vencido), PDFs generados"]
+        M3["Certificado: carpeta encontrada,<br/>notificación enviada"]
+        M4["Descartados: por motivo/dominio<br/>no reconocido"]
+    end
+
+    CHARTS --> Metricas
+```
+
+No agrega ningún paso al trámite — es una capa de reporte sobre datos que los otros cuatro procesos ya generan, sin escritura y sin cambio de schema.

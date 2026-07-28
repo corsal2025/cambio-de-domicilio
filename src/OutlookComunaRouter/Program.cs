@@ -43,6 +43,7 @@ builder.Services.AddSingleton<IEmailMover>(sp => sp.GetRequiredService<EwsEmailR
 builder.Services.AddSingleton<IMailSender, EwsMailSender>();
 builder.Services.AddSingleton<ICsvReportWriter, CsvReportWriter>();
 builder.Services.AddSingleton<AddressChangeRoutingService>();
+builder.Services.AddSingleton<OutlookComunaRouter.Statistics.StatisticsService>();
 
 builder.Services.AddSingleton<INotificationChannel, WindowsToastNotificationChannel>();
 builder.Services.AddSingleton<INotificationChannel, EmailNotificationChannel>();

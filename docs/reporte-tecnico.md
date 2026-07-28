@@ -179,6 +179,7 @@ Operaciones EWS implementadas:
 | Reporte | CSV regenerado cada ciclo | nombre, rut, comuna, estado, fecha, sector, confirmado |
 | Notificaciones | Toast Windows + correo al operador | Solo al confirmar (feedback del envío real) |
 | Distribución | `dotnet publish` self-contained single-file | Un .exe (~100 MB) copiable a otro PC sin instalar .NET; tarea programada de Windows para auto-inicio |
+| Estadísticas (2026-07-28) | Chart.js (vendorizado, un solo archivo `wwwroot/js/vendor/chart.umd.js`, sin CDN) | Pantalla `/Estadisticas` de solo lectura: agregaciones en memoria (`StatisticsService`) sobre los mismos datos de Casos/F8/Certificado/Descartados, sin cambio de schema |
 
 ## 8. Decisiones técnicas relevantes
 

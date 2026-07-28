@@ -128,3 +128,10 @@ DashboardUser (1) ----< (N) PersonRequest        via ConfirmedByUserId (attribut
   ambiguous domain is discarded rather than guessed.
 - **Duplicate suppression**: before creating a case, check for an existing `(Rut, Comuna)` pair; if
   found, the new source email is not turned into a second row.
+
+## Read-only aggregation (Estadísticas)
+
+`/Estadisticas` reads `PersonRequest` and `DiscardedEmail` only through `IPersonRequestRepository
+.GetAll()` / `IDiscardedEmailRepository.GetAll()` — the same accessors every other screen already
+uses — and computes every chart's numbers in memory via `Statistics.StatisticsService`. No new
+table, no new column, no write path: this is purely additive reporting over the schema above.

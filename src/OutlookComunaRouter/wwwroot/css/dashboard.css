@@ -207,7 +207,8 @@ nav.app-nav form button.nav-logout:hover { background: rgba(161, 29, 51, 0.4); }
    anywhere. */
 a.nav-casos,
 a.nav-f8,
-a.nav-certificado {
+a.nav-certificado,
+a.nav-estadisticas {
     font-weight: 600;
     border-radius: 999px;
     padding: 6px 14px;
@@ -242,6 +243,16 @@ a.nav-certificado {
 }
 a.nav-certificado:hover { background: rgba(84, 199, 165, 0.3); }
 a.nav-certificado.active { background: rgba(84, 199, 165, 0.4); }
+
+/* Violet — statistics is a read-only reporting layer over the other three tracks, not a fourth
+   workflow, so it gets its own distinct color rather than reusing one of theirs. */
+a.nav-estadisticas {
+    background: rgba(167, 139, 250, 0.18);
+    border: 1px solid rgba(167, 139, 250, 0.6);
+    color: #d6c9fc;
+}
+a.nav-estadisticas:hover { background: rgba(167, 139, 250, 0.3); }
+a.nav-estadisticas.active { background: rgba(167, 139, 250, 0.4); }
 
 nav.app-nav form button {
     background: rgba(255, 255, 255, 0.12);
