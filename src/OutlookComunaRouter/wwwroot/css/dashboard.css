@@ -469,19 +469,24 @@ table.cases-index td {
     text-align: center;
 }
 
-/* Fixed layout needs explicit widths, otherwise all 11 columns split the row evenly and the
-   checkbox columns (which need very little space) starve Nombre/Acción of the room they need. */
+/* Fixed layout needs explicit widths, otherwise all 12 columns split the row evenly and the
+   checkbox columns (which need very little space) starve Nombre/Acción of the room they need.
+   12 columns: Marcar, F8, Pendiente Carpeta, Nombre, RUT, Comuna, Recibido, Plazo, Estado,
+   Fecha última carpeta, Sector, Acción — updated when the F8/Pendiente Carpeta checkbox columns
+   were added; they previously shifted every percentage below one column out of place, squeezing
+   Acción's "Marcar subida" button into ~0% width. */
 table.cases-index th:nth-child(1), table.cases-index td:nth-child(1) { width: 4%; }
 table.cases-index th:nth-child(2), table.cases-index td:nth-child(2) { width: 4%; }
-table.cases-index th:nth-child(3), table.cases-index td:nth-child(3) { width: 24%; }
-table.cases-index th:nth-child(4), table.cases-index td:nth-child(4) { width: 9%; }
-table.cases-index th:nth-child(5), table.cases-index td:nth-child(5) { width: 8%; }
-table.cases-index th:nth-child(6), table.cases-index td:nth-child(6) { width: 7%; }
-table.cases-index th:nth-child(7), table.cases-index td:nth-child(7) { width: 9%; }
-table.cases-index th:nth-child(8), table.cases-index td:nth-child(8) { width: 6%; }
-table.cases-index th:nth-child(9), table.cases-index td:nth-child(9) { width: 9%; }
-table.cases-index th:nth-child(10), table.cases-index td:nth-child(10) { width: 7%; }
-table.cases-index th:nth-child(11), table.cases-index td:nth-child(11) { width: 13%; }
+table.cases-index th:nth-child(3), table.cases-index td:nth-child(3) { width: 4%; }
+table.cases-index th:nth-child(4), table.cases-index td:nth-child(4) { width: 20%; }
+table.cases-index th:nth-child(5), table.cases-index td:nth-child(5) { width: 9%; }
+table.cases-index th:nth-child(6), table.cases-index td:nth-child(6) { width: 8%; }
+table.cases-index th:nth-child(7), table.cases-index td:nth-child(7) { width: 7%; }
+table.cases-index th:nth-child(8), table.cases-index td:nth-child(8) { width: 9%; }
+table.cases-index th:nth-child(9), table.cases-index td:nth-child(9) { width: 6%; }
+table.cases-index th:nth-child(10), table.cases-index td:nth-child(10) { width: 9%; }
+table.cases-index th:nth-child(11), table.cases-index td:nth-child(11) { width: 6%; }
+table.cases-index th:nth-child(12), table.cases-index td:nth-child(12) { width: 14%; }
 
 /* F8 page table: auto layout instead of cases-index's fixed % columns, so each column shrinks to
    fit its actual content (short RUT/badges/buttons) instead of leaving fixed-% whitespace. */
