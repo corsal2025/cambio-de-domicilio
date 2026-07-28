@@ -208,7 +208,8 @@ nav.app-nav form button.nav-logout:hover { background: rgba(161, 29, 51, 0.4); }
 a.nav-casos,
 a.nav-f8,
 a.nav-certificado,
-a.nav-estadisticas {
+a.nav-estadisticas,
+a.nav-pdf {
     font-weight: 600;
     border-radius: 999px;
     padding: 6px 14px;
@@ -253,6 +254,15 @@ a.nav-estadisticas {
 }
 a.nav-estadisticas:hover { background: rgba(167, 139, 250, 0.3); }
 a.nav-estadisticas.active { background: rgba(167, 139, 250, 0.4); }
+
+/* Amber — same document/print family already used for the F8 subnav pill and the top-nav "PDF"
+   pills these replace; both are ultimately about the printed folder list. */
+a.nav-pdf {
+    background: rgba(255, 196, 0, 0.18);
+    border: 1px solid rgba(255, 196, 0, 0.6);
+    color: #ffe28a;
+}
+a.nav-pdf:hover { background: rgba(255, 196, 0, 0.3); }
 
 nav.app-nav form button {
     background: rgba(255, 255, 255, 0.12);

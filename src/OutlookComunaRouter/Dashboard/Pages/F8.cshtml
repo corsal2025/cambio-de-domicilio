@@ -21,8 +21,6 @@
             </span>
         </div>
         <nav class="app-nav">
-            <a asp-page="/SectorF8" asp-route-sector="Archivo" class="nav-pill nav-doc">PDF Archivo</a>
-            <a asp-page="/SectorF8" asp-route-sector="Oficina43" class="nav-pill nav-doc">PDF Oficina 43</a>
             <form asp-page="/Logout" method="post"><button type="submit" class="nav-pill nav-logout">Salir</button></form>
         </nav>
     </header>
@@ -32,6 +30,8 @@
         <a asp-page="/F8" class="nav-f8 active">F8</a>
         <a asp-page="/Certificado" class="nav-certificado">Certificado</a>
         <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
+        <a asp-page="/SectorF8" asp-route-sector="Archivo" class="nav-pdf">PDF Archivo</a>
+        <a asp-page="/SectorF8" asp-route-sector="Oficina43" class="nav-pdf">PDF Oficina 43</a>
     </div>
 
     <main>
