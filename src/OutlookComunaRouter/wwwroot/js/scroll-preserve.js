@@ -1,0 +1,64 @@
+// The page reloads constantly (every table action submits a form, plus any auto-refresh) —
+// without this, the browser resets scroll to the top AND back to the leftmost column every
+// time, forcing the operator to scroll back down and right to wherever they were working. The
+// table also scrolls independently of the window (see .table-card's own overflow-x/y), so its
+// scrollLeft/Top needs saving separately from window.scrollY. beforeunload covers every way the
+// page can go away: form submits, auto-refresh, manual reloads. Keys are namespaced per path so
+// pages don't clobber each other's saved position.
+(function () {
+    var pageKey = location.pathname;
+    var scrollKey = 'scrollY:' + pageKey;
+    var tableScrollXKey = 'tableScrollX:' + pageKey;
+    var tableScrollYKey = 'tableScrollY:' + pageKey;
+    var table = document.querySelector('.table-card');
+
+    var savedScroll = sessionStorage.getItem(scrollKey);
+    var savedTableX = table ? sessionStorage.getItem(tableScrollXKey) : null;
+    var savedTableY = table ? sessionStorage.getItem(tableScrollYKey) : null;
+
+    // Restoring here is a no-op if the window is minimized: the browser hasn't laid out the
+    // page (table.scrollWidth is still 0), so scrollLeft/scrollTop assignments get clamped back
+    // to 0 and the values are lost since we already removed them from storage. Keep the saved
+    // values around and re-apply on visibilitychange so a restore-while-minimized retries once
+    // the tab is actually visible and laid out.
+    function applyRestore() {
+        if (savedScroll !== null) {
+            window.scrollTo(0, parseInt(savedScroll, 10));
+        }
+        if (table) {
+            if (savedTableX !== null) {
+                table.scrollLeft = parseInt(savedTableX, 10);
+            }
+            if (savedTableY !== null) {
+                table.scrollTop = parseInt(savedTableY, 10);
+            }
+        }
+    }
+
+    function clearSaved() {
+        sessionStorage.removeItem(scrollKey);
+        sessionStorage.removeItem(tableScrollXKey);
+        sessionStorage.removeItem(tableScrollYKey);
+    }
+
+    if (document.hidden) {
+        document.addEventListener('visibilitychange', function onVisible() {
+            if (!document.hidden) {
+                document.removeEventListener('visibilitychange', onVisible);
+                applyRestore();
+                clearSaved();
+            }
+        });
+    } else {
+        applyRestore();
+        clearSaved();
+    }
+
+    window.addEventListener('beforeunload', function () {
+        sessionStorage.setItem(scrollKey, window.scrollY);
+        if (table) {
+            sessionStorage.setItem(tableScrollXKey, table.scrollLeft);
+            sessionStorage.setItem(tableScrollYKey, table.scrollTop);
+        }
+    });
+})();

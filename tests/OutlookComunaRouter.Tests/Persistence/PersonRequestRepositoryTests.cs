@@ -226,7 +226,18 @@ public class PersonRequestRepositoryTests : IDisposable
             command.ExecuteNonQuery();
         }
         var preExistingId = repository.Insert(NewRequest("msg-old"));
-        repository.SetMarked(preExistingId, true);
+
+        // Set the legacy Marked flag with raw SQL, not repository.SetMarked: that method now also
+        // writes MarkedAt/SectorPdfGeneratedAt, columns this pre-migration schema doesn't have yet
+        // (real app startup always runs EnsureSchema before any request reaches the repository).
+        using (var connection = new SqliteConnection($"Data Source={dbPath}"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "UPDATE PersonRequest SET Marked = 1 WHERE Id = @id";
+            command.Parameters.AddWithValue("@id", preExistingId);
+            command.ExecuteNonQuery();
+        }
 
         repository.EnsureSchema(); // re-run migration, as happens on every app startup
 

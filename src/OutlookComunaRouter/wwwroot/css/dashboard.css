@@ -21,6 +21,17 @@
 
 * { box-sizing: border-box; }
 
+/* Nothing on any page is meant to need page-level horizontal scroll — the cases table has its
+   own internal overflow-x:auto (.table-card) precisely so its scrollbar stays reachable without
+   scrolling the whole page first. Without this, a wide table with nothing else constraining it
+   makes <html> itself grow past the viewport width instead of clipping inside .table-card, so
+   the *page* scrolls right instead of the table, and scroll-preserve.js (which only restores the
+   table's own scrollLeft, not window.scrollX) can't bring it back — read by the operator as the
+   whole screen "jumping to the left" on every reload. */
+html {
+    overflow-x: hidden;
+}
+
 body {
     margin: 0;
     font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -352,14 +363,24 @@ body.cases-page main {
     display: flex;
     flex-direction: column;
     max-width: none;
+    width: 100%;
     padding-left: 14px;
     padding-right: 14px;
     min-height: 0;
+    min-width: 0;
 }
 
+/* min-width: 0 overrides the flex-item default of min-width: auto, which otherwise refuses to
+   shrink this element below the table's full content width — without it, the table pushes
+   .table-card (and the whole page) wider than the viewport instead of scrolling internally, so
+   the *window* ends up needing horizontal scroll too. scroll-preserve.js only restores the
+   table's own scrollLeft, not window.scrollX, so that page-level overflow read back as "jumping
+   to the left" on every reload. */
 .card.table-card {
     flex: 1;
+    width: 100%;
     min-height: 0;
+    min-width: 0;
     overflow-y: auto;
 }
 
