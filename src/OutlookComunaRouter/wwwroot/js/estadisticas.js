@@ -112,10 +112,6 @@
 
     bar('chart-f8-pdf', 'Casos F8', ['Generado', 'Pendiente'], [data.f8Pdf.generated, data.f8Pdf.pending]);
 
-    donut('chart-certificado-folder', ['Encontrada', 'No encontrada'], [data.certificadoFolder.found, data.certificadoFolder.notFound], [palette.ok, palette.danger]);
-
-    donut('chart-certificado-notif', ['Notificado', 'Pendiente'], [data.certificadoNotif.notified, data.certificadoNotif.pending], [palette.ok, palette.pending]);
-
     var discarded = data.discarded || [];
     horizontalBar('chart-discarded', 'Correos descartados', discarded.map(function (r) { return r.reason; }), discarded.map(function (r) { return r.count; }), palette.danger);
 })();

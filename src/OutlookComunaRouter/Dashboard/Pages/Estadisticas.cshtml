@@ -121,14 +121,6 @@
                 <h2>F8: PDFs generados</h2>
                 <canvas id="chart-f8-pdf"></canvas>
             </div>
-            <div class="stats-card">
-                <h2>Certificado: carpeta encontrada</h2>
-                <canvas id="chart-certificado-folder"></canvas>
-            </div>
-            <div class="stats-card">
-                <h2>Certificado: notificación</h2>
-                <canvas id="chart-certificado-notif"></canvas>
-            </div>
             <div class="stats-card stats-card-wide">
                 <h2>Correos descartados por motivo</h2>
                 <canvas id="chart-discarded"></canvas>
@@ -147,8 +139,6 @@
             sector = Model.SectorDistribution,
             f8Deadline = Model.F8DeadlineBacklog,
             f8Pdf = Model.F8PdfStatus,
-            certificadoFolder = Model.CertificadoFolderStatus,
-            certificadoNotif = Model.CertificadoNotificationStatus,
             discarded = Model.DiscardedByReason
         }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }))
     </script>
