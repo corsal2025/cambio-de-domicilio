@@ -13,6 +13,11 @@ public sealed record ReasonCount(string Reason, int Count);
 
 public sealed record TurnaroundResult(bool HasData, double AverageDays);
 
+/// <summary>One Confirmed case's turnaround, for the dispersion scatter chart — ReceivedAt is the
+/// x-axis (when it came in) so the operator can spot whether slow cases cluster around a
+/// particular period, not just see a single averaged number.</summary>
+public sealed record TurnaroundPoint(DateOnly ReceivedAt, double Days);
+
 public sealed record SectorDistribution(int Archivo, int Oficina43);
 
 public sealed record F8DeadlineBacklog(int WithinDeadline, int PastDeadline);
@@ -94,6 +99,17 @@ public sealed class StatisticsService(RouterOptions options)
         var average = confirmed.Average(c => (c.ConfirmedAt!.Value - c.ReceivedAt).TotalDays);
         return new TurnaroundResult(HasData: true, AverageDays: average);
     }
+
+    /// <summary>One point per Confirmed case, ordered by ReceivedAt — the scatter/dispersion view
+    /// behind the single averaged number GetAverageTurnaroundDays returns, so the operator can see
+    /// whether turnaround is consistent or has outliers/clusters.</summary>
+    public IReadOnlyList<TurnaroundPoint> GetTurnaroundDistribution(IReadOnlyList<PersonRequest> cases) => cases
+        .Where(c => c.Status == RequestStatus.Confirmed && c.ConfirmedAt is not null)
+        .Select(c => new TurnaroundPoint(
+            DateOnly.FromDateTime(c.ReceivedAt.UtcDateTime),
+            (c.ConfirmedAt!.Value - c.ReceivedAt).TotalDays))
+        .OrderBy(p => p.ReceivedAt)
+        .ToList();
 
     public SectorDistribution GetSectorDistribution(IReadOnlyList<PersonRequest> cases) => new(
         Archivo: cases.Count(c => c.Sector == FolderSector.Archivo),

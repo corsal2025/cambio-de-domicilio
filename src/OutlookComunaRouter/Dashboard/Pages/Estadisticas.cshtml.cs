@@ -18,6 +18,7 @@ public class EstadisticasModel(
     public IReadOnlyList<ComunaCount> TopComunas { get; private set; } = [];
     public IReadOnlyList<ReasonCount> DiscardedByReason { get; private set; } = [];
     public TurnaroundResult Turnaround { get; private set; } = new(false, 0);
+    public IReadOnlyList<TurnaroundPoint> TurnaroundDistribution { get; private set; } = [];
     public SectorDistribution SectorDistribution { get; private set; } = new(0, 0);
     public F8DeadlineBacklog F8DeadlineBacklog { get; private set; } = new(0, 0);
     public F8PdfStatus F8PdfStatus { get; private set; } = new(0, 0);
@@ -34,6 +35,7 @@ public class EstadisticasModel(
         TopComunas = statisticsService.GetTopComunas(cases);
         DiscardedByReason = statisticsService.GetDiscardedByReason(discarded);
         Turnaround = statisticsService.GetAverageTurnaroundDays(cases);
+        TurnaroundDistribution = statisticsService.GetTurnaroundDistribution(cases);
         SectorDistribution = statisticsService.GetSectorDistribution(cases);
         F8DeadlineBacklog = statisticsService.GetF8DeadlineBacklog(cases);
         F8PdfStatus = statisticsService.GetF8PdfStatus(cases);

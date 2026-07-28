@@ -183,6 +183,27 @@ public class StatisticsServiceTests
     }
 
     [Fact]
+    public void GetTurnaroundDistribution_ReturnsOnePointPerConfirmedCaseOrderedByReceivedAt()
+    {
+        var later = new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero);
+        var earlier = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var cases = new[]
+        {
+            NewRequest("m1", status: RequestStatus.Confirmed, receivedAt: later, confirmedAt: later.AddDays(3)),
+            NewRequest("m2", status: RequestStatus.Confirmed, receivedAt: earlier, confirmedAt: earlier.AddDays(7)),
+            NewRequest("m3", status: RequestStatus.Pending), // excluded, not Confirmed
+        };
+
+        var result = service.GetTurnaroundDistribution(cases);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal(DateOnly.FromDateTime(earlier.UtcDateTime), result[0].ReceivedAt);
+        Assert.Equal(7.0, result[0].Days);
+        Assert.Equal(DateOnly.FromDateTime(later.UtcDateTime), result[1].ReceivedAt);
+        Assert.Equal(3.0, result[1].Days);
+    }
+
+    [Fact]
     public void GetSectorDistribution_ExcludesCasesWithoutFecha()
     {
         var cases = new[]

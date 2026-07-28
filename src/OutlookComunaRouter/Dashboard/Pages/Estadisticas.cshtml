@@ -99,6 +99,17 @@
                 }
             </div>
             <div class="stats-card">
+                <h2>Dispersión de tiempos de confirmación</h2>
+                @if (Model.Turnaround.HasData)
+                {
+                    <canvas id="chart-turnaround-scatter"></canvas>
+                }
+                else
+                {
+                    <p class="stats-nodata">Todavía no hay casos confirmados.</p>
+                }
+            </div>
+            <div class="stats-card">
                 <h2>Sector: Archivo vs Oficina 43</h2>
                 <canvas id="chart-sector"></canvas>
             </div>
@@ -132,6 +143,7 @@
             weekly = Model.WeeklyIntake,
             comunas = Model.TopComunas,
             turnaround = Model.Turnaround,
+            turnaroundDistribution = Model.TurnaroundDistribution,
             sector = Model.SectorDistribution,
             f8Deadline = Model.F8DeadlineBacklog,
             f8Pdf = Model.F8PdfStatus,
