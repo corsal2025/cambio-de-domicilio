@@ -25,23 +25,36 @@
         });
     }
 
-    function bar(canvasId, seriesLabel, labels, values, colors) {
+    function bar(canvasId, seriesLabel, labels, values, colors, xTitle, yTitle) {
         var el = document.getElementById(canvasId);
         if (!el) return;
         new Chart(el, {
             type: 'bar',
             data: { labels: labels, datasets: [{ label: seriesLabel, data: values, backgroundColor: colors || palette.primary }] },
-            options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            options: {
+                plugins: { legend: { position: 'bottom' } },
+                scales: {
+                    x: { title: { display: true, text: xTitle } },
+                    y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: yTitle } }
+                }
+            }
         });
     }
 
-    function horizontalBar(canvasId, seriesLabel, labels, values, color) {
+    function horizontalBar(canvasId, seriesLabel, labels, values, color, xTitle, yTitle) {
         var el = document.getElementById(canvasId);
         if (!el) return;
         new Chart(el, {
             type: 'bar',
             data: { labels: labels, datasets: [{ label: seriesLabel, data: values, backgroundColor: color || palette.accent }] },
-            options: { indexAxis: 'y', plugins: { legend: { position: 'bottom' } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+            options: {
+                indexAxis: 'y',
+                plugins: { legend: { position: 'bottom' } },
+                scales: {
+                    x: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: xTitle } },
+                    y: { title: { display: true, text: yTitle } }
+                }
+            }
         });
     }
 
@@ -64,15 +77,23 @@
                     tension: 0.2
                 }]
             },
-            options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            options: {
+                plugins: { legend: { position: 'bottom' } },
+                scales: {
+                    x: { title: { display: true, text: 'Semana de ingreso' } },
+                    y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'Cantidad de casos' } }
+                }
+            }
         });
     }
 
     var comunas = data.comunas || [];
-    horizontalBar('chart-comunas', 'Casos', comunas.map(function (c) { return c.comuna; }), comunas.map(function (c) { return c.count; }));
+    horizontalBar('chart-comunas', 'Casos', comunas.map(function (c) { return c.comuna; }), comunas.map(function (c) { return c.count; }),
+        undefined, 'Cantidad de casos', 'Comuna');
 
     if (data.turnaround.hasData) {
-        bar('chart-turnaround', 'Días promedio', ['Días promedio'], [Math.round(data.turnaround.averageDays * 10) / 10], palette.accent);
+        bar('chart-turnaround', 'Días promedio', ['Días promedio'], [Math.round(data.turnaround.averageDays * 10) / 10], palette.accent,
+            'Métrica', 'Días');
     }
 
     // Category (not time) x-axis: the vendored Chart.js UMD build has no date adapter, and every
@@ -108,10 +129,13 @@
 
     donut('chart-sector', ['Archivo', 'Oficina 43'], [data.sector.archivo, data.sector.oficina43], [palette.muted, palette.accent]);
 
-    bar('chart-f8-deadline', 'Casos F8', ['Dentro de plazo', 'Vencido'], [data.f8Deadline.withinDeadline, data.f8Deadline.pastDeadline], [palette.ok, palette.danger]);
+    bar('chart-f8-deadline', 'Casos F8', ['Dentro de plazo', 'Vencido'], [data.f8Deadline.withinDeadline, data.f8Deadline.pastDeadline], [palette.ok, palette.danger],
+        'Plazo', 'Cantidad de casos');
 
-    bar('chart-f8-pdf', 'Casos F8', ['Generado', 'Pendiente'], [data.f8Pdf.generated, data.f8Pdf.pending]);
+    bar('chart-f8-pdf', 'Casos F8', ['Generado', 'Pendiente'], [data.f8Pdf.generated, data.f8Pdf.pending],
+        undefined, 'Estado del PDF', 'Cantidad de casos');
 
     var discarded = data.discarded || [];
-    horizontalBar('chart-discarded', 'Correos descartados', discarded.map(function (r) { return r.reason; }), discarded.map(function (r) { return r.count; }), palette.danger);
+    horizontalBar('chart-discarded', 'Correos descartados', discarded.map(function (r) { return r.reason; }), discarded.map(function (r) { return r.count; }), palette.danger,
+        'Cantidad de correos', 'Motivo');
 })();
