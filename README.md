@@ -1,4 +1,4 @@
-# OutlookComunaRouter
+# CambioDeDomicilio
 
 Servicio en segundo plano (.NET 10, `BackgroundService`) que ayuda a tramitar las solicitudes de carpeta de contribuyentes que otras comunas le hacen a Valparaíso, ligadas a Conaset. El flujo de negocio completo está diagramado en [`docs/flujo-proceso.md`](docs/flujo-proceso.md) — acá el resumen técnico:
 
@@ -28,7 +28,7 @@ dotnet user-secrets set "Router:Ews:Password" "tu-contraseña"
 dotnet user-secrets set "Router:SqliteDbPath" "data/router.db"
 ```
 
-**Alternativa** — copiar `src/OutlookComunaRouter/appsettings.Example.json` a `src/OutlookComunaRouter/appsettings.Development.json` (ignorado por git) y completar `Router:Ews:Username`/`Password`, y ajustar `MailboxAddress` a un buzón de prueba si aún no hay acceso al buzón real.
+**Alternativa** — copiar `src/CambioDeDomicilio/appsettings.Example.json` a `src/CambioDeDomicilio/appsettings.Development.json` (ignorado por git) y completar `Router:Ews:Username`/`Password`, y ajustar `MailboxAddress` a un buzón de prueba si aún no hay acceso al buzón real.
 
 ### Datos
 
@@ -38,11 +38,11 @@ dotnet user-secrets set "Router:SqliteDbPath" "data/router.db"
    Catemu,rfloresc@municatemu.cl,municatemu.cl
    ```
 3. `dotnet build`
-4. `dotnet run --project src/OutlookComunaRouter`
+4. `dotnet run --project src/CambioDeDomicilio`
 
 Modo de verificación sin efectos secundarios (solo lee y cuenta, no envía nada):
 ```bash
-dotnet run --project src/OutlookComunaRouter -- --smoke-test
+dotnet run --project src/CambioDeDomicilio -- --smoke-test
 ```
 
 ## Dashboard web
@@ -50,7 +50,7 @@ dotnet run --project src/OutlookComunaRouter -- --smoke-test
 El mismo proceso sirve un dashboard en `https://localhost:5001` (el puerto HTTP 5000 solo redirige, nunca entrega datos). Requiere login por usuario:
 
 ```powershell
-dotnet run --project src/OutlookComunaRouter -- --add-user operador
+dotnet run --project src/CambioDeDomicilio -- --add-user operador
 ```
 
 Desde el dashboard (`/Index`) el operador puede: ver los casos con su estado (Pendiente/Subido/Confirmado), filtrar por estado o por "Requiere revisión", marcar casos con un checkbox propio (organización personal, sin efecto en el flujo), editar el nombre/RUT de cualquier caso, editar la fecha de última carpeta (recalcula el sector al instante, se guarda solo al salir del campo), y confirmar con "Enviar confirmación" (casos Subidos) o "Marcar subida" (mueve el correo y confirma en un solo clic, con diálogo de confirmación porque es irreversible). Los casos Confirmados se resaltan en la tabla. Desde `/Sector/Archivo` o `/Sector/Oficina43` se genera el documento imprimible (imprimir del navegador → PDF) con los casos de ese sector. Desde `/ChangePassword` el operador cambia su contraseña y configura un correo de recuperación opcional; `/ForgotPassword` envía un enlace de un solo uso (30 min) si el correo está configurado.
@@ -103,7 +103,7 @@ en un solo paso. Ver `deploy/README.md` para parámetros detallados.
 ## Estructura
 
 ```
-src/OutlookComunaRouter/
+src/CambioDeDomicilio/
   Domain/              # PersonRequest (Pending/Uploaded/Confirmed), ComunaContact, IncomingEmail
   Configuration/       # RouterOptions (bind de appsettings)
   Extraction/          # PersonDataExtractor: RUT+nombre, multi-contribuyente, respaldo por asunto
@@ -116,5 +116,5 @@ src/OutlookComunaRouter/
   Reporting/           # Escritor del reporte CSV (incluye sector derivado)
   Routing/             # Servicio central: detección, extracción, dedup, marcado de subida, confirmación
   RouterWorker.cs      # BackgroundService: orquesta el ciclo de sondeo de ambas carpetas
-tests/OutlookComunaRouter.Tests/
+tests/CambioDeDomicilio.Tests/
 ```

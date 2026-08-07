@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-    Detiene y elimina la Tarea Programada de OutlookComunaRouter.
+    Detiene y elimina la Tarea Programada de CambioDeDomicilio.
 #>
 
 param(
-    [string]$TaskName = "OutlookComunaRouter"
+    [string]$TaskName = "CambioDeDomicilio"
 )
 
 $ErrorActionPreference = "Stop"

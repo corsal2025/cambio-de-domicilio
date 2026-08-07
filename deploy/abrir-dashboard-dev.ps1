@@ -1,13 +1,13 @@
 $ErrorActionPreference = "Stop"
 
-$projectPath = "C:\Users\raul.salazar\Desktop\PROYECTOS RAUL\outlook-comuna-router\src\OutlookComunaRouter"
-$exePath = Join-Path $projectPath "bin\Debug\net10.0\OutlookComunaRouter.exe"
+$projectPath = "C:\Users\raul.salazar\Desktop\PROYECTOS RAUL\outlook-comuna-router\src\CambioDeDomicilio"
+$exePath = Join-Path $projectPath "bin\Debug\net10.0\CambioDeDomicilio.exe"
 $dashboardUrl = "https://localhost:5001"
 
 # Get-NetTCPConnection -State Listen is unreliable here (observed returning no rows even
 # while the exe was demonstrably serving requests on 5001) — checking the process itself
 # is what every manual check in this project actually relies on, so match that here too.
-$running = Get-Process -Name "OutlookComunaRouter" -ErrorAction SilentlyContinue
+$running = Get-Process -Name "CambioDeDomicilio" -ErrorAction SilentlyContinue
 if (-not $running) {
     # Launching the built exe directly (instead of "dotnet run") keeps this to a single
     # process: "dotnet run" spawns the real app as a separate child whose console window

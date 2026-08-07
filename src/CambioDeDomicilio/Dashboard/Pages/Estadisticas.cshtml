@@ -1,0 +1,154 @@
+@page
+@model CambioDeDomicilio.Dashboard.Pages.EstadisticasModel
+@using System.Text.Json
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Estadísticas — CambioDeDomicilio</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 16px;
+        }
+
+        .stats-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            padding: 16px;
+        }
+
+        .stats-card h2 {
+            font-size: 0.95rem;
+            margin: 0 0 12px;
+            color: var(--color-text-muted);
+            text-align: center;
+        }
+
+        .stats-card canvas {
+            max-height: 260px;
+        }
+
+        .stats-card-wide {
+            grid-column: 1 / -1;
+        }
+
+        .stats-card-wide canvas {
+            max-height: 420px;
+        }
+
+        .stats-nodata {
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 30px 0;
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="brand">
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                CambioDeDomicilio
+                <small>Municipalidad de Valparaíso</small>
+                <small>Estadísticas</small>
+            </span>
+        </div>
+        <nav class="app-nav">
+            <form asp-page="/Logout" method="post"><button type="submit" class="nav-pill nav-logout">Salir</button></form>
+        </nav>
+    </header>
+    <div class="app-subnav">
+        <span class="app-subnav-label">Otros sistemas</span>
+        <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
+        <a asp-page="/F8" class="nav-f8">F8</a>
+        <a asp-page="/Certificado" class="nav-certificado">Certificado</a>
+        <a asp-page="/Estadisticas" class="nav-estadisticas active">Estadísticas</a>
+    </div>
+
+    <main>
+        <div class="stats-grid">
+            <div class="stats-card">
+                <h2>Casos por estado</h2>
+                <canvas id="chart-status"></canvas>
+            </div>
+            <div class="stats-card">
+                <h2>Ingresos por semana</h2>
+                <canvas id="chart-weekly"></canvas>
+            </div>
+            <div class="stats-card">
+                <h2>Top comunas por volumen</h2>
+                <canvas id="chart-comunas"></canvas>
+            </div>
+            <div class="stats-card">
+                <h2>Tiempo promedio de confirmación</h2>
+                @if (Model.Turnaround.HasData)
+                {
+                    <canvas id="chart-turnaround"></canvas>
+                }
+                else
+                {
+                    <p class="stats-nodata">Todavía no hay casos confirmados.</p>
+                }
+            </div>
+            <div class="stats-card">
+                <h2>Dispersión de tiempos de confirmación</h2>
+                @if (Model.Turnaround.HasData)
+                {
+                    <canvas id="chart-turnaround-scatter"></canvas>
+                }
+                else
+                {
+                    <p class="stats-nodata">Todavía no hay casos confirmados.</p>
+                }
+            </div>
+            <div class="stats-card">
+                <h2>Sector: Archivo vs Oficina 43</h2>
+                <canvas id="chart-sector"></canvas>
+            </div>
+            <div class="stats-card">
+                <h2>F8: plazo (15 días hábiles)</h2>
+                <canvas id="chart-f8-deadline"></canvas>
+            </div>
+            <div class="stats-card">
+                <h2>F8: PDFs generados</h2>
+                <canvas id="chart-f8-pdf"></canvas>
+            </div>
+            <div class="stats-card stats-card-wide">
+                <h2>Correos descartados por motivo</h2>
+                <canvas id="chart-discarded"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <script id="stats-data" type="application/json">
+        @* Server-generated JSON, not raw user input: built from StatisticsService aggregates (case counts,
+           totals) computed server-side. JsonSerializer's default encoder HTML-escapes '<', '>', '&' and
+           quotes, so even the "discarded reason" strings (which loosely echo an external sender's email
+           domain) cannot break out of this <script> tag. Consuming code (estadisticas.js) only feeds this
+           data into Chart.js, which renders labels via canvas fillText, not innerHTML. *@
+        @Html.Raw(JsonSerializer.Serialize(new
+        {
+            status = Model.StatusCounts,
+            weekly = Model.WeeklyIntake,
+            comunas = Model.TopComunas,
+            turnaround = Model.Turnaround,
+            turnaroundDistribution = Model.TurnaroundDistribution,
+            sector = Model.SectorDistribution,
+            f8Deadline = Model.F8DeadlineBacklog,
+            f8Pdf = Model.F8PdfStatus,
+            discarded = Model.DiscardedByReason
+        }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }))
+    </script>
+    <script src="~/js/vendor/chart.umd.js"></script>
+    <script src="~/js/estadisticas.js" asp-append-version="true"></script>
+    <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
+</body>
+</html>

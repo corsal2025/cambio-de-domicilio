@@ -1,4 +1,4 @@
-# Docker Compose for OutlookComunaRouter development
+# Docker Compose for CambioDeDomicilio development
 #
 # Commands:
 #   docker compose build    # build the image
@@ -15,7 +15,7 @@ services:
     build:
       context: .
       target: build
-    image: outlook-comuna-router:latest
+    image: cambio-de-domicilio:latest
     entrypoint: ["dotnet", "build", "-c", "Release", "--no-restore"]
     working_dir: /src
 
@@ -23,7 +23,7 @@ services:
     build:
       context: .
       target: test
-    image: outlook-comuna-router:test
+    image: cambio-de-domicilio:test
     entrypoint: ["dotnet", "test", "-c", "Release", "--no-build", "--verbosity", "normal"]
     working_dir: /src
 
@@ -31,7 +31,7 @@ services:
     build:
       context: .
       target: publish
-    image: outlook-comuna-router:publish
+    image: cambio-de-domicilio:publish
     entrypoint: []
     working_dir: /src
     volumes:

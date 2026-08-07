@@ -4,7 +4,7 @@
 - [x] 0.1 ~~Coordinate with municipality IT: Azure AD app registration~~ **OBSOLETE — no longer needed.** Live verification showed the mailbox lives on the municipality's on-premises Exchange 2016 (`webmail.munivalpo.cl`), not in Exchange Online. Access is via EWS with the mailbox's own AD credentials (`servervalpo\cambiodedomicilio`), which the operator already holds. Authentication and a real `GetFolder(inbox)` call were verified live (2026-07-02). See the superseding decision in `design.md`.
 
 ## 1. Project scaffold
-- [x] 1.1 Create `.sln` + `src/OutlookComunaRouter` Worker Service project (net10.0, `Microsoft.Extensions.Hosting` `BackgroundService`)
+- [x] 1.1 Create `.sln` + `src/CambioDeDomicilio` Worker Service project (net10.0, `Microsoft.Extensions.Hosting` `BackgroundService`)
 - [x] 1.2 Add packages: `Microsoft.Graph`, `Azure.Identity`, `Microsoft.Data.Sqlite`, `Microsoft.Extensions.Hosting`, `Microsoft.Extensions.Configuration.*`. Toast implemented without a third-party package (native PowerShell/WinRT call) after `Microsoft.Toolkit.Uwp.Notifications` was found to pull a critical CVE (`System.Drawing.Common` 4.7.0) and to force a Windows-only TFM — see `design.md`.
 - [x] 1.3 `.gitignore`, `appsettings.json` (placeholders) + `appsettings.Example.json` (poll interval, mailbox, notification email, toast enabled/disabled), README with Azure AD app registration steps and Windows Task Scheduler setup
 

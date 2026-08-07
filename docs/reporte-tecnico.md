@@ -1,4 +1,4 @@
-# Reporte Técnico — OutlookComunaRouter
+# Reporte Técnico — CambioDeDomicilio
 
 **Última actualización:** 2026-07-07
 **Fuente:** consolidado desde los artefactos OpenSpec del proyecto (`openspec/specs/`, `openspec/changes/`) y la sesión de trabajo del 2026-07-06/07 — la metodología del proyecto exige que toda decisión quede documentada ahí antes de implementarse.
@@ -7,7 +7,7 @@
 
 ## 1. Qué es el sistema
 
-`OutlookComunaRouter` es un servicio .NET 10 con dashboard web integrado que automatiza el trámite de solicitudes de carpeta de contribuyentes que **otras comunas le piden a Valparaíso** (ligado a Conaset): detecta las solicitudes que llegan por correo, extrae los datos de la persona (incluso cuando un mismo correo pide varias personas), acompaña el trabajo manual del operador (buscar/escanear/subir la carpeta), y envía el aviso de "carpeta subida" a la comuna solicitante — ya sea en dos pasos manuales, o en un solo clic que mueve el correo y confirma de inmediato.
+`CambioDeDomicilio` es un servicio .NET 10 con dashboard web integrado que automatiza el trámite de solicitudes de carpeta de contribuyentes que **otras comunas le piden a Valparaíso** (ligado a Conaset): detecta las solicitudes que llegan por correo, extrae los datos de la persona (incluso cuando un mismo correo pide varias personas), acompaña el trabajo manual del operador (buscar/escanear/subir la carpeta), y envía el aviso de "carpeta subida" a la comuna solicitante — ya sea en dos pasos manuales, o en un solo clic que mueve el correo y confirma de inmediato.
 
 ## 2. Estado de los cambios (OpenSpec)
 

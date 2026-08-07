@@ -1,8 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/OutlookComunaRouter/OutlookComunaRouter.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/OutlookComunaRouter.Tests/OutlookComunaRouter.Tests.csproj" />
-  </Folder>
-</Solution>

@@ -1,6 +1,6 @@
 # Email Templates
 
-Templates used by OutlookComunaRouter. Not hardcoded in source — mirrored here (and in `Notifications/EmailTemplates.cs`) so they can be reviewed/edited without digging through code.
+Templates used by CambioDeDomicilio. Not hardcoded in source — mirrored here (and in `Notifications/EmailTemplates.cs`) so they can be reviewed/edited without digging through code.
 
 ## Upload confirmation (sent to the requesting comuna's contact)
 
@@ -28,7 +28,7 @@ Placeholders: `{{FullName}}`, `{{Rut}}` — substituted at send time from the tr
 
 **Subject:**
 ```
-[OutlookComunaRouter] Confirmación enviada – {{FullName}}, RUT {{Rut}} ({{Comuna}})
+[CambioDeDomicilio] Confirmación enviada – {{FullName}}, RUT {{Rut}} ({{Comuna}})
 ```
 
 **Body:**

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Unified publish script for OutlookComunaRouter.
+    Unified publish script for CambioDeDomicilio.
     Runs steps 4–9 from deploy/README.md in one command.
 
 .DESCRIPTION
@@ -8,7 +8,7 @@
     - Copies runtime data (comunas.csv, etc.)
     - Installs the scheduled task (requires admin)
     - Creates desktop shortcut (optional)
-    - Output: ./publish/OutlookComunaRouter.exe
+    - Output: ./publish/CambioDeDomicilio.exe
 
 .PARAMETER PublishDir
     Output directory for the published exe (default: ./publish)
@@ -50,11 +50,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
-$Project = "src\OutlookComunaRouter\OutlookComunaRouter.csproj"
+$Project = "src\CambioDeDomicilio\CambioDeDomicilio.csproj"
 
 # Resolve full path
 $PublishPath = Join-Path $RepoRoot $PublishDir
-Write-Host "=== OutlookComunaRouter: Publish Script ===" -ForegroundColor Cyan
+Write-Host "=== CambioDeDomicilio: Publish Script ===" -ForegroundColor Cyan
 Write-Host "Repo:     $RepoRoot"
 Write-Host "Output:   $PublishPath"
 Write-Host ""
@@ -74,7 +74,7 @@ if (-not $ConfigOnly) {
     try {
         dotnet restore $Project
         dotnet build $Project -c Release --no-restore
-        dotnet test tests\OutlookComunaRouter.Tests\OutlookComunaRouter.Tests.csproj -c Release --no-build --verbosity normal
+        dotnet test tests\CambioDeDomicilio.Tests\CambioDeDomicilio.Tests.csproj -c Release --no-build --verbosity normal
         dotnet publish $Project -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o $PublishPath
     } finally {
         Pop-Location
@@ -83,8 +83,8 @@ if (-not $ConfigOnly) {
     Write-Host ""
 } else {
     Write-Host "[2/6] Saltando dotnet publish (modo config-only)." -ForegroundColor Yellow
-    if (-not (Test-Path $PublishPath\OutlookComunaRouter.exe)) {
-        Write-Warning "No se encontró $PublishPath\OutlookComunaRouter.exe. Ejecuta sin -ConfigOnly primero."
+    if (-not (Test-Path $PublishPath\CambioDeDomicilio.exe)) {
+        Write-Warning "No se encontró $PublishPath\CambioDeDomicilio.exe. Ejecuta sin -ConfigOnly primero."
         exit 1
     }
     Write-Host ""
@@ -106,7 +106,7 @@ Write-Host ""
 Write-Host "[4/6] Configurando appsettings.json..." -ForegroundColor Yellow
 $TargetConfig = Join-Path $PublishPath "appsettings.json"
 if (-not (Test-Path $TargetConfig)) {
-    $ExampleConfig = Join-Path $RepoRoot "src\OutlookComunaRouter\appsettings.Example.json"
+    $ExampleConfig = Join-Path $RepoRoot "src\CambioDeDomicilio\appsettings.Example.json"
     if (Test-Path $ExampleConfig) {
         Copy-Item $ExampleConfig $TargetConfig
         Write-Host "  ✅ appsettings.json creado desde appsettings.Example.json" -ForegroundColor Green
@@ -120,7 +120,7 @@ Write-Host ""
 # Step 4: create dashboard user
 if ($AddUser) {
     Write-Host "[5/6] Creando usuario del dashboard: $AddUser..." -ForegroundColor Yellow
-    $Exe = Join-Path $PublishPath "OutlookComunaRouter.exe"
+    $Exe = Join-Path $PublishPath "CambioDeDomicilio.exe"
     if (Test-Path $Exe) {
         & $Exe --add-user $AddUser
         Write-Host "  ✅ Usuario '$AddUser' creado." -ForegroundColor Green
@@ -154,7 +154,7 @@ if ($Shortcut) {
 }
 
 Write-Host "=== Listo ===" -ForegroundColor Cyan
-Write-Host "Ejecutable: $PublishPath\OutlookComunaRouter.exe"
-Write-Host "Modo prueba: .\OutlookComunaRouter.exe --smoke-test"
-Write-Host "Iniciar:     Start-ScheduledTask -TaskName OutlookComunaRouter"
+Write-Host "Ejecutable: $PublishPath\CambioDeDomicilio.exe"
+Write-Host "Modo prueba: .\CambioDeDomicilio.exe --smoke-test"
+Write-Host "Iniciar:     Start-ScheduledTask -TaskName CambioDeDomicilio"
 Write-Host "Dashboard:   https://localhost:5001"

@@ -1,0 +1,299 @@
+@page "{sector?}"
+@model CambioDeDomicilio.Dashboard.Pages.SectorModel
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Documento — @Model.SelectedSector</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <style>
+        .doc-sheet {
+            background: #fff;
+        }
+
+        .doc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 3px solid var(--color-primary);
+            padding-bottom: 12px;
+            margin-bottom: 0;
+            position: relative;
+        }
+
+        .doc-header::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -6px;
+            height: 2px;
+            background: var(--color-accent);
+        }
+
+        .doc-header .doc-seal {
+            height: 52px;
+            width: auto;
+            flex: none;
+            object-fit: contain;
+        }
+
+        .doc-header .doc-title-block {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .doc-header .doc-org {
+            margin: 0;
+            font-size: 0.64rem;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            font-weight: 600;
+        }
+
+        .doc-header h2 {
+            margin: 2px 0 0;
+            color: var(--color-primary);
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .doc-header .doc-meta {
+            text-align: right;
+            font-size: 0.68rem;
+            color: var(--color-text-muted);
+            white-space: nowrap;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: 6px 12px;
+            line-height: 1.5;
+        }
+
+        .doc-header .doc-meta strong {
+            color: var(--color-primary);
+        }
+
+        .doc-subheader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 16px 0 14px;
+            padding: 6px 12px;
+            background: var(--color-bg);
+            border-left: 3px solid var(--color-accent);
+            border-radius: 0 4px 4px 0;
+            font-size: 0.72rem;
+            color: var(--color-text-muted);
+        }
+
+        .doc-subheader span:last-child {
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        table.cases.doc-table {
+            font-size: 0.78rem;
+        }
+
+        table.cases.doc-table th,
+        table.cases.doc-table td {
+            padding: 6px 10px;
+        }
+
+        table.cases.doc-table th:first-child,
+        table.cases.doc-table td:first-child {
+            width: 28px;
+            text-align: center;
+            color: var(--color-text-muted);
+        }
+
+        .doc-empty {
+            padding: 20px;
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 0.82rem;
+        }
+
+        .doc-count {
+            margin: 10px 2px 0;
+            font-size: 0.7rem;
+            color: var(--color-text-muted);
+        }
+
+        .doc-signoff {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 40px;
+            padding-top: 6px;
+        }
+
+        .doc-signoff div {
+            text-align: center;
+            font-size: 0.72rem;
+            color: var(--color-text-muted);
+            width: 220px;
+        }
+
+        .doc-signoff .sig-line {
+            border-top: 1px solid var(--color-text);
+            margin-bottom: 5px;
+            padding-top: 3px;
+        }
+
+        @@media print {
+            header.app-header, .no-print { display: none; }
+            body { background: #fff; }
+            main { padding: 0; max-width: none; }
+            .card { border: none; box-shadow: none; }
+            table.cases th { background: #eef2f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            table.cases td, table.cases th { border: 1px solid #999; }
+            .doc-signoff { break-inside: avoid; }
+            tbody tr { break-inside: avoid; }
+        }
+    </style>
+    <style id="page-size-style">
+        @@page {
+            size: A4;
+            margin: 12mm;
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="brand">
+            CambioDeDomicilio
+            <small>Municipalidad de Valparaíso — Documento por sector</small>
+        </div>
+        <nav class="app-nav">
+            <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
+            <a asp-page="/Sector" asp-route-sector="Archivo" class="@(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Archivo ? "active" : "")">PDF Archivo</a>
+            <a asp-page="/Sector" asp-route-sector="Oficina43" class="@(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Oficina43 ? "active" : "")">PDF Oficina 43</a>
+            <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
+        </nav>
+    </header>
+    <div class="app-subnav">
+        <span class="app-subnav-label">Otros sistemas</span>
+        <a asp-page="/F8" class="nav-f8">F8</a>
+        <a asp-page="/Certificado" class="nav-certificado">Certificado</a>
+    </div>
+
+    <main>
+        <form id="mark-printed-form" method="post" asp-page-handler="MarkPrinted" asp-route-sector="@Model.SelectedSector" style="display:none;"></form>
+        <div class="no-print" style="margin-bottom: 14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button type="button" class="btn-primary" onclick="markPrintedAndPrint()">Imprimir / Guardar como PDF</button>
+            <form method="post" asp-page-handler="ClearAll" asp-route-sector="@Model.SelectedSector"
+                  onsubmit="return confirm('Esto vacía el listado de este sector — quedará en blanco para volver a llenarse con nuevos casos. NO elimina los datos de los contribuyentes, solo los saca de esta lista. ¿Confirmar?');">
+                <button type="submit" class="btn-outline-danger">Vaciar listado</button>
+            </form>
+            <span style="display:flex; gap:6px; align-items:center; margin-left:8px;">
+                <label class="form-label" for="page-size-select" style="margin:0;">Tamaño de hoja</label>
+                <select id="page-size-select" onchange="updatePageSize()"
+                        style="border:1px solid var(--color-border); border-radius:4px; padding:5px 8px; font-size:0.85rem;">
+                    <option value="A4">A4</option>
+                    <option value="letter">Carta</option>
+                    <option value="legal">Oficio</option>
+                </select>
+            </span>
+            <span style="font-size:0.8rem; color:var(--color-text-muted);">
+                Este listado muestra solo los nombres marcados (checkbox "Marcar") en la pantalla de Casos.
+            </span>
+        </div>
+
+        <div class="doc-sheet">
+            <div class="doc-header">
+                <div class="doc-title-block">
+                    <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="doc-seal" />
+                    <div>
+                        <p class="doc-org">Municipalidad de Valparaíso — Dirección de Tránsito</p>
+                        <h2>Cambio de Domicilio — Listado de carpetas — Sector @(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Oficina43 ? "Oficina 43" : "Archivo")</h2>
+                    </div>
+                </div>
+                <div class="doc-meta">
+                    <div>Folio: <strong>@Model.SelectedSector-@DateTimeOffset.Now.ToString("yyyyMMdd-HHmm")</strong></div>
+                    <div>Generado: <strong>@DateTimeOffset.Now.ToString("dd-MM-yyyy HH:mm")</strong></div>
+                </div>
+            </div>
+            <div class="doc-subheader">
+                <span>Solicitudes de cambio de domicilio — carpetas físicas a retirar</span>
+                <span>@Model.Cases.Count registro(s)</span>
+            </div>
+
+            <div class="card">
+                @if (Model.Cases.Count == 0)
+                {
+                    <p class="doc-empty">
+                        No hay carpetas en este sector todavía. Marca el checkbox "Marcar" de los
+                        casos correspondientes en la pantalla de Casos (con su "Fecha última carpeta"
+                        ya ingresada) para que aparezcan aquí.
+                    </p>
+                }
+                else
+                {
+                    <table class="cases doc-table">
+                        <thead>
+                            <tr>
+                                <th>N°</th>
+                                <th style="text-align:left;">Nombre completo</th>
+                                <th>RUT</th>
+                                <th>Comuna</th>
+                                <th>Fecha última carpeta</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @{ var correlativo = 0; }
+                        @foreach (var item in Model.Cases)
+                        {
+                            correlativo++;
+                            <tr>
+                                <td>@correlativo</td>
+                                <td>@item.FullName</td>
+                                <td style="text-align:center;">@item.Rut</td>
+                                <td style="text-align:center;">@item.Comuna</td>
+                                <td style="text-align:center;">@(item.FechaUltimaCarpeta is { } f ? CambioDeDomicilio.Domain.SpanishDate.Format(f) : "")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+
+            @if (Model.Cases.Count > 0)
+            {
+                <p class="doc-count">Total: @Model.Cases.Count carpeta(s)</p>
+
+                <div class="doc-signoff">
+                    <div>
+                        <p class="sig-line">&nbsp;</p>
+                        Quien solicita
+                    </div>
+                </div>
+            }
+        </div>
+    </main>
+    <script>
+        function updatePageSize() {
+            var size = document.getElementById('page-size-select').value;
+            document.getElementById('page-size-style').textContent =
+                '@@page { size: ' + size + '; margin: 12mm; }';
+        }
+
+        function markPrintedAndPrint() {
+            var form = document.getElementById('mark-printed-form');
+            var token = form.querySelector('input[name="__RequestVerificationToken"]').value;
+            fetch(form.action, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: '__RequestVerificationToken=' + encodeURIComponent(token)
+            }).finally(function () {
+                window.print();
+            });
+        }
+    </script>
+</body>
+</html>

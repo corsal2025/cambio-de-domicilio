@@ -1,6 +1,6 @@
 # Data Model Documentation
 
-This document describes the data model for **OutlookComunaRouter**, a background service that
+This document describes the data model for **CambioDeDomicilio**, a background service that
 tracks folder requests other comunas make to Valparaíso for a contributor's "última carpeta"
 (most recent driver's-license folder), from detection through upload and confirmation.
 

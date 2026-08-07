@@ -1,5 +1,5 @@
 ---
-description: Backend development standards for the OutlookComunaRouter .NET console application (Microsoft Graph, SQLite, scheduled batch job)
+description: Backend development standards for the CambioDeDomicilio .NET console application (Microsoft Graph, SQLite, scheduled batch job)
 globs: ["src/**/*.cs", "**/*.csproj", "**/*.sln"]
 alwaysApply: true
 ---
@@ -8,7 +8,7 @@ alwaysApply: true
 
 ## Overview
 
-OutlookComunaRouter is a **.NET 10 console application** that runs as a **scheduled task** (Windows Task Scheduler locally, cron/systemd timer on a future Linux VPS). It has no HTTP API surface and no frontend. Each run processes a batch of emails and exits.
+CambioDeDomicilio is a **.NET 10 console application** that runs as a **scheduled task** (Windows Task Scheduler locally, cron/systemd timer on a future Linux VPS). It has no HTTP API surface and no frontend. Each run processes a batch of emails and exits.
 
 ## Technology Stack
 
@@ -24,7 +24,7 @@ OutlookComunaRouter is a **.NET 10 console application** that runs as a **schedu
 Simple layered structure, no over-engineering (this is a batch job, not a service):
 
 ```
-src/OutlookComunaRouter/
+src/CambioDeDomicilio/
   Graph/            # Graph client factory + auth
   Domain/           # PersonRecord, ComunaContact, RequestStatus
   Processing/       # email filtering, data extraction (regex), comuna matching

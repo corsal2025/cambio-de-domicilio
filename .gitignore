@@ -7,7 +7,7 @@ obj/
 *.user
 
 # Secrets / environment-specific config
-src/OutlookComunaRouter/appsettings.Development.json
+src/CambioDeDomicilio/appsettings.Development.json
 **/appsettings.Development.json
 .env
 

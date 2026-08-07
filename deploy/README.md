@@ -22,7 +22,7 @@ con el formato de `data/comunas.example.csv`.
 
 ## 3. Configurar secretos
 
-Copiar `src/OutlookComunaRouter/appsettings.Example.json` a
+Copiar `src/CambioDeDomicilio/appsettings.Example.json` a
 `publish/appsettings.json` (sobrescribiendo el que generó `dotnet publish`) y
 completar `Router:Ews:Username` / `Router:Ews:Password`, y verificar `MailboxAddress`.
 
@@ -56,7 +56,7 @@ Import-PfxCertificate -FilePath .\dev-cert.pfx -CertStoreLocation Cert:\LocalMac
 
 ```powershell
 cd publish
-.\OutlookComunaRouter.exe --add-user operador
+.\CambioDeDomicilio.exe --add-user operador
 ```
 Pide la contraseña por consola (no se muestra en pantalla). Repetir con
 `--add-user <nombre>` por cada colega que necesite acceso; `--remove-user <nombre>`
@@ -66,7 +66,7 @@ para dar de baja a alguien.
 
 Desde la raíz del repo:
 ```powershell
-dotnet publish src/OutlookComunaRouter -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
+dotnet publish src/CambioDeDomicilio -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
 ```
 
 ## 7. Copiar los datos de runtime junto al publicado
@@ -89,8 +89,8 @@ Como Administrador:
 ## 9. Iniciar y verificar
 
 ```powershell
-Start-ScheduledTask -TaskName OutlookComunaRouter
-Get-ScheduledTask -TaskName OutlookComunaRouter | Get-ScheduledTaskInfo
+Start-ScheduledTask -TaskName CambioDeDomicilio
+Get-ScheduledTask -TaskName CambioDeDomicilio | Get-ScheduledTaskInfo
 ```
 
 Confirmar que `data/reporte.csv` se crea/actualiza tras el primer ciclo
@@ -104,7 +104,7 @@ Para que el operador tenga un ícono que abra el dashboard directamente:
 ```powershell
 .\deploy\create-desktop-shortcut.ps1
 ```
-Crea "OutlookComunaRouter - Dashboard" en el Escritorio: al hacer doble clic,
+Crea "CambioDeDomicilio - Dashboard" en el Escritorio: al hacer doble clic,
 inicia el proceso si no está corriendo y abre el dashboard en el navegador.
 
 ## Desinstalar
@@ -117,7 +117,7 @@ inicia el proceso si no está corriendo y abre el dashboard en el navegador.
 
 Con el publish self-contained (`--self-contained -p:PublishSingleFile=true`),
 basta con copiar la carpeta `publish/` completa (incluida `data/`) al otro
-equipo y ejecutar `OutlookComunaRouter.exe` — no requiere tener el runtime de
+equipo y ejecutar `CambioDeDomicilio.exe` — no requiere tener el runtime de
 .NET instalado. El certificado HTTPS local sigue siendo necesario ahí también
 si ese equipo va a servir el dashboard (paso 4).
 

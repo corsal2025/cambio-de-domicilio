@@ -1,4 +1,4 @@
-# Diagrama del sistema — OutlookComunaRouter
+# Diagrama del sistema — CambioDeDomicilio
 
 **Última actualización:** 2026-07-28
 **Propósito:** referencia rápida para reportar el flujo del sistema (jefatura, auditoría, onboarding). Refleja el comportamiento real del código a esta fecha, no el diseño original.
