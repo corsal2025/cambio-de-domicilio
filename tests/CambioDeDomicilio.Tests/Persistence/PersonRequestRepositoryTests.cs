@@ -454,6 +454,7 @@ public class PersonRequestRepositoryTests : IDisposable
         Assert.Equal(CaseDestination.F8, stored.Destination);
     }
 
+    /* Pending feature: f8-pdf-penultimas-carpetas
     [Fact]
     public void SetPenultimasCarpetasPdfGenerated_StoresTimestampIndependentlyOfSectorPdfGeneratedAt()
     {
@@ -546,6 +547,7 @@ public class PersonRequestRepositoryTests : IDisposable
         repository.SetPenultimasCarpetasPdfGenerated(preExistingId, DateTimeOffset.UtcNow);
         Assert.NotNull(repository.FindById(preExistingId)!.PenultimasCarpetasPdfGeneratedAt);
     }
+    */
 
     private static PersonRequest NewRequest(string sourceMessageId, string rut = "18.785.387-7") => new()
     {

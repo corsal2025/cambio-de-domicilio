@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CambioDeDomicilio.Configuration;
@@ -14,7 +13,6 @@ namespace CambioDeDomicilio.Dashboard.Pages;
 /// row interactions as the main Casos table (Index page) — a dedicated, filtered view so the
 /// operator doesn't have to hunt F8 cases inside the full list. This page is self-contained (does
 /// not inherit from IndexModel, following this project's one-page-one-model convention).</summary>
-[Authorize]
 public class F8Model(
     IPersonRequestRepository repository,
     AddressChangeRoutingService routingService,

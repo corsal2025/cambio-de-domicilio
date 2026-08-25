@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using CambioDeDomicilio.Configuration;
 using CambioDeDomicilio.Dashboard.Pages;
 using CambioDeDomicilio.Domain;
@@ -18,8 +17,9 @@ public class EstadisticasModelTests : IDisposable
     public EstadisticasModelTests()
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
         discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
+
+        repository.EnsureSchema();
         discardedRepository.EnsureSchema();
 
         var options = new RouterOptions
@@ -35,13 +35,6 @@ public class EstadisticasModelTests : IDisposable
 
         var statisticsService = new StatisticsService(options);
         model = new EstadisticasModel(repository, discardedRepository, statisticsService);
-    }
-
-    [Fact]
-    public void PageModel_RequiresAuthorization()
-    {
-        var attribute = typeof(EstadisticasModel).GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true);
-        Assert.NotEmpty(attribute);
     }
 
     [Fact]

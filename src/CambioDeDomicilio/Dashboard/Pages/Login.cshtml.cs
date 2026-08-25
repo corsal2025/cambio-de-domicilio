@@ -17,8 +17,9 @@ public class LoginModel(ILoginService loginService, IUserRepository users) : Pag
 
     public string? ErrorMessage { get; set; }
 
-    public void OnGet()
+    public IActionResult OnGet()
     {
+        return RedirectToPage("/Index");
     }
 
     public async Task<IActionResult> OnPostAsync()

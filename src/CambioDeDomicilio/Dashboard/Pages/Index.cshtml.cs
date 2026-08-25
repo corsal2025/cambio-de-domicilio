@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CambioDeDomicilio.Configuration;
@@ -11,7 +10,6 @@ using CambioDeDomicilio.Routing;
 
 namespace CambioDeDomicilio.Dashboard.Pages;
 
-[Authorize]
 public class IndexModel(
     IPersonRequestRepository repository,
     IDiscardedEmailRepository discardedRepository,

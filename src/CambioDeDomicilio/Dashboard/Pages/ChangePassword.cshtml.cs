@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CambioDeDomicilio.Dashboard.Auth;
@@ -6,7 +5,6 @@ using CambioDeDomicilio.Domain;
 
 namespace CambioDeDomicilio.Dashboard.Pages;
 
-[Authorize]
 public class ChangePasswordModel(IUserRepository users) : PageModel
 {
     private const int MinPasswordLength = 8;

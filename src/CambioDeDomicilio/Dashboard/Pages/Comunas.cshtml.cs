@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CambioDeDomicilio.Configuration;
@@ -7,7 +6,6 @@ using CambioDeDomicilio.Domain;
 
 namespace CambioDeDomicilio.Dashboard.Pages;
 
-[Authorize]
 public class ComunasModel(IComunaDirectory directory, RouterOptions options) : PageModel
 {
     public IReadOnlyList<ComunaContact> Contacts { get; private set; } = [];

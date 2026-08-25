@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 
-$projectPath = "C:\Users\raul.salazar\Desktop\PROYECTOS RAUL\outlook-comuna-router\src\CambioDeDomicilio"
+$repoRoot = Split-Path -Parent $PSScriptRoot
+$projectPath = Join-Path $repoRoot "src\CambioDeDomicilio"
 $exePath = Join-Path $projectPath "bin\Debug\net10.0\CambioDeDomicilio.exe"
 $dashboardUrl = "https://localhost:5001"
 

@@ -174,7 +174,6 @@
             <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
             <a asp-page="/Sector" asp-route-sector="Archivo" class="@(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Archivo ? "active" : "")">PDF Archivo</a>
             <a asp-page="/Sector" asp-route-sector="Oficina43" class="@(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Oficina43 ? "active" : "")">PDF Oficina 43</a>
-            <form asp-page="/Logout" method="post"><button type="submit">Salir</button></form>
         </nav>
     </header>
     <div class="app-subnav">

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CambioDeDomicilio.Domain;
@@ -6,7 +5,6 @@ using CambioDeDomicilio.Persistence;
 
 namespace CambioDeDomicilio.Dashboard.Pages;
 
-[Authorize]
 public class SectorModel(IPersonRequestRepository repository) : PageModel
 {
     public FolderSector SelectedSector { get; private set; }

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CambioDeDomicilio.Domain;
@@ -11,7 +10,6 @@ namespace CambioDeDomicilio.Dashboard.Pages;
 /// scoped to cases already transferred to F8 (<see cref="PersonRequest.Destination"/>) instead of
 /// the main Casos list. The date shown/printed is the same <see cref="PersonRequest.FechaUltimaCarpeta"/>
 /// field, labeled "penúltima carpeta" here to match the F8 screen's terminology.</summary>
-[Authorize]
 public class SectorF8Model(IPersonRequestRepository repository) : PageModel
 {
     public FolderSector SelectedSector { get; private set; }

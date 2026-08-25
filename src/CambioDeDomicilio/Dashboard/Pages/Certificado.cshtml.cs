@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CambioDeDomicilio.Configuration;
@@ -18,7 +17,6 @@ namespace CambioDeDomicilio.Dashboard.Pages;
 /// through Marcar subida/Confirmar/Deshacer y rectificar (that's F8/Casos-only); the only special
 /// action is "Avisar certificado", which emails Secretaría Municipal a batch list plus an
 /// acknowledgement to each contributor's comuna.</summary>
-[Authorize]
 public class CertificadoModel(
     IPersonRequestRepository repository,
     AddressChangeRoutingService routingService,

@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using CambioDeDomicilio;
 using CambioDeDomicilio.Configuration;
 using CambioDeDomicilio.Dashboard.Auth;
@@ -71,28 +70,6 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, "keys")))
     .SetApplicationName("CambioDeDomicilio");
 
-builder.Services
-    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.LoginPath = "/Login";
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // dashboard is HTTPS-only
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
-        options.SlidingExpiration = true;
-        options.Events = new CookieAuthenticationEvents
-        {
-            // Diagnostic: pinpoint why an authenticated user gets bounced back to /Login
-            // (expired ticket vs. DataProtection key mismatch vs. missing cookie) the next
-            // time it happens, instead of guessing again.
-            OnRedirectToLogin = context =>
-            {
-                Console.WriteLine($"[auth] Redirect a Login desde '{context.Request.Path}' — cookie presente: {context.Request.Cookies.ContainsKey(".AspNetCore.Cookies")}");
-                context.Response.Redirect(context.RedirectUri);
-                return Task.CompletedTask;
-            }
-        };
-    });
-builder.Services.AddAuthorization();
 builder.Services.AddRazorPages(options => options.RootDirectory = "/Dashboard/Pages");
 
 var app = builder.Build();
@@ -172,8 +149,6 @@ app.UseWhen(
     context => context.Connection.LocalPort != 5002,
     branch => branch.UseHttpsRedirection());
 app.UseStaticFiles();
-app.UseAuthentication();
-app.UseAuthorization();
 app.MapRazorPages();
 
 app.Run();

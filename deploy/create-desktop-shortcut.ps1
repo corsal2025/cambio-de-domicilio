@@ -17,13 +17,13 @@
 #>
 
 param(
-    [string]$PublishPath = (Join-Path $PSScriptRoot "..\publish"),
+    [string]$PublishPath = (Resolve-Path (Join-Path $PSScriptRoot "..\publish")).Path,
     [string]$DashboardUrl = "https://localhost:5001"
 )
 
 $ErrorActionPreference = "Stop"
 
-$exePath = Join-Path $PublishPath "CambioDeDomicilio.exe"
+$exePath = (Resolve-Path (Join-Path $PublishPath "CambioDeDomicilio.exe")).Path
 if (-not (Test-Path $exePath)) {
     throw "No se encontró $exePath. Ejecuta primero: dotnet publish src/CambioDeDomicilio -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish"
 }
@@ -44,16 +44,41 @@ if (-not `$running) {
 "@
 Set-Content -Path $launcherPath -Value $launcherContent -Encoding UTF8
 
+# VBScript wrapper so Windows never draws a console/terminal window (style 0)
+$vbsPath = Join-Path $PublishPath "abrir-dashboard.vbs"
+$vbsContent = @"
+Set shell = CreateObject("WScript.Shell")
+scriptDir = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName)
+psScript = scriptDir & "\abrir-dashboard.ps1"
+shell.Run "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File """ & psScript & """", 0, False
+"@
+Set-Content -Path $vbsPath -Value $vbsContent -Encoding ASCII
+
 $desktopPath = [Environment]::GetFolderPath("Desktop")
 $shortcutPath = Join-Path $desktopPath "CambioDeDomicilio - Dashboard.lnk"
 
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = "powershell.exe"
-$shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$launcherPath`""
+$shortcut.TargetPath = "wscript.exe"
+$shortcut.Arguments = "`"$vbsPath`""
 $shortcut.WorkingDirectory = $PublishPath
 $shortcut.Description = "Abrir el dashboard de CambioDeDomicilio"
+$iconPath = Join-Path $PublishPath "wwwroot\img\logo-municipalidad.ico"
+if (-not (Test-Path $iconPath)) {
+    $iconPath = Join-Path $PSScriptRoot "logo-municipalidad.ico"
+}
+if (Test-Path $iconPath) {
+    $shortcut.IconLocation = "$iconPath,0"
+} else {
+    $shortcut.IconLocation = "$exePath,0"
+}
 $shortcut.Save()
 
-Write-Host "Acceso directo creado en: $shortcutPath"
-Write-Host "Al hacer doble clic: inicia el servicio si no está corriendo, y abre $DashboardUrl en el navegador."
+# Remove the console service shortcut if it exists
+$directShortcutPath = Join-Path $desktopPath "CambioDeDomicilio (Servicio).lnk"
+if (Test-Path $directShortcutPath) {
+    Remove-Item $directShortcutPath -Force
+}
+
+Write-Host "Acceso directo 100% silencioso creado en: $shortcutPath"
+Write-Host "Al hacer doble clic: se ejecuta en segundo plano sin ventana negra de consola y abre $DashboardUrl."

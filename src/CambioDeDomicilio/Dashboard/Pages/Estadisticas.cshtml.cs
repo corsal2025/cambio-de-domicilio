@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CambioDeDomicilio.Persistence;
 using CambioDeDomicilio.Statistics;
@@ -7,7 +6,6 @@ namespace CambioDeDomicilio.Dashboard.Pages;
 
 /// <summary>Read-only visual overview of the whole system — Casos, F8, Certificado, and Discarded —
 /// built entirely from data every other screen already stores. No writes happen here.</summary>
-[Authorize]
 public class EstadisticasModel(
     IPersonRequestRepository repository,
     IDiscardedEmailRepository discardedRepository,
