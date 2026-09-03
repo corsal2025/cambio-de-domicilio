@@ -155,6 +155,19 @@ public class F8ModelTests : IDisposable
         Assert.False(repository.FindById(id)!.PendienteCarpeta);
     }
 
+    [Fact]
+    public void OnPostResolveBounce_ClearsTheBounceFlagOnAnF8Case()
+    {
+        var id = repository.Insert(NewRequest("msg-1", "Persona F8"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
+        repository.SetConfirmationBounced(id, DateTimeOffset.UtcNow);
+
+        model.OnPostResolveBounce(id);
+
+        Assert.Null(repository.FindById(id)!.ConfirmationBouncedAt);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId, string fullName) => new()
     {
         FullName = fullName,

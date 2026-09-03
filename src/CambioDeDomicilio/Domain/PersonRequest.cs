@@ -51,6 +51,12 @@ public sealed class PersonRequest
     /// <summary>Who pressed "Enviar confirmación" — a real email goes out to another municipality, so this is attributed.</summary>
     public long? ConfirmedByUserId { get; set; }
 
+    /// <summary>Set when a non-delivery report (bounce) for this case's confirmation email was found
+    /// in the mailbox inbox — the requesting comuna never received the "carpeta subida" notice.
+    /// Cleared by the operator with "Marcar resuelto" once they have re-sent it or handled it
+    /// another way. Null means the confirmation is presumed delivered.</summary>
+    public DateTimeOffset? ConfirmationBouncedAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>Operator-only bookkeeping checkbox, independent of Status — lets the operator tick off

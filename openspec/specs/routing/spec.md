@@ -179,6 +179,24 @@ record so it doesn't linger next to the now-tracked case.
   directory
 - **THEN** the next cycle creates the case and deletes the old Discarded record for that message
 
+### Requirement: Detect bounced confirmation emails
+On every polling cycle the system SHALL scan the mailbox inbox (limited to a recent look-back
+window) for non-delivery reports of its own "carpeta subida a Conaset" confirmation emails. A
+message counts as such a bounce only when it has an NDR-shaped sender (postmaster / mailer-daemon /
+empty envelope-from) or subject AND mentions Conaset — a normal reply from a comuna is never
+treated as a bounce. For each RUT found in a recognized bounce, every matching `Confirmed` case is
+flagged as bounced (keeping the first bounce timestamp if already flagged). Every recognized bounce
+is tombstoned so a later cycle never re-processes it, whether or not it matched a case.
+
+#### Scenario: NDR for a confirmed case
+- **WHEN** the inbox contains a non-delivery report naming a contributor whose case is `Confirmed`
+- **THEN** that case is flagged as bounced and the operator sees it on the dashboard; the NDR is not
+  acted on again on later cycles
+
+#### Scenario: Ordinary comuna reply
+- **WHEN** the inbox contains a normal reply from a comuna that mentions Conaset
+- **THEN** no case is flagged and the message is not tombstoned
+
 ### Requirement: Continuously-refreshed tracking report
 The system SHALL rewrite a CSV report to a fixed local path on every polling cycle, including a
 `Requiere revisión` column for cases missing extractable data.

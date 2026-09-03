@@ -203,6 +203,60 @@ public sealed class AddressChangeRoutingService(
     }
 
     /// <summary>
+    /// Processes one message from the mailbox inbox: if it is a non-delivery report for one of our
+    /// "carpeta subida a Conaset" confirmation emails (see <see cref="BounceDetector"/>), finds the
+    /// Confirmed case(s) it refers to by RUT and flags them so the operator sees the comuna never
+    /// received the notice. Every recognized NDR is tombstoned so a later poll never re-processes it
+    /// (the message stays in the inbox); an NDR that matches no Confirmed case is still tombstoned.
+    /// </summary>
+    public void ProcessPotentialBounce(IncomingEmail email)
+    {
+        if (repository.IsBounceProcessed(email.MessageId))
+        {
+            return;
+        }
+
+        if (!BounceDetector.LooksLikeConfirmationBounce(email))
+        {
+            return; // a normal comuna reply, or a bounce for some unrelated email — leave it alone
+        }
+
+        var ruts = PersonDataExtractor.ExtractAll(email.BodyText)
+            .Select(p => p.Rut)
+            .Where(r => r is not null)
+            .Distinct()
+            .ToList();
+
+        var flagged = 0;
+        foreach (var rut in ruts)
+        {
+            foreach (var confirmed in repository.FindConfirmedByRut(rut!))
+            {
+                if (confirmed.ConfirmationBouncedAt is not null)
+                {
+                    continue; // already flagged from an earlier NDR — keep the first timestamp
+                }
+
+                repository.SetConfirmationBounced(confirmed.Id, email.ReceivedAt);
+                flagged++;
+            }
+        }
+
+        repository.RecordProcessedBounce(email.MessageId);
+
+        if (flagged > 0)
+        {
+            logger.LogWarning(
+                "Rebote de confirmación detectado: {Count} caso(s) marcado(s) como no entregado(s) a la comuna", flagged);
+        }
+        else
+        {
+            logger.LogWarning(
+                "Rebote de confirmación detectado pero sin caso Confirmado que coincida (asunto: {Subject})", email.Subject);
+        }
+    }
+
+    /// <summary>
     /// Operator-triggered one-click action for a Pending case: moves the original email to
     /// "CARP. YA SUBIDAS" (marking it unread there), transitions the case to Uploaded, and
     /// immediately sends the confirmation email — collapsing what would otherwise be a manual

@@ -30,6 +30,7 @@ flowchart TB
         DUP -->|sí, se ignora| SKIP["No se registra de nuevo"]
         DUP -->|no| INS["Insertar caso<br/>Status = Pending"]
         UP["Correo en CARP. YA SUBIDAS<br/>+ Message-ID conocido"] --> SETUP["Caso pasa a<br/>Status = Uploaded"]
+        NDR["Rebote en Bandeja de entrada<br/>(postmaster + menciona Conaset)"] --> BNC["Caso Confirmado<br/>marcado 'REBOTÓ'<br/>(por RUT del NDR)"]
     end
 
     INS --> CSV["Reporte CSV<br/>regenerado cada ciclo"]

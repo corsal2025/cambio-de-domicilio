@@ -545,6 +545,88 @@ public class AddressChangeRoutingServiceTests : IDisposable
         return id;
     }
 
+    private long InsertConfirmed(string messageId, string rut)
+    {
+        var id = repository.Insert(new PersonRequest
+        {
+            FullName = "JUAN PEREZ SOTO",
+            Rut = rut,
+            Comuna = "Catemu",
+            SourceMessageId = messageId,
+            SourceSubject = "Solicitud de carpeta",
+            SourceSender = "rfloresc@municatemu.cl",
+            NeedsReview = false,
+            Status = RequestStatus.Pending,
+            ReceivedAt = DateTimeOffset.UtcNow
+        });
+        repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
+        return id;
+    }
+
+    private static IncomingEmail Ndr(string messageId, string rut) => new(
+        messageId, "conv-ndr",
+        $"Undeliverable: Carpeta subida a Conaset - JUAN PEREZ SOTO, RUT {rut}",
+        "postmaster@munivalpo.cl",
+        $"Your message to rfloresc@municatemu.cl could not be delivered.\n" +
+        $"550 The sending IP is listed on spamrl.com.\n\n" +
+        $"Se informa que la carpeta del contribuyente JUAN PEREZ SOTO, RUT {rut}, ya fue subida al sistema de Conaset.",
+        DateTimeOffset.UtcNow);
+
+    [Fact]
+    public void ProcessPotentialBounce_NdrMatchingConfirmedCase_FlagsItAndTombstones()
+    {
+        var id = InsertConfirmed("msg-1", "12.345.678-5");
+
+        sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5"));
+
+        Assert.NotNull(repository.FindById(id)!.ConfirmationBouncedAt);
+        Assert.True(repository.IsBounceProcessed("ndr-1"));
+    }
+
+    [Fact]
+    public void ProcessPotentialBounce_AlreadyProcessed_DoesNothing()
+    {
+        repository.RecordProcessedBounce("ndr-1");
+        var id = InsertConfirmed("msg-1", "12.345.678-5");
+
+        sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5"));
+
+        Assert.Null(repository.FindById(id)!.ConfirmationBouncedAt);
+    }
+
+    [Fact]
+    public void ProcessPotentialBounce_NotAnNdr_IgnoredAndNotTombstoned()
+    {
+        var id = InsertConfirmed("msg-1", "12.345.678-5");
+        var reply = new IncomingEmail("reply-1", "c", "RE: Carpeta subida a Conaset",
+            "rfloresc@municatemu.cl", "Gracias, recibido conforme. Conaset.", DateTimeOffset.UtcNow);
+
+        sut.ProcessPotentialBounce(reply);
+
+        Assert.Null(repository.FindById(id)!.ConfirmationBouncedAt);
+        Assert.False(repository.IsBounceProcessed("reply-1"));
+    }
+
+    [Fact]
+    public void ProcessPotentialBounce_NdrWithNoMatchingConfirmedCase_TombstonesAnyway()
+    {
+        sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5")); // no case in the db at all
+
+        Assert.True(repository.IsBounceProcessed("ndr-1"));
+    }
+
+    [Fact]
+    public void ProcessPotentialBounce_CaseAlreadyFlagged_KeepsTheOriginalTimestamp()
+    {
+        var id = InsertConfirmed("msg-1", "12.345.678-5");
+        var firstBounce = DateTimeOffset.UtcNow.AddDays(-3);
+        repository.SetConfirmationBounced(id, firstBounce);
+
+        sut.ProcessPotentialBounce(Ndr("ndr-2", "12.345.678-5"));
+
+        Assert.Equal(firstBounce, repository.FindById(id)!.ConfirmationBouncedAt);
+    }
+
     private static IncomingEmail NewEmail(string messageId, string body, string sender = "rfloresc@municatemu.cl", string subject = "Solicitud de carpeta") =>
         new(messageId, "conv-1", subject, sender, body, DateTimeOffset.UtcNow);
 

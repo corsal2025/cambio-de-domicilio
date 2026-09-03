@@ -65,8 +65,9 @@
                         ? "row-confirmed"
                         : (item.NeedsReview ? "row-needs-review" : "");
                     var pendienteCarpetaClass = item.PendienteCarpeta ? "row-pendiente-carpeta" : "";
+                    var bouncedClass = item.ConfirmationBouncedAt is not null ? "row-bounced" : "";
                     rowIndex++;
-                    <tr class="@rowClass @statusRowClass @pendienteCarpetaClass">
+                    <tr class="@rowClass @statusRowClass @pendienteCarpetaClass @bouncedClass">
                         <td class="marked-cell">
                             <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
                                 <input type="hidden" name="id" value="@item.Id" />
@@ -131,6 +132,11 @@
                                 };
                             }
                             <span class="badge @badgeClass">@badgeText</span>
+                            @if (item.ConfirmationBouncedAt is { } bouncedAt)
+                            {
+                                <span class="badge badge-bounced"
+                                      title="La confirmación a la comuna rebotó el @bouncedAt.LocalDateTime.ToString("dd-MM-yyyy") — la comuna no la recibió">REBOTÓ</span>
+                            }
                         </td>
                         <td>
                             <form method="post" asp-page-handler="SetCodigoF8" class="codigo-f8-form">
@@ -174,6 +180,14 @@
                                       onsubmit="return confirm('Esto enviará un correo de RECTIFICACIÓN a la comuna indicando que la confirmación anterior fue un error, y revertirá el caso a Pendiente. ¿Continuar?') && confirm('¿Estás completamente seguro? Se enviará un correo real a la comuna ahora mismo.');">
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <button type="submit" class="btn-outline-danger" style="padding:4px 10px; font-size:0.72rem;" title="Enviar correo de rectificación y volver el caso a Pendiente">Deshacer y rectificar</button>
+                                </form>
+                            }
+                            @if (item.ConfirmationBouncedAt is not null)
+                            {
+                                <form method="post" asp-page-handler="ResolveBounce"
+                                      onsubmit="return confirm('Marca el rebote como resuelto (ya reenviaste la confirmación o lo gestionaste de otra forma). ¿Confirmar?');">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-outline-danger" style="padding:4px 10px; font-size:0.72rem;" title="Marcar el rebote de confirmación como resuelto">Marcar resuelto</button>
                                 </form>
                             }
                             <form method="post" asp-page-handler="DeleteCase"

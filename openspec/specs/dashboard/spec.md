@@ -79,6 +79,20 @@ Each case SHALL display the date its request email was received and a countdown 
 - **WHEN** a case is `Uploaded` or `Confirmed`
 - **THEN** no deadline alert is shown for it
 
+### Requirement: Bounced-confirmation visibility
+The dashboard SHALL mark every case whose confirmation email bounced (see the `routing` spec's
+"Detect bounced confirmation emails") with a distinct row style and a "REBOTÓ" badge, offer a
+filter that shows only those cases, and provide a "Marcar resuelto" action that clears the flag
+once the operator has re-sent the confirmation or handled it another way.
+
+#### Scenario: A bounced case stands out
+- **WHEN** a `Confirmed` case has been flagged as bounced
+- **THEN** its row is styled distinctly, shows a "REBOTÓ" badge, and appears under the "Rebotados" filter
+
+#### Scenario: Operator resolves the bounce
+- **WHEN** the operator triggers "Marcar resuelto" on a bounced case
+- **THEN** the flag is cleared and the case no longer appears under the "Rebotados" filter
+
 ### Requirement: Comuna directory management
 The dashboard SHALL provide a directory view listing every comuna (name, contact email, domain) and let the operator correct a comuna's contact email. Changes SHALL persist to the same CSV file the polling cycle reads, so the next confirmation email uses the corrected address.
 

@@ -84,6 +84,19 @@ public class EwsEmailReaderTests
     }
 
     [Fact]
+    public async Task GetInboxMessagesSinceAsync_QueriesInboxDirectlyWithoutResolvingAFolderByName()
+    {
+        var client = new RecordingClient([EmptyFindItemXml]);
+        var reader = new EwsEmailReader(client, NullLogger<EwsEmailReader>.Instance);
+
+        var result = await reader.GetInboxMessagesSinceAsync(DateTimeOffset.UtcNow.AddDays(-14), CancellationToken.None);
+
+        Assert.Empty(result);
+        Assert.DoesNotContain(client.Requests, r => r.Contains("FindFolder"));
+        Assert.Contains(client.Requests, r => r.Contains("FindItem") && r.Contains("\"inbox\""));
+    }
+
+    [Fact]
     public async Task GetMessagesInFolderAsync_FolderNotFound_ReturnsEmptyWithoutCallingFindItem()
     {
         var client = new RecordingClient([FindFolderNotFoundXml]);

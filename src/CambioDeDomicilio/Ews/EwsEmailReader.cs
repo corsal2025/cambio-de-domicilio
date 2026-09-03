@@ -30,6 +30,14 @@ public sealed class EwsEmailReader(IEwsClient client, ILogger<EwsEmailReader> lo
         }
     }
 
+    public async Task<IReadOnlyList<IncomingEmail>> GetInboxMessagesSinceAsync(DateTimeOffset receivedSince, CancellationToken cancellationToken)
+    {
+        var findResponse = await client.SendAsync(
+            EwsMessages.BuildFindInboxItemsSinceRequest(receivedSince), cancellationToken);
+        var itemRefs = EwsResponseParser.ParseFindItemResponse(findResponse);
+        return await FetchItemDetailsAsync(itemRefs, cancellationToken);
+    }
+
     private async Task<IReadOnlyList<IncomingEmail>> ListFolderAsync(string folderDisplayName, CancellationToken cancellationToken)
     {
         var folder = await ResolveFolderAsync(folderDisplayName, cancellationToken);
@@ -43,7 +51,11 @@ public sealed class EwsEmailReader(IEwsClient client, ILogger<EwsEmailReader> lo
 
         var findResponse = await client.SendAsync(EwsMessages.BuildFindItemRequest(folder), cancellationToken);
         var itemRefs = EwsResponseParser.ParseFindItemResponse(findResponse);
+        return await FetchItemDetailsAsync(itemRefs, cancellationToken);
+    }
 
+    private async Task<IReadOnlyList<IncomingEmail>> FetchItemDetailsAsync(IReadOnlyList<EwsItemRef> itemRefs, CancellationToken cancellationToken)
+    {
         if (itemRefs.Count == 0)
         {
             return [];

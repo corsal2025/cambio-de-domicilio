@@ -4,8 +4,10 @@
 **Fuente:** consolidado desde los artefactos OpenSpec del proyecto (`openspec/specs/`, `openspec/changes/`) y la sesión de trabajo del 2026-07-06/07 — la metodología del proyecto exige que toda decisión quede documentada ahí antes de implementarse.
 
 > Cambios posteriores (2026-09): se eliminó la autenticación del dashboard (corre en la
-> red municipal, acceso controlado a nivel de red) y se eliminó la función Certificado
-> (los casos con carpeta no encontrada se resuelven solo por F8).
+> red municipal, acceso controlado a nivel de red); se eliminó la función Certificado
+> (los casos con carpeta no encontrada se resuelven solo por F8); y se agregó detección
+> de rebotes — cada ciclo revisa la Bandeja de entrada en busca de NDR de las
+> confirmaciones y marca el caso Confirmado como "REBOTÓ" en el dashboard.
 
 ---
 

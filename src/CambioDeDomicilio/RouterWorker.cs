@@ -74,10 +74,24 @@ public sealed class RouterWorker(
                 }
             }
 
+            var bounceSince = DateTimeOffset.UtcNow.AddDays(-options.BounceLookbackDays);
+            var inboxMessages = await emailReader.GetInboxMessagesSinceAsync(bounceSince, cancellationToken);
+            foreach (var email in inboxMessages)
+            {
+                try
+                {
+                    routingService.ProcessPotentialBounce(email);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error procesando un posible rebote de la bandeja de entrada, se continúa con el resto del lote");
+                }
+            }
+
             reportWriter.Write(repository.GetAll(), options.ReportCsvPath);
             logger.LogInformation(
-                "Ciclo completado: {IncomingCount} en '{SourceFolder}', {ConfirmationCount} en '{ConfirmationFolder}'",
-                incoming.Count, options.SourceFolderName, confirmations.Count, options.ConfirmationFolderName);
+                "Ciclo completado: {IncomingCount} en '{SourceFolder}', {ConfirmationCount} en '{ConfirmationFolder}', {InboxCount} en bandeja de entrada",
+                incoming.Count, options.SourceFolderName, confirmations.Count, options.ConfirmationFolderName, inboxMessages.Count);
             return true;
         }
         catch (Exception ex)

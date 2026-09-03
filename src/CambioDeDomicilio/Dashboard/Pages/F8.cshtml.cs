@@ -157,6 +157,13 @@ public class F8Model(
         return Page();
     }
 
+    /// <summary>Operator "Marcar resuelto" on a bounced F8 confirmation — clears the bounce flag.</summary>
+    public IActionResult OnPostResolveBounce(long id)
+    {
+        repository.ClearConfirmationBounced(id);
+        return RedirectToPage();
+    }
+
     /// <summary>Business days remaining until the legal upload deadline for this case, from today.</summary>
     public int DiasHabilesRestantes(PersonRequest request)
     {

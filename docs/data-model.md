@@ -40,6 +40,9 @@ named in the same source email.
   so the timestamp is always recorded
 - `ConfirmedByUserId`: legacy attribution column, kept nullable per the additive-schema convention;
   no longer populated since the dashboard has no user accounts
+- `ConfirmationBouncedAt`: Set when a non-delivery report for this case's confirmation email is
+  found in the mailbox inbox (the requesting comuna's mail server rejected it). Cleared by the
+  operator with "Marcar resuelto". Null means the confirmation is presumed delivered.
 - `Marked`: Operator-only bookkeeping checkbox (boolean), independent of `Status` — lets the
   operator tick off cases they've cross-checked manually, with zero effect on the routing/
   confirmation logic
@@ -90,6 +93,15 @@ each polling cycle. Multiple rows for the same `(Comuna, Domain)` are allowed (c
 history); the last one wins. Multiple *different* comunas can share the same `Domain` (a generic
 webmail provider) — resolution then requires an exact `ContactEmail` match, not domain alone (see
 `routing` spec).
+
+### 4. Tombstone tables (`DeletedSourceMessage`, `ProcessedBounce`)
+
+Two single-column key-plus-timestamp tables that record "this message has been dealt with, never
+act on it again":
+- `DeletedSourceMessage` (`SourceMessageId`, `DeletedAt`): a request email the operator deleted
+  every case for, so a later poll never recreates it while it still sits in "CARP. PARA PEDIR".
+- `ProcessedBounce` (`BounceMessageId`, `ProcessedAt`): a non-delivery report already scanned, so a
+  later poll never re-flags a case from the same NDR (the message stays in the inbox).
 
 ## Entity Relationship
 

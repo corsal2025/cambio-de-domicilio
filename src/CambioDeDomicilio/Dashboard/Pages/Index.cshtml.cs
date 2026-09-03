@@ -21,18 +21,23 @@ public class IndexModel(
     public IReadOnlyList<ComunaContact> ComunaOptions { get; private set; } = [];
     public int NeedsReviewCount { get; private set; }
     public int DiscardedCount { get; private set; }
+
+    /// <summary>Confirmed cases whose confirmation email bounced (see <see cref="PersonRequest.ConfirmationBouncedAt"/>).</summary>
+    public int BouncedCount { get; private set; }
     public string? StatusFilter { get; set; }
     public bool OnlyNeedsReview { get; set; }
+    public bool OnlyBounced { get; set; }
     public string? SearchQuery { get; set; }
     public string? Message { get; set; }
     public bool MessageIsError { get; set; }
     public int PlazoDiasHabiles => options.PlazoDiasHabiles;
     public bool AllVisibleMarked => Cases.Count > 0 && Cases.All(c => c.Marked);
 
-    public void OnGet(string? status, bool needsReview = false, string? search = null)
+    public void OnGet(string? status, bool needsReview = false, string? search = null, bool bounced = false)
     {
         StatusFilter = status;
         OnlyNeedsReview = needsReview;
+        OnlyBounced = bounced;
         SearchQuery = search;
         Load();
     }
@@ -339,6 +344,15 @@ public class IndexModel(
         return Page();
     }
 
+    /// <summary>Operator "Marcar resuelto" on a bounced confirmation: clears the bounce flag once
+    /// they have re-sent the confirmation or handled the non-delivery another way.</summary>
+    public IActionResult OnPostResolveBounce(long id)
+    {
+        repository.ClearConfirmationBounced(id);
+        Message = "Rebote marcado como resuelto.";
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
+    }
+
     /// <summary>Business days remaining until the legal upload deadline for this case, from today.</summary>
     public int DiasHabilesRestantes(PersonRequest request)
     {
@@ -351,6 +365,7 @@ public class IndexModel(
     {
         var everything = repository.GetAll();
         NeedsReviewCount = everything.Count(c => c.NeedsReview);
+        BouncedCount = everything.Count(c => c.ConfirmationBouncedAt is not null);
         DiscardedCount = discardedRepository.GetAll().Count;
         ComunaOptions = routingService.LoadDirectory()
             .DistinctBy(c => c.Comuna, StringComparer.OrdinalIgnoreCase)
@@ -371,6 +386,11 @@ public class IndexModel(
         if (OnlyNeedsReview)
         {
             all = all.Where(c => c.NeedsReview);
+        }
+
+        if (OnlyBounced)
+        {
+            all = all.Where(c => c.ConfirmationBouncedAt is not null);
         }
 
         // Search by name or RUT (case-insensitive, partial match)

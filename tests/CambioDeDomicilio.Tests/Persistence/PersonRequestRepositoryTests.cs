@@ -536,6 +536,57 @@ public class PersonRequestRepositoryTests : IDisposable
     }
     */
 
+    [Fact]
+    public void SetConfirmationBounced_ThenClear_RoundTrips()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        var bouncedAt = DateTimeOffset.UtcNow;
+
+        repository.SetConfirmationBounced(id, bouncedAt);
+        Assert.Equal(bouncedAt, repository.FindById(id)!.ConfirmationBouncedAt);
+
+        repository.ClearConfirmationBounced(id);
+        Assert.Null(repository.FindById(id)!.ConfirmationBouncedAt);
+    }
+
+    [Fact]
+    public void FindConfirmedByRut_ReturnsOnlyConfirmedRowsForThatRut()
+    {
+        var confirmed = repository.Insert(NewRequest("msg-1", rut: "12.345.678-5"));
+        repository.UpdateStatusToConfirmed(confirmed, DateTimeOffset.UtcNow);
+        repository.Insert(NewRequest("msg-2", rut: "12.345.678-5")); // same RUT, still Pending
+        var otherConfirmed = repository.Insert(NewRequest("msg-3", rut: "9.868.019-K"));
+        repository.UpdateStatusToConfirmed(otherConfirmed, DateTimeOffset.UtcNow);
+
+        var found = repository.FindConfirmedByRut("12.345.678-5");
+
+        Assert.Single(found);
+        Assert.Equal(confirmed, found[0].Id);
+    }
+
+    [Fact]
+    public void FindConfirmedByRut_SamePersonConfirmedForTwoComunas_ReturnsBoth()
+    {
+        var a = repository.Insert(NewRequest("msg-1", rut: "12.345.678-5"));
+        var b = repository.Insert(NewRequest("msg-2", rut: "12.345.678-5"));
+        repository.UpdateStatusToConfirmed(a, DateTimeOffset.UtcNow);
+        repository.UpdateStatusToConfirmed(b, DateTimeOffset.UtcNow);
+
+        Assert.Equal(2, repository.FindConfirmedByRut("12.345.678-5").Count);
+    }
+
+    [Fact]
+    public void RecordProcessedBounce_IsIdempotentAndQueryable()
+    {
+        Assert.False(repository.IsBounceProcessed("ndr-1"));
+
+        repository.RecordProcessedBounce("ndr-1");
+        Assert.True(repository.IsBounceProcessed("ndr-1"));
+
+        repository.RecordProcessedBounce("ndr-1"); // duplicate must not throw
+        Assert.True(repository.IsBounceProcessed("ndr-1"));
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId, string rut = "18.785.387-7") => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",

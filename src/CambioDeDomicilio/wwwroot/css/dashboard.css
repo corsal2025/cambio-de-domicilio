@@ -692,6 +692,17 @@ table.cases-index tbody tr.row-needs-review:hover {
     background: #f6d0d8 !important;
 }
 
+/* A bounced confirmation (the comuna's mail server rejected our "carpeta subida" notice) is a
+   confirmed case that still needs operator action, so it wins over the calm row-confirmed blue —
+   a warm red-tinted row plus the REBOTÓ badge in the status column. */
+table.cases-index tbody tr.row-bounced {
+    background: #f7c9c0 !important;
+}
+
+table.cases-index tbody tr.row-bounced:hover {
+    background: #f2b3a6 !important;
+}
+
 /* Pendiente Carpeta and F8 pending backgrounds are driven ONLY by the live :has() rules above/below
    — no server-rendered class version. A class-based rule (tr.row-pendiente-carpeta / .row-f8-pending)
    is baked into the HTML at render time and never removed by fetch()-based toggling (see
@@ -796,6 +807,7 @@ table.cases-index td.text-cell {
 .badge-confirmed { background: var(--color-confirmed-bg); color: var(--color-confirmed); }
 .badge-review { background: var(--color-review-bg); color: var(--color-review); }
 .badge-ok { background: var(--color-confirmed-bg); color: var(--color-confirmed); }
+.badge-bounced { background: #c0392b; color: #fff; margin-left: 4px; }
 
 .message-error { background: var(--color-review-bg); border-color: var(--color-review); color: var(--color-review); }
 

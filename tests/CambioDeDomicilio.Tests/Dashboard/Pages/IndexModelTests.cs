@@ -627,6 +627,45 @@ public class IndexModelTests : IDisposable
         Assert.NotNull(stored.TransferredAt);
     }
 
+    [Fact]
+    public void OnPostResolveBounce_ClearsTheBounceFlag()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
+        repository.SetConfirmationBounced(id, DateTimeOffset.UtcNow);
+
+        model.OnPostResolveBounce(id);
+
+        Assert.Null(repository.FindById(id)!.ConfirmationBouncedAt);
+    }
+
+    [Fact]
+    public void OnGet_BouncedFilter_ShowsOnlyCasesWithABounce()
+    {
+        var bounced = repository.Insert(NewRequest("msg-1"));
+        repository.UpdateStatusToConfirmed(bounced, DateTimeOffset.UtcNow);
+        repository.SetConfirmationBounced(bounced, DateTimeOffset.UtcNow);
+        var normal = repository.Insert(NewRequest("msg-2"));
+        repository.UpdateStatusToConfirmed(normal, DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null, needsReview: false, search: null, bounced: true);
+
+        var shown = Assert.Single(model.Cases);
+        Assert.Equal(bounced, shown.Id);
+    }
+
+    [Fact]
+    public void OnGet_AlwaysExposesBouncedCount()
+    {
+        var bounced = repository.Insert(NewRequest("msg-1"));
+        repository.UpdateStatusToConfirmed(bounced, DateTimeOffset.UtcNow);
+        repository.SetConfirmationBounced(bounced, DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null);
+
+        Assert.Equal(1, model.BouncedCount);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId) => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",
@@ -672,6 +711,9 @@ public class IndexModelTests : IDisposable
     private sealed class NoOpEmailReader : IEmailReader
     {
         public Task<IReadOnlyList<IncomingEmail>> GetMessagesInFolderAsync(string folderDisplayName, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
+
+        public Task<IReadOnlyList<IncomingEmail>> GetInboxMessagesSinceAsync(DateTimeOffset receivedSince, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
     }
 

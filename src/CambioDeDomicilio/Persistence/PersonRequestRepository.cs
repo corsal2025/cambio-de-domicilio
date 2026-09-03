@@ -33,6 +33,20 @@ public interface IPersonRequestRepository
 
     void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long? confirmedByUserId = null);
 
+    /// <summary>Every Confirmed case with this RUT — usually one, but the same person can have a
+    /// confirmed case for more than one comuna. Used to attach an incoming bounce to its case.</summary>
+    IReadOnlyList<PersonRequest> FindConfirmedByRut(string rut);
+
+    /// <summary>Flags that the confirmation email for this case bounced (non-delivery report found
+    /// in the inbox). <see cref="ClearConfirmationBounced"/> is the operator's "Marcar resuelto".</summary>
+    void SetConfirmationBounced(long id, DateTimeOffset bouncedAt);
+    void ClearConfirmationBounced(long id);
+
+    /// <summary>Tombstones a bounce message so a later poll cycle never re-processes the same NDR
+    /// (it stays in the inbox). Mirrors <see cref="RecordDeletedSourceMessage"/>.</summary>
+    void RecordProcessedBounce(string bounceMessageId);
+    bool IsBounceProcessed(string bounceMessageId);
+
     /// <summary>Reverts every Uploaded row for this source email back to Pending (clearing UploadedAt) —
     /// used when the original email is found again in the source folder, meaning the operator undid an
     /// accidental upload/move. Confirmed rows are never touched by this: a real confirmation email
@@ -94,6 +108,11 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 SourceMessageId TEXT PRIMARY KEY,
                 DeletedAt TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS ProcessedBounce (
+                BounceMessageId TEXT PRIMARY KEY,
+                ProcessedAt TEXT NOT NULL
+            );
             """;
         command.ExecuteNonQuery();
 
@@ -109,6 +128,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         EnsureColumnExists(connection, "PendienteCarpeta", "PendienteCarpeta INTEGER NOT NULL DEFAULT 0");
         EnsureColumnExists(connection, "MarkedAt", "MarkedAt TEXT NULL");
         EnsureColumnExists(connection, "SinCarpeta", "SinCarpeta INTEGER NOT NULL DEFAULT 0");
+        EnsureColumnExists(connection, "ConfirmationBouncedAt", "ConfirmationBouncedAt TEXT NULL");
         RemoveSourceMessageIdUniqueConstraintIfPresent(connection);
 
         // Backfill migration: cases transferred under the old single-destination mechanism
@@ -186,16 +206,17 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                     CertificadoNotifiedAt TEXT NULL,
                     PendienteCarpeta INTEGER NOT NULL DEFAULT 0,
                     MarkedAt TEXT NULL,
-                    SinCarpeta INTEGER NOT NULL DEFAULT 0
+                    SinCarpeta INTEGER NOT NULL DEFAULT 0,
+                    ConfirmationBouncedAt TEXT NULL
                 );
                 INSERT INTO PersonRequest_new
                     (Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
                      NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
-                     FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta)
+                     FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta, ConfirmationBouncedAt)
                 SELECT
                     Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
                     NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
-                    FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta
+                    FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta, ConfirmationBouncedAt
                 FROM PersonRequest;
                 DROP TABLE PersonRequest;
                 ALTER TABLE PersonRequest_new RENAME TO PersonRequest;
@@ -453,6 +474,64 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         return command.ExecuteScalar() is not null;
     }
 
+    public IReadOnlyList<PersonRequest> FindConfirmedByRut(string rut)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM PersonRequest WHERE Rut = $rut AND Status = 'Confirmed' ORDER BY Id";
+        command.Parameters.AddWithValue("$rut", rut);
+        using var reader = command.ExecuteReader();
+        var results = new List<PersonRequest>();
+        while (reader.Read())
+        {
+            results.Add(Map(reader));
+        }
+
+        return results;
+    }
+
+    public void SetConfirmationBounced(long id, DateTimeOffset bouncedAt)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET ConfirmationBouncedAt = $bouncedAt WHERE Id = $id";
+        command.Parameters.AddWithValue("$bouncedAt", bouncedAt.ToString("O"));
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void ClearConfirmationBounced(long id)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET ConfirmationBouncedAt = NULL WHERE Id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void RecordProcessedBounce(string bounceMessageId)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO ProcessedBounce (BounceMessageId, ProcessedAt)
+            VALUES ($id, $processedAt)
+            ON CONFLICT (BounceMessageId) DO NOTHING
+            """;
+        command.Parameters.AddWithValue("$id", bounceMessageId);
+        command.Parameters.AddWithValue("$processedAt", DateTimeOffset.UtcNow.ToString("O"));
+        command.ExecuteNonQuery();
+    }
+
+    public bool IsBounceProcessed(string bounceMessageId)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT 1 FROM ProcessedBounce WHERE BounceMessageId = $id";
+        command.Parameters.AddWithValue("$id", bounceMessageId);
+        return command.ExecuteScalar() is not null;
+    }
+
     public void SetMarked(long id, bool marked)
     {
         using var connection = Open();
@@ -586,6 +665,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         PendienteCarpeta = reader.GetInt32(reader.GetOrdinal("PendienteCarpeta")) == 1,
         CodigoF8 = reader.IsDBNull(reader.GetOrdinal("CodigoF8")) ? null : reader.GetString(reader.GetOrdinal("CodigoF8")),
         Destination = Enum.Parse<CaseDestination>(reader.GetString(reader.GetOrdinal("Destination"))),
-        TransferredAt = reader.IsDBNull(reader.GetOrdinal("TransferredAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("TransferredAt")))
+        TransferredAt = reader.IsDBNull(reader.GetOrdinal("TransferredAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("TransferredAt"))),
+        ConfirmationBouncedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmationBouncedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmationBouncedAt")))
     };
 }
