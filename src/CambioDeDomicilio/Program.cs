@@ -2,7 +2,6 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.DataProtection;
 using CambioDeDomicilio;
 using CambioDeDomicilio.Configuration;
-using CambioDeDomicilio.Dashboard.Auth;
 using CambioDeDomicilio.Directories;
 using CambioDeDomicilio.Ews;
 using CambioDeDomicilio.Mail;
@@ -12,10 +11,8 @@ using CambioDeDomicilio.Reporting;
 using CambioDeDomicilio.Routing;
 
 // Task Scheduler fires both an AtLogOn and an AtStartup trigger, and also auto-restarts the
-// process on crash — any of those can overlap with a second copy already running. Two instances
-// fighting over the same Kestrel ports, SQLite file, and DataProtection key ring at once is what
-// was producing random mid-session logouts. Bail out immediately if another instance already
-// holds the mutex instead of racing it.
+// process on crash — any of those can overlap with a second copy already running. Bail out
+// immediately if another instance already holds the mutex instead of racing it.
 using var singleInstanceMutex = new Mutex(initiallyOwned: true, name: "Global\\CambioDeDomicilio.SingleInstance", createdNew: out var isFirstInstance);
 if (!isFirstInstance)
 {
@@ -41,12 +38,6 @@ builder.Services.AddSingleton<IPersonRequestRepository>(_ =>
     new PersonRequestRepository($"Data Source={routerOptions.SqliteDbPath}"));
 builder.Services.AddSingleton<IDiscardedEmailRepository>(_ =>
     new DiscardedEmailRepository($"Data Source={routerOptions.SqliteDbPath}"));
-builder.Services.AddSingleton<IUserRepository>(_ =>
-    new UserRepository($"Data Source={routerOptions.SqliteDbPath}"));
-builder.Services.AddSingleton<IPasswordResetTokenRepository>(_ =>
-    new PasswordResetTokenRepository($"Data Source={routerOptions.SqliteDbPath}"));
-builder.Services.AddSingleton<ILoginService, LoginService>();
-builder.Services.AddSingleton<IPasswordResetService, PasswordResetService>();
 builder.Services.AddSingleton<IComunaDirectory, ComunaDirectory>();
 builder.Services.AddSingleton<IEwsClient, EwsClient>();
 builder.Services.AddSingleton<EwsEmailReader>();
@@ -63,9 +54,6 @@ builder.Services.AddSingleton<INotificationChannel, EmailNotificationChannel>();
 builder.Services.AddSingleton<RouterWorker>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<RouterWorker>());
 
-// Persist Data Protection keys to disk so auth cookies survive process restarts. Without this,
-// ASP.NET Core generates a new in-memory key ring on every launch, silently invalidating every
-// existing session cookie — an operator mid-task gets bounced to /Login with no explanation.
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, "keys")))
     .SetApplicationName("CambioDeDomicilio");
@@ -73,35 +61,6 @@ builder.Services.AddDataProtection()
 builder.Services.AddRazorPages(options => options.RootDirectory = "/Dashboard/Pages");
 
 var app = builder.Build();
-
-// One-time admin CLI commands, run instead of starting the host.
-if (args.Contains("--add-user") || args.Contains("--remove-user"))
-{
-    var users = app.Services.GetRequiredService<IUserRepository>();
-    users.EnsureSchema();
-
-    if (args.Contains("--add-user"))
-    {
-        var username = args[Array.IndexOf(args, "--add-user") + 1];
-        var password = Environment.GetEnvironmentVariable("OCR_ADMIN_PASSWORD");
-        if (string.IsNullOrEmpty(password))
-        {
-            Console.Write("Contraseña: ");
-            password = ReadPasswordMasked();
-        }
-        var (hash, salt, iterations) = PasswordHasher.Hash(password);
-        users.Insert(new DashboardUser { Username = username, PasswordHash = hash, PasswordSalt = salt, Iterations = iterations });
-        Console.WriteLine($"Usuario '{username}' creado.");
-    }
-    else
-    {
-        var username = args[Array.IndexOf(args, "--remove-user") + 1];
-        users.Delete(username);
-        Console.WriteLine($"Usuario '{username}' eliminado.");
-    }
-
-    return;
-}
 
 // Deployment verification mode: reads the mailbox through the real EWS pipeline and
 // prints only counts and sender domains (no personal data), then exits.
@@ -118,8 +77,7 @@ if (args.Contains("--smoke-test"))
     return;
 }
 
-app.Services.GetRequiredService<IUserRepository>().EnsureSchema();
-app.Services.GetRequiredService<IPasswordResetTokenRepository>().EnsureSchema();
+app.Services.GetRequiredService<IPersonRequestRepository>().EnsureSchema();
 app.Services.GetRequiredService<IDiscardedEmailRepository>().EnsureSchema();
 
 _ = Task.Run(async () =>
@@ -152,22 +110,3 @@ app.UseStaticFiles();
 app.MapRazorPages();
 
 app.Run();
-
-static string ReadPasswordMasked()
-{
-    var password = new System.Text.StringBuilder();
-    ConsoleKeyInfo key;
-    while ((key = Console.ReadKey(intercept: true)).Key != ConsoleKey.Enter)
-    {
-        if (key.Key == ConsoleKey.Backspace && password.Length > 0)
-        {
-            password.Remove(password.Length - 1, 1);
-        }
-        else if (!char.IsControl(key.KeyChar))
-        {
-            password.Append(key.KeyChar);
-        }
-    }
-    Console.WriteLine();
-    return password.ToString();
-}

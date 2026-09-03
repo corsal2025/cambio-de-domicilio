@@ -77,9 +77,9 @@ header.app-header .brand small {
     text-transform: uppercase;
 }
 
-/* F8 and Certificado are their own separate systems (own screens, own data, own emails) — pulled
-   out of the main nav into a distinct strip so they read as "somewhere else", not mixed in with
-   the Cambio de Domicilio view filters and tools. */
+/* F8 is its own separate system (own screen, own data, own emails) — pulled out of the main nav
+   into a distinct strip so it reads as "somewhere else", not mixed in with the Cambio de
+   Domicilio view filters and tools. */
 div.app-subnav {
     background: #12212f;
     padding: 8px 24px;
@@ -200,14 +200,12 @@ nav.app-nav form button.nav-logout {
 }
 nav.app-nav form button.nav-logout:hover { background: rgba(161, 29, 51, 0.4); }
 
-/* Casos (Cambio de Domicilio), F8 and Certificado are the three separate tracks (their own
-   screens, own data, own emails) — a distinct pill per track marks each as "a different system".
-   Not scoped to nav.app-nav since they now live in their own div.app-subnav strip, always shown
-   together (including on each track's own page) so switching between them is one click from
-   anywhere. */
+/* Casos (Cambio de Domicilio) and F8 are the two separate tracks (their own screens, own data,
+   own emails) — a distinct pill per track marks each as "a different system". Not scoped to
+   nav.app-nav since they now live in their own div.app-subnav strip, always shown together
+   (including on each track's own page) so switching between them is one click from anywhere. */
 a.nav-casos,
 a.nav-f8,
-a.nav-certificado,
 a.nav-estadisticas,
 a.nav-pdf-archivo,
 a.nav-pdf-oficina43 {
@@ -221,7 +219,7 @@ a.nav-pdf-oficina43 {
     transition: background 0.15s ease;
 }
 
-/* Sky blue — distinct from F8's amber and Certificado's teal. */
+/* Sky blue — distinct from F8's amber. */
 a.nav-casos {
     background: rgba(56, 189, 248, 0.18);
     border: 1px solid rgba(56, 189, 248, 0.6);
@@ -238,15 +236,7 @@ a.nav-f8 {
 a.nav-f8:hover { background: rgba(255, 196, 0, 0.3); }
 a.nav-f8.active { background: rgba(255, 196, 0, 0.4); }
 
-a.nav-certificado {
-    background: rgba(84, 199, 165, 0.18);
-    border: 1px solid rgba(84, 199, 165, 0.6);
-    color: #a7ecd8;
-}
-a.nav-certificado:hover { background: rgba(84, 199, 165, 0.3); }
-a.nav-certificado.active { background: rgba(84, 199, 165, 0.4); }
-
-/* Violet — statistics is a read-only reporting layer over the other three tracks, not a fourth
+/* Violet — statistics is a read-only reporting layer over the other tracks, not another
    workflow, so it gets its own distinct color rather than reusing one of theirs. */
 a.nav-estadisticas {
     background: rgba(167, 139, 250, 0.18);
@@ -385,7 +375,11 @@ main {
 body.cases-page {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow: hidden;
 }
 
 body.cases-page main {
@@ -394,10 +388,10 @@ body.cases-page main {
     flex-direction: column;
     max-width: none;
     width: 100%;
-    padding-left: 14px;
-    padding-right: 14px;
+    padding: 10px 14px 12px;
     min-height: 0;
     min-width: 0;
+    overflow: hidden;
 }
 
 /* min-width: 0 overrides the flex-item default of min-width: auto, which otherwise refuses to
@@ -411,12 +405,34 @@ body.cases-page main {
     width: 100%;
     min-height: 0;
     min-width: 0;
-    overflow-y: auto;
+    overflow: auto;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.card.table-card::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+.card.table-card::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+.card.table-card::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 4px;
+    border: 2px solid #f1f5f9;
+}
+.card.table-card::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
 }
 
 table.cases {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.88rem;
 }
 
@@ -427,12 +443,16 @@ table.cases th {
     font-size: 0.72rem;
     letter-spacing: 0.4px;
     text-align: center;
-    padding: 10px 14px;
+    padding: 8px 10px;
     border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 1px 2px rgba(15, 30, 45, 0.08);
 }
 
 table.cases td {
-    padding: 9px 14px;
+    padding: 7px 10px;
     border-bottom: 1px solid var(--color-border);
     vertical-align: middle;
 }
@@ -441,10 +461,10 @@ table.cases tbody tr:nth-child(even) { background: #fafbfc; }
 table.cases tbody tr:hover { background: #f0f6fb; }
 
 table.cases-index {
-    table-layout: fixed;
-    font-size: 0.72rem;
+    table-layout: auto;
+    font-size: 0.74rem;
     width: 100%;
-    min-width: 0;
+    min-width: 1180px;
 }
 
 /* Zebra striping is computed server-side into an explicit class instead of relying on
@@ -478,30 +498,25 @@ table.cases-index td {
     text-align: center;
 }
 
-/* Fixed layout needs explicit widths, otherwise all 12 columns split the row evenly and the
-   checkbox columns (which need very little space) starve Nombre/Acción of the room they need.
-   12 columns: Marcar, F8, Pendiente Carpeta, Nombre, RUT, Comuna, Recibido, Plazo, Estado,
-   Fecha última carpeta, Sector, Acción — updated when the F8/Pendiente Carpeta checkbox columns
-   were added; they previously shifted every percentage below one column out of place, squeezing
-   Acción's "Marcar subida" button into ~0% width. */
-table.cases-index th:nth-child(1), table.cases-index td:nth-child(1) { width: 4%; }
-table.cases-index th:nth-child(2), table.cases-index td:nth-child(2) { width: 4%; }
-table.cases-index th:nth-child(3), table.cases-index td:nth-child(3) { width: 4%; }
-table.cases-index th:nth-child(4), table.cases-index td:nth-child(4) { width: 20%; }
-table.cases-index th:nth-child(5), table.cases-index td:nth-child(5) { width: 9%; }
-table.cases-index th:nth-child(6), table.cases-index td:nth-child(6) { width: 8%; }
-table.cases-index th:nth-child(7), table.cases-index td:nth-child(7) { width: 7%; }
-table.cases-index th:nth-child(8), table.cases-index td:nth-child(8) { width: 9%; }
-table.cases-index th:nth-child(9), table.cases-index td:nth-child(9) { width: 6%; }
-table.cases-index th:nth-child(10), table.cases-index td:nth-child(10) { width: 9%; }
-table.cases-index th:nth-child(11), table.cases-index td:nth-child(11) { width: 6%; }
-table.cases-index th:nth-child(12), table.cases-index td:nth-child(12) { width: 14%; }
+table.cases-index th:nth-child(1), table.cases-index td:nth-child(1) { width: 50px; min-width: 50px; }
+table.cases-index th:nth-child(2), table.cases-index td:nth-child(2) { width: 50px; min-width: 50px; }
+table.cases-index th:nth-child(3), table.cases-index td:nth-child(3) { width: 70px; min-width: 70px; }
+table.cases-index th:nth-child(4), table.cases-index td:nth-child(4) { min-width: 220px; }
+table.cases-index th:nth-child(5), table.cases-index td:nth-child(5) { width: 110px; min-width: 110px; }
+table.cases-index th:nth-child(6), table.cases-index td:nth-child(6) { width: 100px; min-width: 100px; }
+table.cases-index th:nth-child(7), table.cases-index td:nth-child(7) { width: 90px; min-width: 90px; }
+table.cases-index th:nth-child(8), table.cases-index td:nth-child(8) { width: 120px; min-width: 120px; }
+table.cases-index th:nth-child(9), table.cases-index td:nth-child(9) { width: 90px; min-width: 90px; }
+table.cases-index th:nth-child(10), table.cases-index td:nth-child(10) { width: 110px; min-width: 110px; }
+table.cases-index th:nth-child(11), table.cases-index td:nth-child(11) { width: 80px; min-width: 80px; }
+table.cases-index th:nth-child(12), table.cases-index td:nth-child(12) { width: 140px; min-width: 140px; }
 
 /* F8 page table: auto layout instead of cases-index's fixed % columns, so each column shrinks to
    fit its actual content (short RUT/badges/buttons) instead of leaving fixed-% whitespace. */
 table.cases-f8.cases-index {
     table-layout: auto;
-    width: auto;
+    width: 100%;
+    min-width: 1180px;
 }
 
 table.cases-f8.cases-index th,
@@ -534,9 +549,8 @@ table.cases-index button.btn-primary {
     white-space: nowrap;
 }
 
-/* The two F8/Certificado transfer choices stack instead of squeezing side by side into the
-   Acción column next to the delete icon — they're mutually exclusive alternatives, not
-   simultaneous actions, so a column reads better than a cramped row. */
+/* The "Traspaso a F8" button sits in its own stacked block in the Acción column rather than
+   inline next to the delete icon, so the column stays readable. */
 table.cases-index .transfer-choice {
     display: flex;
     flex-direction: column;
@@ -1010,14 +1024,12 @@ button.btn-outline-danger:hover { background: var(--color-review-bg); }
     text-decoration: underline;
 }
 
-/* Tablet and phone breakpoints. The layout is already flex-wrap based (header, nav groups,
-   .card) and the cases table already scrolls horizontally inside .table-card, so nothing here
-   restructures those — it only shrinks paddings/fonts and lets the brand/logo/subnav shrink so
-   the same composition (header -> subnav -> filters -> table) still fits without overflowing
-   the viewport or clipping controls off-screen. */
-@media (max-width: 900px) {
+/* Breakpoints responsivos para pantallas compactas, ventanas reducidas o modo split-screen.
+   Garantiza que la cabecera, subnavegación y tarjetas ocupen un espacio mínimo vertical
+   y dejen todo el resto del viewport para la tabla de datos y sus barras de scroll. */
+@media (max-width: 1200px) {
     header.app-header {
-        padding: 10px 14px;
+        padding: 8px 16px;
     }
 
     header.app-header .brand-logo {
@@ -1025,20 +1037,62 @@ button.btn-outline-danger:hover { background: var(--color-review-bg); }
     }
 
     header.app-header .brand {
-        font-size: 1.05rem;
+        font-size: 1.15rem;
+        gap: 10px;
     }
 
-    main {
-        padding: 14px 12px 28px;
+    div.app-subnav {
+        padding: 6px 16px;
+        gap: 6px;
     }
 
-    body.cases-page main {
-        padding-left: 8px;
-        padding-right: 8px;
+    div.app-subnav a {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+    }
+}
+
+@media (max-width: 900px) {
+    header.app-header {
+        padding: 6px 12px;
+    }
+
+    header.app-header .brand-logo {
+        height: 40px;
+    }
+
+    header.app-header .brand {
+        font-size: 1rem;
+    }
+
+    header.app-header .brand small {
+        font-size: 0.75rem;
+    }
+
+    nav.app-nav a,
+    nav.app-nav form button {
+        padding: 3px 7px;
+        font-size: 0.65rem;
     }
 
     .nav-search input[type="text"] {
-        min-width: 100px;
+        min-width: 90px;
+        font-size: 0.68rem;
+        padding: 3px 6px;
+    }
+
+    div.app-subnav {
+        padding: 4px 10px;
+        flex-wrap: wrap;
+    }
+
+    body.cases-page main {
+        padding: 6px 8px 8px;
+    }
+
+    .card.card-manual-entry {
+        padding: 8px 12px !important;
+        margin-bottom: 8px !important;
     }
 }
 
@@ -1046,6 +1100,8 @@ button.btn-outline-danger:hover { background: var(--color-review-bg); }
     header.app-header {
         flex-direction: column;
         align-items: stretch;
+        padding: 6px 10px;
+        gap: 6px;
     }
 
     header.app-header .brand {
@@ -1054,7 +1110,7 @@ button.btn-outline-danger:hover { background: var(--color-review-bg); }
     }
 
     nav.app-nav {
-        justify-content: flex-start;
+        justify-content: center;
     }
 
     .nav-group {
@@ -1066,11 +1122,13 @@ button.btn-outline-danger:hover { background: var(--color-review-bg); }
 
     .nav-group-end {
         border-left: none;
+        padding-left: 0;
     }
 
     div.app-subnav {
         flex-wrap: wrap;
-        padding: 8px 12px;
+        padding: 4px 8px;
+        gap: 4px;
     }
 
     .login-card {

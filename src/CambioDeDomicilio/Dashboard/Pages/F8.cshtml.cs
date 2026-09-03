@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CambioDeDomicilio.Configuration;
@@ -118,9 +117,8 @@ public class F8Model(
 
     public async Task<IActionResult> OnPostConfirmAsync(long id)
     {
-        var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var contacts = routingService.LoadDirectory();
-        var result = await routingService.SendConfirmationAsync(id, userId, contacts, HttpContext.RequestAborted, viaF8: true);
+        var result = await routingService.SendConfirmationAsync(id, contacts, HttpContext.RequestAborted, viaF8: true);
 
         Message = result.Reason;
         MessageIsError = !result.Sent;
@@ -130,9 +128,8 @@ public class F8Model(
 
     public async Task<IActionResult> OnPostMarkUploadedAndConfirmAsync(long id)
     {
-        var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var contacts = routingService.LoadDirectory();
-        var result = await routingService.MarkUploadedAndConfirmAsync(id, userId, contacts, HttpContext.RequestAborted, viaF8: true);
+        var result = await routingService.MarkUploadedAndConfirmAsync(id, contacts, HttpContext.RequestAborted, viaF8: true);
 
         // Once confirmed, the row goes fully blue (row-confirmed) — any leftover Marcar/Pendiente
         // Carpeta tick would otherwise still highlight it yellow (row-pendiente-carpeta) or keep it
@@ -151,9 +148,8 @@ public class F8Model(
 
     public async Task<IActionResult> OnPostRectifyConfirmationAsync(long id)
     {
-        var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var contacts = routingService.LoadDirectory();
-        var result = await routingService.RectifyConfirmationAsync(id, userId, contacts, HttpContext.RequestAborted);
+        var result = await routingService.RectifyConfirmationAsync(id, contacts, HttpContext.RequestAborted);
 
         Message = result.Reason;
         MessageIsError = !result.Sent;

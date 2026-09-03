@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using CambioDeDomicilio.Configuration;
-using CambioDeDomicilio.Dashboard.Auth;
 using CambioDeDomicilio.Directories;
 using CambioDeDomicilio.Domain;
 using CambioDeDomicilio.Mail;
@@ -91,8 +90,6 @@ public class RouterWorkerTests : IDisposable
 
         var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
         discardedRepository.EnsureSchema();
-        var users = new UserRepository($"Data Source={dbPath}");
-        users.EnsureSchema();
 
         var routingService = new AddressChangeRoutingService(
             repository,
@@ -100,7 +97,6 @@ public class RouterWorkerTests : IDisposable
             new ComunaDirectory(),
             new FakeMailSender(),
             new NoOpEmailMover(),
-            users,
             [],
             options,
             NullLogger<AddressChangeRoutingService>.Instance);

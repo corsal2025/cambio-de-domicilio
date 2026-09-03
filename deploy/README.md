@@ -2,8 +2,8 @@
 
 Runbook completo, en orden.
 
-> ⚡ **Publicación rápida**: usa `.\deploy\publish.ps1 -DevCert -InstallTask -Shortcut -AddUser operador`
-> para ejecutar los pasos 4–10 de una sola vez (ver sección [Script unificado](#script-unificado-publishps1) abajo).
+> ⚡ **Publicación rápida**: usa `.\deploy\publish.ps1 -DevCert -InstallTask -Shortcut`
+> para ejecutar los pasos 4–9 de una sola vez (ver sección [Script unificado](#script-unificado-publishps1) abajo).
 
 
 
@@ -34,8 +34,8 @@ variables de entorno de sistema, en vez de escribirlas en el JSON.
 ## 4. Certificado HTTPS para el dashboard
 
 El dashboard web solo sirve datos por HTTPS (el puerto HTTP solo redirige,
-nunca entrega contenido) — esto protege tanto las contraseñas de login como
-los nombres/RUTs que viajan por la red municipal.
+nunca entrega contenido) — esto protege los nombres/RUTs que viajan por la
+red municipal.
 
 En el equipo donde corre el servicio:
 ```powershell
@@ -52,24 +52,14 @@ dotnet dev-certs https --export-path .\dev-cert.pfx --password <clave-temporal>
 Import-PfxCertificate -FilePath .\dev-cert.pfx -CertStoreLocation Cert:\LocalMachine\Root -Password (ConvertTo-SecureString "<clave-temporal>" -AsPlainText -Force)
 ```
 
-## 5. Crear el primer usuario del dashboard
-
-```powershell
-cd publish
-.\CambioDeDomicilio.exe --add-user operador
-```
-Pide la contraseña por consola (no se muestra en pantalla). Repetir con
-`--add-user <nombre>` por cada colega que necesite acceso; `--remove-user <nombre>`
-para dar de baja a alguien.
-
-## 6. Publicar
+## 5. Publicar
 
 Desde la raíz del repo:
 ```powershell
 dotnet publish src/CambioDeDomicilio -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
 ```
 
-## 7. Copiar los datos de runtime junto al publicado
+## 6. Copiar los datos de runtime junto al publicado
 
 El ejecutable corre con `publish/` como directorio de trabajo (ver
 `install-task.ps1`), y las rutas en `appsettings.json` (`data/router.db`,
@@ -79,14 +69,14 @@ Copy-Item -Recurse -Force ..\data publish\data
 ```
 (o edita las rutas en `publish/appsettings.json` para que sean absolutas).
 
-## 8. Instalar la tarea programada
+## 7. Instalar la tarea programada
 
 Como Administrador:
 ```powershell
 .\deploy\install-task.ps1
 ```
 
-## 9. Iniciar y verificar
+## 8. Iniciar y verificar
 
 ```powershell
 Start-ScheduledTask -TaskName CambioDeDomicilio
@@ -96,9 +86,9 @@ Get-ScheduledTask -TaskName CambioDeDomicilio | Get-ScheduledTaskInfo
 Confirmar que `data/reporte.csv` se crea/actualiza tras el primer ciclo
 (hasta `PollIntervalMinutes` minutos después de iniciar), y que
 `https://localhost:5001` (o `https://<nombre-del-pc>:5001` desde otro equipo
-de la red) muestra la pantalla de ingreso del dashboard.
+de la red) muestra el dashboard.
 
-## 10. Acceso directo de escritorio (opcional)
+## 9. Acceso directo de escritorio (opcional)
 
 Para que el operador tenga un ícono que abra el dashboard directamente:
 ```powershell
@@ -123,7 +113,7 @@ si ese equipo va a servir el dashboard (paso 4).
 
 ## Script unificado: publish.ps1
 
-El script [`deploy/publish.ps1`](publish.ps1) ejecuta los pasos 4–10 en un solo comando:
+El script [`deploy/publish.ps1`](publish.ps1) ejecuta los pasos 4–9 en un solo comando:
 
 **Uso básico** (solo publica):
 ```powershell
@@ -132,7 +122,7 @@ El script [`deploy/publish.ps1`](publish.ps1) ejecuta los pasos 4–10 en un sol
 
 **Despliegue completo** (como Administrador):
 ```powershell
-.\deploy\publish.ps1 -DevCert -InstallTask -Shortcut -AddUser operador
+.\deploy\publish.ps1 -DevCert -InstallTask -Shortcut
 ```
 
 **Segundo PC** (solo copia datos + certificado):
@@ -143,8 +133,7 @@ El script [`deploy/publish.ps1`](publish.ps1) ejecuta los pasos 4–10 en un sol
 | Parámetro | Qué hace |
 |---|---|
 | `-DevCert` | Instala el certificado HTTPS de desarrollo (paso 4) |
-| `-AddUser nombre` | Crea un usuario del dashboard (paso 5) |
-| `-InstallTask` | Registra la tarea programada (paso 8, requiere Admin) |
-| `-Shortcut` | Crea acceso directo en escritorio (paso 10) |
+| `-InstallTask` | Registra la tarea programada (paso 7, requiere Admin) |
+| `-Shortcut` | Crea acceso directo en escritorio (paso 9) |
 | `-ConfigOnly` | Solo copia datos y configuración, sin publicar |
 | `-PublishDir ruta` | Directorio de salida (default: `./publish`)

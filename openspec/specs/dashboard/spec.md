@@ -2,33 +2,22 @@
 
 ## Purpose
 
-The operator-facing web dashboard for the upload-confirmation flow: authentication gate, case list with lifecycle status, manual data entry, confirmation actions, sector PDF generation, comuna directory management, and portable distribution. Password-hashing/reset-token mechanics live in the separate `dashboard-auth` capability.
+The operator-facing web dashboard for the upload-confirmation flow: case list with lifecycle status, manual data entry, confirmation actions, sector PDF generation, comuna directory management, and portable distribution. It runs on the municipal LAN with no login gate — access is controlled at the network layer, not the application.
 
 ## Requirements
-
-### Requirement: Per-user authentication
-The dashboard SHALL require a per-user login (username + password) before showing any data. Passwords SHALL be stored only as salted hashes.
-
-#### Scenario: Unauthenticated access
-- **WHEN** a browser requests any dashboard page without a valid session
-- **THEN** it is redirected to the login page and no personal data is served
-
-#### Scenario: Successful login
-- **WHEN** a user submits valid credentials
-- **THEN** a session cookie is issued and the dashboard is shown
 
 ### Requirement: Encrypted transport
 The dashboard SHALL be served over HTTPS only; plain HTTP requests SHALL be redirected to HTTPS, never served with data.
 
 #### Scenario: HTTP request redirected
 - **WHEN** a browser requests `http://<host>:<port>/...`
-- **THEN** the response is a redirect to the equivalent `https://` URL, with no page content or session cookie issued over the plain connection
+- **THEN** the response is a redirect to the equivalent `https://` URL, with no page content served over the plain connection
 
 ### Requirement: Case list reflecting the real lifecycle
 The dashboard SHALL show tracked cases (`PersonRequest`) with their current status (`Pending`/`Uploaded`/`Confirmed`), filterable by status and by "Requiere revisión."
 
 #### Scenario: Viewing cases
-- **WHEN** an authenticated user opens the case list
+- **WHEN** the operator opens the case list
 - **THEN** every tracked case is shown with `full_name`, `rut`, `comuna`, `status`, `fecha_ultima_carpeta` (if set), and `sector` (if derivable)
 
 #### Scenario: Filtering by review status
@@ -36,7 +25,7 @@ The dashboard SHALL show tracked cases (`PersonRequest`) with their current stat
 - **THEN** only cases with `needs_review = true` are shown
 
 ### Requirement: Editable última-carpeta date
-The dashboard SHALL let an authenticated user set or change the `fecha_ultima_carpeta` for any case by typing it as free text — no calendar picker (the operator types faster than navigating a calendar) — in the format "día mes-en-palabras año" (e.g. `15 marzo 2024`, also accepting `15 de marzo de 2024`), case-insensitive. The stored/displayed value SHALL render in the same format, and the derived `sector` SHALL update immediately.
+The dashboard SHALL let the operator set or change the `fecha_ultima_carpeta` for any case by typing it as free text — no calendar picker (the operator types faster than navigating a calendar) — in the format "día mes-en-palabras año" (e.g. `15 marzo 2024`, also accepting `15 de marzo de 2024`), case-insensitive. The stored/displayed value SHALL render in the same format, and the derived `sector` SHALL update immediately.
 
 #### Scenario: Operator types the date
 - **WHEN** a user types `10 enero 2024` on a case and saves
@@ -50,8 +39,8 @@ The dashboard SHALL let an authenticated user set or change the `fecha_ultima_ca
 The dashboard SHALL provide a "Enviar confirmación" action on cases with `status = Uploaded` and complete data, calling the existing `SendConfirmationAsync`. The action SHALL be unavailable (disabled or hidden) for cases that are not eligible, and the server SHALL enforce the same eligibility regardless of what the page displays.
 
 #### Scenario: Sending a confirmation
-- **WHEN** an authenticated user triggers the action on an eligible `Uploaded` case
-- **THEN** the confirmation email is sent, the case becomes `Confirmed`, and `confirmed_by_user_id` / `confirmed_at` are recorded for that user and timestamp
+- **WHEN** the operator triggers the action on an eligible `Uploaded` case
+- **THEN** the confirmation email is sent, the case becomes `Confirmed`, and `confirmed_at` is recorded
 
 #### Scenario: Attempting to confirm a non-eligible case
 - **WHEN** the action is attempted on a case that is `Pending`, already `Confirmed`, or missing required data
@@ -65,7 +54,7 @@ The dashboard SHALL render a print-ready document per sector (Archivo / Oficina 
 - **THEN** the printed output contains only cases whose derived sector is `Archivo`, with no navigation chrome, ready to print or save as PDF via the browser
 
 ### Requirement: Manual person-data entry for unextractable cases
-For cases flagged `needs_review` (the request's data arrived in an attachment, an empty auto-reply, or a forward the extractor cannot parse), the dashboard SHALL let an authenticated user type in the contributor's full name and RUT. The RUT SHALL be check-digit-validated and normalized like an auto-extracted one; on success the case stops being flagged for review and continues the normal lifecycle.
+For cases flagged `needs_review` (the request's data arrived in an attachment, an empty auto-reply, or a forward the extractor cannot parse), the dashboard SHALL let the operator type in the contributor's full name and RUT. The RUT SHALL be check-digit-validated and normalized like an auto-extracted one; on success the case stops being flagged for review and continues the normal lifecycle.
 
 #### Scenario: Operator completes a case manually
 - **WHEN** a user enters a name and a valid RUT on a `needs_review` case and saves
@@ -91,7 +80,7 @@ Each case SHALL display the date its request email was received and a countdown 
 - **THEN** no deadline alert is shown for it
 
 ### Requirement: Comuna directory management
-The dashboard SHALL provide a directory view listing every comuna (name, contact email, domain) and let an authenticated user correct a comuna's contact email. Changes SHALL persist to the same CSV file the polling cycle reads, so the next confirmation email uses the corrected address.
+The dashboard SHALL provide a directory view listing every comuna (name, contact email, domain) and let the operator correct a comuna's contact email. Changes SHALL persist to the same CSV file the polling cycle reads, so the next confirmation email uses the corrected address.
 
 #### Scenario: Operator corrects a changed email
 - **WHEN** a user edits the contact email of a comuna and saves

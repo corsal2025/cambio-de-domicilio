@@ -76,8 +76,8 @@ public sealed class PersonRequest
         ? fecha < new DateOnly(2023, 7, 1) ? FolderSector.Archivo : FolderSector.Oficina43
         : null;
 
-    /// <summary>Operator-ticked flag: the physical folder could not be located, so a certification
-    /// request must go to Secretaría Municipal instead of the normal upload flow.</summary>
+    /// <summary>Operator-ticked flag: the physical folder could not be located, so the case is
+    /// handled through the F8 process instead of the normal upload flow.</summary>
     public bool FolderNotFound { get; set; }
 
     /// <summary>Operator-ticked flag: the physical folder is pending retrieval. Purely a visual
@@ -90,18 +90,13 @@ public sealed class PersonRequest
 
     /// <summary>Which dedicated screen this case was transferred to, if any. None means it still
     /// shows in Casos (Index) — ticking the FolderNotFound checkbox alone does not change this,
-    /// only clicking "Traspaso a F8" or "Traspaso a Certificado" does.</summary>
+    /// only clicking "Traspaso a F8" does.</summary>
     public CaseDestination Destination { get; set; } = CaseDestination.None;
 
     /// <summary>When the operator confirmed the transfer to whichever Destination is set. Null means
     /// not yet transferred. Once set, the case is excluded from Casos (Index) and shows only on its
     /// Destination's dedicated screen.</summary>
     public DateTimeOffset? TransferredAt { get; set; }
-
-    /// <summary>When this Certificado case was last included in the "Avisar certificado" batch email
-    /// to Secretaría Municipal + acknowledgement to its comuna. Null means not yet notified — a case
-    /// is excluded from future batches once this is set, so re-sending doesn't repeat names.</summary>
-    public DateTimeOffset? CertificadoNotifiedAt { get; set; }
 }
 
 public enum CaseDestination
@@ -109,7 +104,5 @@ public enum CaseDestination
     /// <summary>Not yet transferred out of Casos — default for every case.</summary>
     None,
     /// <summary>Transferred to the /F8 screen.</summary>
-    F8,
-    /// <summary>Transferred to the /Certificado screen.</summary>
-    Certificado
+    F8
 }

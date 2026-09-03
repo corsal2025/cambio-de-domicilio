@@ -4,7 +4,7 @@ context: |
   Tech stack: .NET 10, C#, ASP.NET Core, Razor Pages, SQLite, EWS (Exchange Web Services SOAP)
   Architecture: Clean Architecture with Domain, Application (Routing/EWS/Mail), and Presentation (Dashboard) layers
   Testing: xUnit, in-memory SQLite repositories, TDD
-  Authentication: Cookie auth with PBKDF2 password hashing
+  Access control: none at the application layer — runs on the municipal LAN, gated at the network
   Deployment: Windows Scheduled Task (production), self-contained single-file publish
   Domain: Municipal government — Valparaíso, Chile. Conaset address-change request routing.
   All code, comments, and documentation in English. Business process diagrams in Spanish (operator-facing).

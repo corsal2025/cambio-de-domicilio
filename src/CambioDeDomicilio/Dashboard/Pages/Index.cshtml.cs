@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CambioDeDomicilio.Configuration;
@@ -275,14 +274,6 @@ public class IndexModel(
         return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
     }
 
-    /// <summary>Operator-confirmed move to Certificado: the case disappears from Casos and starts
-    /// showing in the Certificado page, where the "Avisar certificado" batch email flow lives.</summary>
-    public IActionResult OnPostTransferToCertificado(long id)
-    {
-        repository.SetDestination(id, CaseDestination.Certificado, DateTimeOffset.UtcNow);
-        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
-    }
-
     /// <summary>Marks (or unmarks) every case currently visible under the active filter — a
     /// bulk shortcut for the per-row "Marcar" checkbox, respecting the same status/needsReview
     /// filter the operator is looking at.</summary>
@@ -313,9 +304,8 @@ public class IndexModel(
 
     public async Task<IActionResult> OnPostConfirmAsync(long id)
     {
-        var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var contacts = routingService.LoadDirectory();
-        var result = await routingService.SendConfirmationAsync(id, userId, contacts, HttpContext.RequestAborted);
+        var result = await routingService.SendConfirmationAsync(id, contacts, HttpContext.RequestAborted);
 
         Message = result.Reason;
         MessageIsError = !result.Sent;
@@ -327,9 +317,8 @@ public class IndexModel(
     /// sends the confirmation, in one step (see AddressChangeRoutingService.MarkUploadedAndConfirmAsync).</summary>
     public async Task<IActionResult> OnPostMarkUploadedAndConfirmAsync(long id)
     {
-        var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var contacts = routingService.LoadDirectory();
-        var result = await routingService.MarkUploadedAndConfirmAsync(id, userId, contacts, HttpContext.RequestAborted);
+        var result = await routingService.MarkUploadedAndConfirmAsync(id, contacts, HttpContext.RequestAborted);
 
         Message = result.Reason;
         MessageIsError = !result.Sent;
@@ -341,9 +330,8 @@ public class IndexModel(
     /// comuna and reverts the case to Pending — see AddressChangeRoutingService.RectifyConfirmationAsync.</summary>
     public async Task<IActionResult> OnPostRectifyConfirmationAsync(long id)
     {
-        var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var contacts = routingService.LoadDirectory();
-        var result = await routingService.RectifyConfirmationAsync(id, userId, contacts, HttpContext.RequestAborted);
+        var result = await routingService.RectifyConfirmationAsync(id, contacts, HttpContext.RequestAborted);
 
         Message = result.Reason;
         MessageIsError = !result.Sent;
@@ -371,9 +359,8 @@ public class IndexModel(
 
         var all = everything.AsEnumerable();
 
-        // Cases already transferred to F8 or Certificado (see OnPostTransferToF8 /
-        // OnPostTransferToCertificado) live in their own dedicated page instead — ticking the F8
-        // checkbox alone does not remove a case from here.
+        // Cases already transferred to F8 (see OnPostTransferToF8) live on the dedicated F8 page
+        // instead — ticking the F8 checkbox alone does not remove a case from here.
         all = all.Where(c => c.TransferredAt is null);
 
         if (!string.IsNullOrEmpty(StatusFilter) && Enum.TryParse<RequestStatus>(StatusFilter, out var status))

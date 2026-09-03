@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using CambioDeDomicilio.Configuration;
-using CambioDeDomicilio.Dashboard.Auth;
 using CambioDeDomicilio.Directories;
 using CambioDeDomicilio.Domain;
 using CambioDeDomicilio.Extraction;
@@ -25,7 +24,6 @@ public sealed class AddressChangeRoutingService(
     IComunaDirectory directory,
     IMailSender mailSender,
     IEmailMover emailMover,
-    IUserRepository users,
     IEnumerable<INotificationChannel> notificationChannels,
     RouterOptions options,
     ILogger<AddressChangeRoutingService> logger)
@@ -212,7 +210,7 @@ public sealed class AddressChangeRoutingService(
     /// (e.g. already moved manually, or a mailbox hiccup), the case still advances — the operator
     /// explicitly asked for this outcome, so a mailbox-side inconsistency shouldn't block it.
     /// </summary>
-    public async Task<ConfirmationResult> MarkUploadedAndConfirmAsync(long requestId, long confirmedByUserId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false)
+    public async Task<ConfirmationResult> MarkUploadedAndConfirmAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false)
     {
         var request = repository.FindById(requestId);
         if (request is null)
@@ -245,11 +243,11 @@ public sealed class AddressChangeRoutingService(
         }
 
         repository.MarkUploaded(request.Id, DateTimeOffset.UtcNow);
-        return await SendConfirmationAsync(requestId, confirmedByUserId, contacts, cancellationToken, viaF8);
+        return await SendConfirmationAsync(requestId, contacts, cancellationToken, viaF8);
     }
 
     /// <summary>Operator-triggered (button): sends the confirmation email for an Uploaded case.</summary>
-    public async Task<ConfirmationResult> SendConfirmationAsync(long requestId, long confirmedByUserId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false)
+    public async Task<ConfirmationResult> SendConfirmationAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false)
     {
         var request = repository.FindById(requestId);
         if (request is null)
@@ -285,8 +283,8 @@ public sealed class AddressChangeRoutingService(
         var (subject, body) = viaF8
             ? EmailTemplates.UploadConfirmationF8(request.FullName, request.Rut)
             : EmailTemplates.UploadConfirmation(request.FullName, request.Rut);
-        await mailSender.SendAsync(comunaContact.ContactEmail, subject, AppendFooter(body, confirmedByUserId), cancellationToken);
-        repository.UpdateStatusToConfirmed(request.Id, DateTimeOffset.UtcNow, confirmedByUserId);
+        await mailSender.SendAsync(comunaContact.ContactEmail, subject, body, cancellationToken);
+        repository.UpdateStatusToConfirmed(request.Id, DateTimeOffset.UtcNow);
         if (viaF8)
         {
             // The F8 code is only useful while the case is in progress — once confirmed (row turns
@@ -310,7 +308,7 @@ public sealed class AddressChangeRoutingService(
     /// resets the case to Pending. Only Confirmed cases can be rectified this way — an Uploaded
     /// case that was never confirmed has nothing to retract, since no email ever reached the comuna.
     /// </summary>
-    public async Task<ConfirmationResult> RectifyConfirmationAsync(long requestId, long rectifiedByUserId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken)
+    public async Task<ConfirmationResult> RectifyConfirmationAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken)
     {
         var request = repository.FindById(requestId);
         if (request is null)
@@ -335,19 +333,11 @@ public sealed class AddressChangeRoutingService(
         }
 
         var (subject, body) = EmailTemplates.ConfirmationRectification(request.FullName, request.Rut);
-        await mailSender.SendAsync(comunaContact.ContactEmail, subject, AppendFooter(body, rectifiedByUserId), cancellationToken);
+        await mailSender.SendAsync(comunaContact.ContactEmail, subject, body, cancellationToken);
         repository.RevertConfirmedToPending(request.Id);
         logger.LogInformation("Correo de rectificación enviado y caso revertido a Pendiente");
 
         return new ConfirmationResult(true, "Correo de rectificación enviado y caso revertido a Pendiente");
-    }
-
-    /// <summary>Appends the operator's personal signature (set in ChangePassword) to an outgoing
-    /// email body, if they have one configured. Silent no-op otherwise.</summary>
-    private string AppendFooter(string body, long userId)
-    {
-        var footer = users.FindById(userId)?.EmailFooter;
-        return string.IsNullOrWhiteSpace(footer) ? body : $"{body}\n\n{footer}";
     }
 
     private static string ExtractDomain(string emailAddress)

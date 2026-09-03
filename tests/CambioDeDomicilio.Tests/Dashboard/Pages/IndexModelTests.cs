@@ -1,10 +1,8 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using CambioDeDomicilio.Configuration;
-using CambioDeDomicilio.Dashboard.Auth;
 using CambioDeDomicilio.Dashboard.Pages;
 using CambioDeDomicilio.Directories;
 using CambioDeDomicilio.Domain;
@@ -31,8 +29,6 @@ public class IndexModelTests : IDisposable
         repository.EnsureSchema();
         var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
         discardedRepository.EnsureSchema();
-        var users = new UserRepository($"Data Source={dbPath}");
-        users.EnsureSchema();
         File.WriteAllText(csvPath, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
 
         var options = new RouterOptions
@@ -52,7 +48,6 @@ public class IndexModelTests : IDisposable
             new ComunaDirectory(),
             new NoOpMailSender(),
             new NoOpEmailMover(),
-            users,
             [],
             options,
             NullLogger<AddressChangeRoutingService>.Instance);
@@ -69,11 +64,7 @@ public class IndexModelTests : IDisposable
         {
             PageContext = new PageContext
             {
-                HttpContext = new DefaultHttpContext
-                {
-                    User = new ClaimsPrincipal(new ClaimsIdentity(
-                        [new Claim(ClaimTypes.NameIdentifier, "1")]))
-                }
+                HttpContext = new DefaultHttpContext()
             }
         };
     }
@@ -290,7 +281,7 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
-    public async Task OnPostConfirmAsync_UploadedCase_RecordsAttributionFromClaim()
+    public async Task OnPostConfirmAsync_UploadedCase_ConfirmsSuccessfully()
     {
         var id = repository.Insert(NewRequest("msg-1"));
         repository.SetFechaUltimaCarpeta(id, new DateOnly(2024, 3, 15));
@@ -300,7 +291,6 @@ public class IndexModelTests : IDisposable
 
         var stored = repository.GetAll().Single(c => c.Id == id);
         Assert.Equal(RequestStatus.Confirmed, stored.Status);
-        Assert.Equal(1, stored.ConfirmedByUserId);
     }
 
     [Fact]
@@ -313,7 +303,6 @@ public class IndexModelTests : IDisposable
 
         var stored = repository.GetAll().Single(c => c.Id == id);
         Assert.Equal(RequestStatus.Confirmed, stored.Status);
-        Assert.Equal(1, stored.ConfirmedByUserId);
         Assert.False(model.MessageIsError);
     }
 
@@ -614,21 +603,6 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
-    public void OnGet_CaseMovedToCertificado_IsExcludedFromCases()
-    {
-        var movedId = repository.Insert(NewRequest("msg-1"));
-        repository.SetFolderNotFound(movedId, true);
-        repository.SetDestination(movedId, CaseDestination.Certificado, DateTimeOffset.UtcNow);
-
-        var stillInCasesId = repository.Insert(NewRequest("msg-2"));
-
-        model.OnGet(status: null);
-
-        var result = Assert.Single(model.Cases);
-        Assert.Equal(stillInCasesId, result.Id);
-    }
-
-    [Fact]
     public void OnGet_CaseWithFolderNotFoundButNotMovedToF8_StillAppearsInCases()
     {
         var id = repository.Insert(NewRequest("msg-1"));
@@ -650,19 +624,6 @@ public class IndexModelTests : IDisposable
 
         var stored = repository.FindById(id)!;
         Assert.Equal(CaseDestination.F8, stored.Destination);
-        Assert.NotNull(stored.TransferredAt);
-    }
-
-    [Fact]
-    public void OnPostTransferToCertificado_SetsDestinationAndTimestamp()
-    {
-        var id = repository.Insert(NewRequest("msg-1"));
-        repository.SetFolderNotFound(id, true);
-
-        model.OnPostTransferToCertificado(id);
-
-        var stored = repository.FindById(id)!;
-        Assert.Equal(CaseDestination.Certificado, stored.Destination);
         Assert.NotNull(stored.TransferredAt);
     }
 

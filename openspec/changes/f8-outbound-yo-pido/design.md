@@ -61,7 +61,6 @@ what Casos (Index) shows — so without this they would appear on the Casos scre
 | `Index.cshtml.cs:366` | add `.Where(c => c.Direction == RequestDirection.Inbound)` — **required, prevents leak** |
 | `Sector.cshtml.cs:23,59` | add Inbound filter |
 | `SectorF8.cshtml.cs:24,51` | add Inbound filter (belt-and-braces: Outbound is never `Marked`) |
-| `Certificado.cshtml.cs:120,169` | add Inbound filter |
 | `Discarded.cshtml.cs:14,27` | check at implementation time; add Inbound filter if it surfaces PersonRequest rows |
 | `F8.cshtml.cs:176` | splits by tab: Inbound (Destination==F8) vs Outbound |
 | `RouterWorker.cs:77` | `reportWriter.Write(repository.GetAll().Where(...).ToList(), ...)` |
@@ -74,12 +73,12 @@ writer silently drop caller-supplied rows and break its existing tests' contract
 
 ### `RequestStatus.Requested` blast radius
 Implementation MUST grep `RequestStatus` across `src/` and `tests/` before finishing. Known sites, all
-already safe: badge `switch` expressions in `Index.cshtml:254`, `F8.cshtml:126`, `Certificado.cshtml:132`
+already safe: badge `switch` expressions in `Index.cshtml:254`, `F8.cshtml:126`
 (each has a `_ => ("badge-pending", …)` fallback arm — the "Yo pido" tab renders its own badge, so these
 stay untouched); `if/else if` chains on `Pending`/`Uploaded`/`Confirmed` in `Index.cshtml:276+`,
 `F8.cshtml:157+` (fall through to no action for `Requested`, correct); `Index.cshtml.cs:383`
 `Enum.TryParse` status filter (gains a value harmlessly); ordering `.OrderBy(c => c.Status == Confirmed)`
-in `Index/F8/Certificado` (Requested sorts with the non-confirmed group — acceptable, Outbound has its own tab).
+in `Index/F8` (Requested sorts with the non-confirmed group — acceptable, Outbound has its own tab).
 `CsvReportWriter:38` writes `Status.ToString()` — moot once Outbound is excluded.
 
 ### Tab switcher: two `<a>` links + query string, server-renders one table
@@ -143,7 +142,7 @@ AppendFooter(body, userId), ct)`, exactly like `SendConfirmationAsync`.
 | `Notifications/EmailTemplates.cs` | Modify | `RequestFolderToComuna(fullName, rut)`; `OutboundRequestRectification(fullName, rut)` |
 | `Dashboard/Pages/F8.cshtml.cs` | Modify | `Tab` bound property; `InboundCases`/`OutboundCases`; `OnPostSendOutboundRequestAsync`; `OnPostRectifyOutboundRequestAsync`; tab-preserving redirects |
 | `Dashboard/Pages/F8.cshtml` | Modify | Tab links; second table (Nombre/RUT/Comuna/Recibido/Estado/Acción) with "Enviar solicitud" (Pending rows) and "Rectificar solicitud" (Requested rows) buttons |
-| `Dashboard/Pages/Index.cshtml.cs`, `Sector.cshtml.cs`, `SectorF8.cshtml.cs`, `Certificado.cshtml.cs`, `Discarded.cshtml.cs` | Modify | Inbound-only filter |
+| `Dashboard/Pages/Index.cshtml.cs`, `Sector.cshtml.cs`, `SectorF8.cshtml.cs`, `Discarded.cshtml.cs` | Modify | Inbound-only filter |
 | `wwwroot/css/dashboard.css` | Modify | `.page-tabs` / `.page-tab` block |
 | Tests: `PersonRequestRepositoryTests`, `AddressChangeRoutingServiceTests`, `RouterWorkerTests`, `F8ModelTests`, `IndexModelTests`, `CsvReportWriterTests` | Modify | Direction round-trip + legacy-row default; outbound insert/dedupe-scoping; third loop; tab split; rectify-outbound round trip; Outbound excluded from Casos/CSV |
 
@@ -156,7 +155,7 @@ AppendFooter(body, userId), ct)`, exactly like `SendConfirmationAsync`.
 | Unit | Outbound dedupe is direction-scoped | seed an Inbound row for the same RUT+comuna, assert an Outbound row is still created |
 | Integration | Third loop inserts Outbound Pending; failures in one email don't abort the batch | `RouterWorkerTests` with a fake reader |
 | Integration | `SendOutboundRequestAsync` sends one SGL email and transitions to Requested | fake `IMailSender`, assert recipient/subject/status |
-| Regression | Outbound rows never appear in Casos, Sector, SectorF8, Certificado or the CSV | `IndexModelTests` / `CsvReportWriterTests` |
+| Regression | Outbound rows never appear in Casos, Sector, SectorF8 or the CSV | `IndexModelTests` / `CsvReportWriterTests` |
 
 ## Migration / Rollout
 

@@ -22,9 +22,6 @@
 .PARAMETER DevCert
     Trust the ASP.NET dev HTTPS certificate
 
-.PARAMETER AddUser
-    Create a dashboard user (prompts for password)
-
 .PARAMETER ConfigOnly
     Only copy config and data files, skip dotnet publish
 
@@ -33,7 +30,7 @@
     .\deploy\publish.ps1
 
     # Full production deploy
-    .\deploy\publish.ps1 -DevCert -InstallTask -Shortcut -AddUser operador
+    .\deploy\publish.ps1 -DevCert -InstallTask -Shortcut
 
     # Second PC: just copy publish folder, trust cert
     .\deploy\publish.ps1 -ConfigOnly -DevCert
@@ -44,7 +41,6 @@ param(
     [switch]$InstallTask,
     [switch]$Shortcut,
     [switch]$DevCert,
-    [string]$AddUser = "",
     [switch]$ConfigOnly
 )
 
@@ -61,7 +57,7 @@ Write-Host ""
 
 # Step 0: dev certificate
 if ($DevCert) {
-    Write-Host "[1/6] Instalando certificado HTTPS de desarrollo..." -ForegroundColor Yellow
+    Write-Host "[1/5] Instalando certificado HTTPS de desarrollo..." -ForegroundColor Yellow
     dotnet dev-certs https --trust
     Write-Host "  ✅ Certificado instalado." -ForegroundColor Green
     Write-Host ""
@@ -69,7 +65,7 @@ if ($DevCert) {
 
 # Step 1: dotnet publish (or config-only)
 if (-not $ConfigOnly) {
-    Write-Host "[2/6] Publicando (self-contained, single-file)..." -ForegroundColor Yellow
+    Write-Host "[2/5] Publicando (self-contained, single-file)..." -ForegroundColor Yellow
     Push-Location $RepoRoot
     try {
         dotnet restore $Project
@@ -82,7 +78,7 @@ if (-not $ConfigOnly) {
     Write-Host "  ✅ Publicado en: $PublishPath" -ForegroundColor Green
     Write-Host ""
 } else {
-    Write-Host "[2/6] Saltando dotnet publish (modo config-only)." -ForegroundColor Yellow
+    Write-Host "[2/5] Saltando dotnet publish (modo config-only)." -ForegroundColor Yellow
     if (-not (Test-Path $PublishPath\CambioDeDomicilio.exe)) {
         Write-Warning "No se encontró $PublishPath\CambioDeDomicilio.exe. Ejecuta sin -ConfigOnly primero."
         exit 1
@@ -91,7 +87,7 @@ if (-not $ConfigOnly) {
 }
 
 # Step 2: copy data files
-Write-Host "[3/6] Copiando datos de runtime..." -ForegroundColor Yellow
+Write-Host "[3/5] Copiando datos de runtime..." -ForegroundColor Yellow
 $TargetData = Join-Path $PublishPath "data"
 if (Test-Path (Join-Path $RepoRoot "data")) {
     New-Item -ItemType Directory -Path $TargetData -Force | Out-Null
@@ -103,7 +99,7 @@ if (Test-Path (Join-Path $RepoRoot "data")) {
 Write-Host ""
 
 # Step 3: create config from example if missing
-Write-Host "[4/6] Configurando appsettings.json..." -ForegroundColor Yellow
+Write-Host "[4/5] Configurando appsettings.json..." -ForegroundColor Yellow
 $TargetConfig = Join-Path $PublishPath "appsettings.json"
 if (-not (Test-Path $TargetConfig)) {
     $ExampleConfig = Join-Path $RepoRoot "src\CambioDeDomicilio\appsettings.Example.json"
@@ -117,22 +113,9 @@ if (-not (Test-Path $TargetConfig)) {
 }
 Write-Host ""
 
-# Step 4: create dashboard user
-if ($AddUser) {
-    Write-Host "[5/6] Creando usuario del dashboard: $AddUser..." -ForegroundColor Yellow
-    $Exe = Join-Path $PublishPath "CambioDeDomicilio.exe"
-    if (Test-Path $Exe) {
-        & $Exe --add-user $AddUser
-        Write-Host "  ✅ Usuario '$AddUser' creado." -ForegroundColor Green
-    } else {
-        Write-Warning "No se encontró $Exe"
-    }
-    Write-Host ""
-}
-
-# Step 5: install scheduled task
+# Step 4: install scheduled task
 if ($InstallTask) {
-    Write-Host "[6/6] Instalando tarea programada..." -ForegroundColor Yellow
+    Write-Host "[5/5] Instalando tarea programada..." -ForegroundColor Yellow
     $InstallScript = Join-Path $RepoRoot "deploy\install-task.ps1"
     if (Test-Path $InstallScript) {
         & $InstallScript
@@ -143,7 +126,7 @@ if ($InstallTask) {
     Write-Host ""
 }
 
-# Step 6: desktop shortcut
+# Step 5: desktop shortcut
 if ($Shortcut) {
     $ShortcutScript = Join-Path $RepoRoot "deploy\create-desktop-shortcut.ps1"
     if (Test-Path $ShortcutScript) {

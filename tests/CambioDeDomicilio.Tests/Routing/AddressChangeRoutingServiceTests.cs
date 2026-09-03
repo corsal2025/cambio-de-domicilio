@@ -2,7 +2,6 @@ using System.Linq;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using CambioDeDomicilio.Configuration;
-using CambioDeDomicilio.Dashboard.Auth;
 using CambioDeDomicilio.Directories;
 using CambioDeDomicilio.Domain;
 using CambioDeDomicilio.Mail;
@@ -23,7 +22,6 @@ public class AddressChangeRoutingServiceTests : IDisposable
     private readonly string dbPath = Path.Combine(Path.GetTempPath(), $"routing-test-{Guid.NewGuid():N}.db");
     private readonly IPersonRequestRepository repository;
     private readonly IDiscardedEmailRepository discardedRepository;
-    private readonly IUserRepository users;
     private readonly FakeMailSender mailSender = new();
     private readonly FakeEmailMover emailMover = new();
     private readonly FakeNotificationChannel notificationChannel = new();
@@ -35,8 +33,6 @@ public class AddressChangeRoutingServiceTests : IDisposable
         repository.EnsureSchema();
         discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
         discardedRepository.EnsureSchema();
-        users = new UserRepository($"Data Source={dbPath}");
-        users.EnsureSchema();
 
         var options = new RouterOptions
         {
@@ -57,7 +53,6 @@ public class AddressChangeRoutingServiceTests : IDisposable
             new ComunaDirectory(),
             mailSender,
             emailMover,
-            users,
             [notificationChannel],
             options,
             NullLogger<AddressChangeRoutingService>.Instance);
@@ -282,7 +277,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
     public async Task ProcessIncomingRequest_MessageFoundAgainWhileConfirmed_DoesNotRevert()
     {
         var id = InsertPending();
-        await sut.MarkUploadedAndConfirmAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        await sut.MarkUploadedAndConfirmAsync(id, Contacts, CancellationToken.None);
         Assert.Equal(RequestStatus.Confirmed, repository.FindById(id)!.Status);
 
         sut.ProcessIncomingRequest(NewEmail("msg-1", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7"), Contacts);
@@ -326,7 +321,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
     {
         var id = InsertPending();
 
-        var result = await sut.MarkUploadedAndConfirmAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.MarkUploadedAndConfirmAsync(id, Contacts, CancellationToken.None);
 
         Assert.True(result.Sent);
         Assert.Equal(RequestStatus.Confirmed, repository.FindById(id)!.Status);
@@ -343,7 +338,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         sut.ProcessIncomingRequest(NewEmail("msg-1", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7"), Contacts);
         var id = repository.GetAll().Single().Id; // no SetFechaUltimaCarpeta — deliberately missing
 
-        var result = await sut.MarkUploadedAndConfirmAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.MarkUploadedAndConfirmAsync(id, Contacts, CancellationToken.None);
 
         Assert.False(result.Sent);
         Assert.Empty(mailSender.SentMessages);
@@ -357,7 +352,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         emailMover.NextResult = false; // e.g. operator already moved it manually, or a mailbox hiccup
         var id = InsertPending();
 
-        var result = await sut.MarkUploadedAndConfirmAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.MarkUploadedAndConfirmAsync(id, Contacts, CancellationToken.None);
 
         Assert.True(result.Sent);
         Assert.Equal(RequestStatus.Confirmed, repository.FindById(id)!.Status);
@@ -369,7 +364,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         var id = InsertPending();
         sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
 
-        var result = await sut.MarkUploadedAndConfirmAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.MarkUploadedAndConfirmAsync(id, Contacts, CancellationToken.None);
 
         Assert.False(result.Sent);
         Assert.Empty(emailMover.MoveCalls);
@@ -389,7 +384,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         };
         var id = repository.Insert(incomplete);
 
-        var result = await sut.MarkUploadedAndConfirmAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.MarkUploadedAndConfirmAsync(id, Contacts, CancellationToken.None);
 
         Assert.False(result.Sent);
         Assert.Empty(emailMover.MoveCalls);
@@ -403,42 +398,11 @@ public class AddressChangeRoutingServiceTests : IDisposable
         var id = repository.GetAll().Single().Id; // no SetFechaUltimaCarpeta — deliberately missing
         sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
 
-        var result = await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
 
         Assert.False(result.Sent);
         Assert.Empty(mailSender.SentMessages);
         Assert.Equal(RequestStatus.Uploaded, repository.FindById(id)!.Status);
-    }
-
-    [Fact]
-    public async Task SendConfirmationAsync_UserHasEmailFooter_AppendsItToBody()
-    {
-        var (hash, salt, iterations) = PasswordHasher.Hash("Cont2026#");
-        users.Insert(new DashboardUser { Username = "operador", PasswordHash = hash, PasswordSalt = salt, Iterations = iterations });
-        var userId = users.FindByUsername("operador")!.Id;
-        users.UpdateEmailFooter(userId, "María Pérez\nDepto. Licencias de Conducir");
-        var id = InsertPending();
-        sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
-
-        await sut.SendConfirmationAsync(id, confirmedByUserId: userId, Contacts, CancellationToken.None);
-
-        Assert.Contains("María Pérez", mailSender.SentMessages[0].Body);
-        Assert.Contains("Depto. Licencias de Conducir", mailSender.SentMessages[0].Body);
-    }
-
-    [Fact]
-    public async Task SendConfirmationAsync_UserHasNoEmailFooter_DoesNotAppendAnything()
-    {
-        var (hash, salt, iterations) = PasswordHasher.Hash("Cont2026#");
-        users.Insert(new DashboardUser { Username = "operador", PasswordHash = hash, PasswordSalt = salt, Iterations = iterations });
-        var userId = users.FindByUsername("operador")!.Id;
-        var id = InsertPending();
-        sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
-        var (_, bodyWithoutFooter) = CambioDeDomicilio.Notifications.EmailTemplates.UploadConfirmation("GUSTAVO ANDRÉS PEÑA CASTRO", "18.785.387-7");
-
-        await sut.SendConfirmationAsync(id, confirmedByUserId: userId, Contacts, CancellationToken.None);
-
-        Assert.Equal(bodyWithoutFooter, mailSender.SentMessages[0].Body);
     }
 
     [Fact]
@@ -447,7 +411,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         var id = InsertPending();
         sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
 
-        var result = await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
 
         Assert.True(result.Sent);
         Assert.Single(mailSender.SentMessages);
@@ -462,7 +426,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         var id = InsertPending();
         sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
 
-        var result = await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None, viaF8: true);
+        var result = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None, viaF8: true);
 
         Assert.True(result.Sent);
         var sent = Assert.Single(mailSender.SentMessages);
@@ -483,7 +447,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         Assert.Equal("Catemu", repository.FindById(id)!.Comuna); // sanity check on the fixture's own casing
 
         var mixedCaseContacts = new List<ComunaContact> { new("CATEMU", "rfloresc@municatemu.cl", "municatemu.cl") };
-        var result = await sut.SendConfirmationAsync(id, confirmedByUserId: 1, mixedCaseContacts, CancellationToken.None);
+        var result = await sut.SendConfirmationAsync(id, mixedCaseContacts, CancellationToken.None);
 
         Assert.True(result.Sent);
         Assert.Single(mailSender.SentMessages);
@@ -494,7 +458,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
     {
         var id = InsertPending(); // never moved to CARP. YA SUBIDAS
 
-        var result = await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
 
         Assert.False(result.Sent);
         Assert.Empty(mailSender.SentMessages);
@@ -506,9 +470,9 @@ public class AddressChangeRoutingServiceTests : IDisposable
     {
         var id = InsertPending();
         sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
-        await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
 
-        var second = await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        var second = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
 
         Assert.False(second.Sent);
         Assert.Single(mailSender.SentMessages); // only the first send happened
@@ -517,25 +481,9 @@ public class AddressChangeRoutingServiceTests : IDisposable
     [Fact]
     public async Task SendConfirmationAsync_UnknownCase_ReturnsNotSent()
     {
-        var result = await sut.SendConfirmationAsync(999, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.SendConfirmationAsync(999, Contacts, CancellationToken.None);
 
         Assert.False(result.Sent);
-    }
-
-    [Fact]
-    public async Task RectifyConfirmationAsync_UserHasEmailFooter_AppendsItToBody()
-    {
-        var (hash, salt, iterations) = PasswordHasher.Hash("Cont2026#");
-        users.Insert(new DashboardUser { Username = "operador", PasswordHash = hash, PasswordSalt = salt, Iterations = iterations });
-        var userId = users.FindByUsername("operador")!.Id;
-        users.UpdateEmailFooter(userId, "María Pérez\nDepto. Licencias de Conducir");
-        var id = InsertPending();
-        sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
-        await sut.SendConfirmationAsync(id, confirmedByUserId: userId, Contacts, CancellationToken.None);
-
-        await sut.RectifyConfirmationAsync(id, rectifiedByUserId: userId, Contacts, CancellationToken.None);
-
-        Assert.Contains("María Pérez", mailSender.SentMessages[1].Body);
     }
 
     [Fact]
@@ -543,9 +491,9 @@ public class AddressChangeRoutingServiceTests : IDisposable
     {
         var id = InsertPending();
         sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
-        await sut.SendConfirmationAsync(id, confirmedByUserId: 1, Contacts, CancellationToken.None);
+        await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
 
-        var result = await sut.RectifyConfirmationAsync(id, rectifiedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.RectifyConfirmationAsync(id, Contacts, CancellationToken.None);
 
         Assert.True(result.Sent);
         Assert.Equal(2, mailSender.SentMessages.Count); // original confirmation + rectification
@@ -563,7 +511,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         var id = InsertPending();
         sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante")); // Uploaded, never Confirmed
 
-        var result = await sut.RectifyConfirmationAsync(id, rectifiedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.RectifyConfirmationAsync(id, Contacts, CancellationToken.None);
 
         Assert.False(result.Sent);
         Assert.Empty(mailSender.SentMessages); // nothing was ever sent, nothing to retract
@@ -575,7 +523,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
     {
         var id = InsertPending();
 
-        var result = await sut.RectifyConfirmationAsync(id, rectifiedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.RectifyConfirmationAsync(id, Contacts, CancellationToken.None);
 
         Assert.False(result.Sent);
         Assert.Equal(RequestStatus.Pending, repository.FindById(id)!.Status);
@@ -584,7 +532,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
     [Fact]
     public async Task RectifyConfirmationAsync_UnknownCase_ReturnsNotSent()
     {
-        var result = await sut.RectifyConfirmationAsync(999, rectifiedByUserId: 1, Contacts, CancellationToken.None);
+        var result = await sut.RectifyConfirmationAsync(999, Contacts, CancellationToken.None);
 
         Assert.False(result.Sent);
     }

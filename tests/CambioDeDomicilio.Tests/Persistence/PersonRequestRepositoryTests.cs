@@ -397,18 +397,16 @@ public class PersonRequestRepositoryTests : IDisposable
         Assert.Null(repository.FindById(id)!.CodigoF8);
     }
 
-    [Theory]
-    [InlineData(CaseDestination.F8)]
-    [InlineData(CaseDestination.Certificado)]
-    public void SetDestination_StoresDestinationAndTimestamp(CaseDestination destination)
+    [Fact]
+    public void SetDestination_StoresDestinationAndTimestamp()
     {
         var id = repository.Insert(NewRequest("msg-1"));
         var transferredAt = DateTimeOffset.UtcNow;
 
-        repository.SetDestination(id, destination, transferredAt);
+        repository.SetDestination(id, CaseDestination.F8, transferredAt);
 
         var stored = repository.FindById(id)!;
-        Assert.Equal(destination, stored.Destination);
+        Assert.Equal(CaseDestination.F8, stored.Destination);
         Assert.Equal(transferredAt, stored.TransferredAt);
     }
 
@@ -423,17 +421,6 @@ public class PersonRequestRepositoryTests : IDisposable
         var stored = repository.FindById(id)!;
         Assert.Equal(CaseDestination.None, stored.Destination);
         Assert.Null(stored.TransferredAt);
-    }
-
-    [Fact]
-    public void SetCertificadoNotified_StoresTimestamp()
-    {
-        var id = repository.Insert(NewRequest("msg-1"));
-        var notifiedAt = DateTimeOffset.UtcNow;
-
-        repository.SetCertificadoNotified(id, notifiedAt);
-
-        Assert.Equal(notifiedAt, repository.FindById(id)!.CertificadoNotifiedAt);
     }
 
     [Fact]

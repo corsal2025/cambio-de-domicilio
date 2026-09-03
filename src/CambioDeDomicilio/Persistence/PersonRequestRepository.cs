@@ -25,14 +25,13 @@ public interface IPersonRequestRepository
     void SetCodigoF8(long id, string? codigoF8);
 
     /// <summary>Sets the destination screen the case is transferred to, recording when the
-    /// transfer happened — used by "Traspaso a F8" and "Traspaso a Certificado".</summary>
+    /// transfer happened — used by "Traspaso a F8".</summary>
     void SetDestination(long id, CaseDestination destination, DateTimeOffset transferredAt);
 
     /// <summary>Undoes a transfer: the case goes back to Casos (Index).</summary>
     void ClearDestination(long id);
 
-    void SetCertificadoNotified(long id, DateTimeOffset notifiedAt);
-    void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long confirmedByUserId);
+    void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long? confirmedByUserId = null);
 
     /// <summary>Reverts every Uploaded row for this source email back to Pending (clearing UploadedAt) —
     /// used when the original email is found again in the source folder, meaning the operator undid an
@@ -124,6 +123,18 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 WHERE MovedToF8At IS NOT NULL AND Destination = 'None'
                 """;
             backfillCommand.ExecuteNonQuery();
+        }
+
+        // The Certificado destination was removed. Any case still stored under it is sent back to
+        // Casos (Destination reset, TransferredAt cleared) so it doesn't get orphaned off every
+        // screen, and so Map's Enum.Parse<CaseDestination> never hits the now-undefined value.
+        // The CertificadoNotifiedAt column is left in place per this project's additive-schema
+        // convention. Safe/idempotent: affects zero rows on any database that never used it.
+        using (var dropCertificadoCommand = connection.CreateCommand())
+        {
+            dropCertificadoCommand.CommandText =
+                "UPDATE PersonRequest SET Destination = 'None', TransferredAt = NULL WHERE Destination = 'Certificado'";
+            dropCertificadoCommand.ExecuteNonQuery();
         }
     }
 
@@ -513,17 +524,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.ExecuteNonQuery();
     }
 
-    public void SetCertificadoNotified(long id, DateTimeOffset notifiedAt)
-    {
-        using var connection = Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = "UPDATE PersonRequest SET CertificadoNotifiedAt = $notifiedAt WHERE Id = $id";
-        command.Parameters.AddWithValue("$notifiedAt", notifiedAt.ToString("O"));
-        command.Parameters.AddWithValue("$id", id);
-        command.ExecuteNonQuery();
-    }
-
-    public void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long confirmedByUserId)
+    public void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long? confirmedByUserId = null)
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
@@ -533,7 +534,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             WHERE Id = $id
             """;
         command.Parameters.AddWithValue("$confirmedAt", confirmedAt.ToString("O"));
-        command.Parameters.AddWithValue("$confirmedByUserId", confirmedByUserId);
+        command.Parameters.AddWithValue("$confirmedByUserId", (object?)confirmedByUserId ?? DBNull.Value);
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
@@ -585,7 +586,6 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         PendienteCarpeta = reader.GetInt32(reader.GetOrdinal("PendienteCarpeta")) == 1,
         CodigoF8 = reader.IsDBNull(reader.GetOrdinal("CodigoF8")) ? null : reader.GetString(reader.GetOrdinal("CodigoF8")),
         Destination = Enum.Parse<CaseDestination>(reader.GetString(reader.GetOrdinal("Destination"))),
-        TransferredAt = reader.IsDBNull(reader.GetOrdinal("TransferredAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("TransferredAt"))),
-        CertificadoNotifiedAt = reader.IsDBNull(reader.GetOrdinal("CertificadoNotifiedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CertificadoNotifiedAt")))
+        TransferredAt = reader.IsDBNull(reader.GetOrdinal("TransferredAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("TransferredAt")))
     };
 }

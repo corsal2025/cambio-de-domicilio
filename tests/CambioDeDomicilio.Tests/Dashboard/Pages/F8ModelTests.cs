@@ -1,7 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using CambioDeDomicilio.Configuration;
-using CambioDeDomicilio.Dashboard.Auth;
 using CambioDeDomicilio.Dashboard.Pages;
 using CambioDeDomicilio.Directories;
 using CambioDeDomicilio.Domain;
@@ -26,8 +25,6 @@ public class F8ModelTests : IDisposable
         repository.EnsureSchema();
         var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
         discardedRepository.EnsureSchema();
-        var users = new UserRepository($"Data Source={dbPath}");
-        users.EnsureSchema();
         File.WriteAllText(csvPath, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
 
         var options = new RouterOptions
@@ -47,7 +44,6 @@ public class F8ModelTests : IDisposable
             new ComunaDirectory(),
             new NoOpMailSender(),
             new NoOpEmailMover(),
-            users,
             [],
             options,
             NullLogger<AddressChangeRoutingService>.Instance);
@@ -104,18 +100,6 @@ public class F8ModelTests : IDisposable
 
         var result = Assert.Single(model.Cases);
         Assert.Equal(id, result.Id);
-    }
-
-    [Fact]
-    public void OnGet_TransferredToCertificado_IsExcludedFromF8()
-    {
-        var id = repository.Insert(NewRequest("msg-1", "Persona Certificado"));
-        repository.SetFolderNotFound(id, true);
-        repository.SetDestination(id, CaseDestination.Certificado, DateTimeOffset.UtcNow);
-
-        model.OnGet();
-
-        Assert.Empty(model.Cases);
     }
 
     [Fact]

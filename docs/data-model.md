@@ -36,8 +36,10 @@ named in the same source email.
 - `FechaUltimaCarpeta`: Date of the contributor's última carpeta, typed in manually by the operator;
   derives `Sector` (computed, not stored: `Archivo` if before July 2023, else `Oficina43`)
 - `UploadedAt`: When the case transitioned to Uploaded (nullable until then)
-- `ConfirmedAt` / `ConfirmedByUserId`: When the confirmation email was sent and which dashboard user
-  triggered it — a real email goes to another municipality, so this is always attributed
+- `ConfirmedAt`: When the confirmation email was sent — a real email goes to another municipality,
+  so the timestamp is always recorded
+- `ConfirmedByUserId`: legacy attribution column, kept nullable per the additive-schema convention;
+  no longer populated since the dashboard has no user accounts
 - `Marked`: Operator-only bookkeeping checkbox (boolean), independent of `Status` — lets the
   operator tick off cases they've cross-checked manually, with zero effect on the routing/
   confirmation logic
@@ -62,7 +64,7 @@ Pending -> Uploaded -> Confirmed
 - `Uploaded`: operator uploaded the folder and the source email was found in "CARP. YA SUBIDAS"
   (manually moved, or via "Marcar subida") — nothing has been sent to the comuna yet
 - `Confirmed`: the confirmation email was sent to the requesting comuna (only ever on an explicit
-  operator action) — `ConfirmedAt`/`ConfirmedByUserId` are set
+  operator action) — `ConfirmedAt` is set
 
 ### 2. DiscardedEmail
 
@@ -89,33 +91,14 @@ history); the last one wins. Multiple *different* comunas can share the same `Do
 webmail provider) — resolution then requires an exact `ContactEmail` match, not domain alone (see
 `routing` spec).
 
-### 4. DashboardUser
-
-One row per operator with dashboard access.
-
-**Fields:** `Id`, `Username` (unique), `Email` (nullable — recovery email, self-service, empty by
-default), `PasswordHash`, `PasswordSalt`, `Iterations`, `FailedLoginAttempts`, `LockedUntil`
-(nullable), `CreatedAt`, `Marked`... *(not applicable to this table — see PersonRequest)*.
-
-### 5. PasswordResetToken
-
-Single-use, time-limited tokens for the "¿Olvidaste tu contraseña?" flow.
-
-**Fields:** `Id`, `UserId`, `Token` (unique, 40 cryptographically-random hex characters),
-`ExpiresAt` (30 minutes after creation), `UsedAt` (nullable — set on completion, or immediately when
-a newer token for the same user supersedes it), `CreatedAt`.
-
-**Validation rules:**
-- A token is valid only when `UsedAt IS NULL` and `ExpiresAt` is in the future.
-- Requesting a new reset for a user marks all of that user's previously-unused tokens as used.
-
 ## Entity Relationship
 
 ```
 ComunaContact (1) ----< (N) PersonRequest        via comuna/domain (or exact address) match
-DashboardUser (1) ----< (N) PasswordResetToken   via UserId
-DashboardUser (1) ----< (N) PersonRequest        via ConfirmedByUserId (attribution only)
 ```
+
+The dashboard has no user accounts — it runs on the municipal LAN with access gated at the
+network layer, so there is no `DashboardUser` table and no authentication schema.
 
 ## Identification Rules (business logic, not schema)
 

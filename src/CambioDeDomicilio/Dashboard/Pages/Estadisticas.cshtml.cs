@@ -4,7 +4,7 @@ using CambioDeDomicilio.Statistics;
 
 namespace CambioDeDomicilio.Dashboard.Pages;
 
-/// <summary>Read-only visual overview of the whole system — Casos, F8, Certificado, and Discarded —
+/// <summary>Read-only visual overview of the whole system — Casos, F8, and Discarded —
 /// built entirely from data every other screen already stores. No writes happen here.</summary>
 public class EstadisticasModel(
     IPersonRequestRepository repository,
@@ -20,8 +20,6 @@ public class EstadisticasModel(
     public SectorDistribution SectorDistribution { get; private set; } = new(0, 0);
     public F8DeadlineBacklog F8DeadlineBacklog { get; private set; } = new(0, 0);
     public F8PdfStatus F8PdfStatus { get; private set; } = new(0, 0);
-    public CertificadoFolderStatus CertificadoFolderStatus { get; private set; } = new(0, 0);
-    public CertificadoNotificationStatus CertificadoNotificationStatus { get; private set; } = new(0, 0);
 
     public void OnGet()
     {
@@ -37,7 +35,5 @@ public class EstadisticasModel(
         SectorDistribution = statisticsService.GetSectorDistribution(cases);
         F8DeadlineBacklog = statisticsService.GetF8DeadlineBacklog(cases);
         F8PdfStatus = statisticsService.GetF8PdfStatus(cases);
-        CertificadoFolderStatus = statisticsService.GetCertificadoFolderStatus(cases);
-        CertificadoNotificationStatus = statisticsService.GetCertificadoNotificationStatus(cases);
     }
 }
