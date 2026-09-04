@@ -18,6 +18,15 @@ public static partial class BounceDetector
         RegexOptions.IgnoreCase)]
     private static partial Regex NdrSubjectPattern();
 
+    // Exchange also sends a "still trying" notice ("Se retrasó la entrega" / "Delivery is
+    // delayed") while a message is merely queued or being retried — not a failure, and often sent
+    // from a postmaster-looking address too. Treating this as a bounce would be wrong: the message
+    // can still arrive, and flagging the case would send the operator chasing a non-problem.
+    [GeneratedRegex(
+        @"(se retras[oó]|retraso en la entrega|a[uú]n no se entreg[oó]|delivery is delayed|delayed|still trying|will keep trying to deliver)",
+        RegexOptions.IgnoreCase)]
+    private static partial Regex DelayNotificationPattern();
+
     public static bool LooksLikeConfirmationBounce(IncomingEmail email)
     {
         if (!MentionsConaset(email))
@@ -25,8 +34,17 @@ public static partial class BounceDetector
             return false;
         }
 
+        if (IsDelayNotification(email))
+        {
+            return false;
+        }
+
         return HasNdrSender(email.SenderAddress) || NdrSubjectPattern().IsMatch(email.Subject ?? string.Empty);
     }
+
+    private static bool IsDelayNotification(IncomingEmail email) =>
+        DelayNotificationPattern().IsMatch(email.Subject ?? string.Empty)
+        || DelayNotificationPattern().IsMatch(email.BodyText ?? string.Empty);
 
     private static bool MentionsConaset(IncomingEmail email) =>
         (email.Subject?.Contains("conaset", StringComparison.OrdinalIgnoreCase) ?? false)

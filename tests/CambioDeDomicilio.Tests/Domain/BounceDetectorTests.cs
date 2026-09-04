@@ -59,4 +59,26 @@ public class BounceDetectorTests
 
         Assert.False(BounceDetector.LooksLikeConfirmationBounce(email));
     }
+
+    [Fact]
+    public void LooksLikeConfirmationBounce_DelayNotification_IsFalseEvenWithNdrLookingSenderAndConaset()
+    {
+        // "Se retrasó la entrega" is Exchange saying it's STILL TRYING, not a failure — the exact
+        // real-world message a comuna's IT reported. Flagging this as bounced would be wrong: the
+        // message might still arrive, and the operator would needlessly re-send it.
+        var email = Email(
+            "postmaster@munivalpo.cl",
+            "Retraso en la entrega: Confirmación enviada",
+            """
+            Se retrasó la entrega a estos destinatarios o grupos:
+            raul.salazar1984@gmail.com (raul.salazar1984@gmail.com)
+            Asunto: [CambioDeDomicilio] Confirmación enviada - JORGE ENRIQUE MONCADA MARIN, RUT 18.566.142-3 (ANCUD)
+            Este mensaje aún no se entregó. Se seguirá tratando de realizar la entrega.
+            El servidor seguirá tratando de entregar este mensaje durante los siguientes 1 días,
+            20 horas y 13 minutos. Se te notificará si no se puede entregar el mensaje antes de ese momento.
+            Conaset
+            """);
+
+        Assert.False(BounceDetector.LooksLikeConfirmationBounce(email));
+    }
 }
