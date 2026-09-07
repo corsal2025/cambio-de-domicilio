@@ -506,6 +506,21 @@ public class AddressChangeRoutingServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RectifyConfirmationAsync_CaseWasFlaggedAsBounced_ClearsTheBounceFlag()
+    {
+        var id = InsertPending();
+        sut.ProcessUploadedCase(NewEmail("msg-1", "irrelevante"));
+        await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
+        repository.SetConfirmationBounced(id, DateTimeOffset.UtcNow);
+
+        await sut.RectifyConfirmationAsync(id, Contacts, CancellationToken.None);
+
+        // Reverted to a clean Pending state — a stale "REBOTÓ" badge from the confirmation
+        // that's now being retracted would otherwise survive the next upload/confirm cycle.
+        Assert.Null(repository.FindById(id)!.ConfirmationBouncedAt);
+    }
+
+    [Fact]
     public async Task RectifyConfirmationAsync_UploadedNotConfirmed_Refuses()
     {
         var id = InsertPending();
@@ -545,13 +560,13 @@ public class AddressChangeRoutingServiceTests : IDisposable
         return id;
     }
 
-    private long InsertConfirmed(string messageId, string rut)
+    private long InsertConfirmed(string messageId, string rut, string comuna = "Catemu")
     {
         var id = repository.Insert(new PersonRequest
         {
             FullName = "JUAN PEREZ SOTO",
             Rut = rut,
-            Comuna = "Catemu",
+            Comuna = comuna,
             SourceMessageId = messageId,
             SourceSubject = "Solicitud de carpeta",
             SourceSender = "rfloresc@municatemu.cl",
@@ -577,7 +592,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
     {
         var id = InsertConfirmed("msg-1", "12.345.678-5");
 
-        sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5"));
+        sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5"), Contacts);
 
         Assert.NotNull(repository.FindById(id)!.ConfirmationBouncedAt);
         Assert.True(repository.IsBounceProcessed("ndr-1"));
@@ -589,7 +604,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         repository.RecordProcessedBounce("ndr-1");
         var id = InsertConfirmed("msg-1", "12.345.678-5");
 
-        sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5"));
+        sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5"), Contacts);
 
         Assert.Null(repository.FindById(id)!.ConfirmationBouncedAt);
     }
@@ -601,7 +616,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         var reply = new IncomingEmail("reply-1", "c", "RE: Carpeta subida a Conaset",
             "rfloresc@municatemu.cl", "Gracias, recibido conforme. Conaset.", DateTimeOffset.UtcNow);
 
-        sut.ProcessPotentialBounce(reply);
+        sut.ProcessPotentialBounce(reply, Contacts);
 
         Assert.Null(repository.FindById(id)!.ConfirmationBouncedAt);
         Assert.False(repository.IsBounceProcessed("reply-1"));
@@ -610,9 +625,23 @@ public class AddressChangeRoutingServiceTests : IDisposable
     [Fact]
     public void ProcessPotentialBounce_NdrWithNoMatchingConfirmedCase_TombstonesAnyway()
     {
-        sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5")); // no case in the db at all
+        sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5"), Contacts); // no case in the db at all
 
         Assert.True(repository.IsBounceProcessed("ndr-1"));
+    }
+
+    [Fact]
+    public void ProcessPotentialBounce_SameRutDifferentComuna_OnlyFlagsTheBouncedComuna()
+    {
+        var catemuId = InsertConfirmed("msg-1", "12.345.678-5", comuna: "Catemu");
+        var otherId = InsertConfirmed("msg-2", "12.345.678-5", comuna: "Viña del Mar");
+
+        // The NDR body names only Catemu's contact address (rfloresc@municatemu.cl) — the
+        // Viña del Mar case's confirmation was never sent in this scenario, so it must stay clean.
+        sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5"), Contacts);
+
+        Assert.NotNull(repository.FindById(catemuId)!.ConfirmationBouncedAt);
+        Assert.Null(repository.FindById(otherId)!.ConfirmationBouncedAt);
     }
 
     [Fact]
@@ -622,7 +651,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         var firstBounce = DateTimeOffset.UtcNow.AddDays(-3);
         repository.SetConfirmationBounced(id, firstBounce);
 
-        sut.ProcessPotentialBounce(Ndr("ndr-2", "12.345.678-5"));
+        sut.ProcessPotentialBounce(Ndr("ndr-2", "12.345.678-5"), Contacts);
 
         Assert.Equal(firstBounce, repository.FindById(id)!.ConfirmationBouncedAt);
     }

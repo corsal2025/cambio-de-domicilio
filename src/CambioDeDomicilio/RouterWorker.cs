@@ -80,7 +80,7 @@ public sealed class RouterWorker(
             {
                 try
                 {
-                    routingService.ProcessPotentialBounce(email);
+                    routingService.ProcessPotentialBounce(email, contacts);
                 }
                 catch (Exception ex)
                 {

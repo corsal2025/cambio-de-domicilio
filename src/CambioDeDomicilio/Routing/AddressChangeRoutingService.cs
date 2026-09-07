@@ -206,10 +206,14 @@ public sealed class AddressChangeRoutingService(
     /// Processes one message from the mailbox inbox: if it is a non-delivery report for one of our
     /// "carpeta subida a Conaset" confirmation emails (see <see cref="BounceDetector"/>), finds the
     /// Confirmed case(s) it refers to by RUT and flags them so the operator sees the comuna never
-    /// received the notice. Every recognized NDR is tombstoned so a later poll never re-processes it
-    /// (the message stays in the inbox); an NDR that matches no Confirmed case is still tombstoned.
+    /// received the notice. When the NDR body names exactly one known comuna contact address (an
+    /// NDR normally echoes back the original recipient), only that comuna's matching case(s) are
+    /// flagged — a contributor can have Confirmed cases with the same RUT open for more than one
+    /// comuna at once, and only one of them may have actually bounced. Every recognized NDR is
+    /// tombstoned so a later poll never re-processes it (the message stays in the inbox); an NDR
+    /// that matches no Confirmed case is still tombstoned.
     /// </summary>
-    public void ProcessPotentialBounce(IncomingEmail email)
+    public void ProcessPotentialBounce(IncomingEmail email, IReadOnlyList<ComunaContact> contacts)
     {
         if (repository.IsBounceProcessed(email.MessageId))
         {
@@ -227,10 +231,17 @@ public sealed class AddressChangeRoutingService(
             .Distinct()
             .ToList();
 
+        var bouncedComuna = FindBouncedRecipientComuna(email.BodyText, contacts);
+
         var flagged = 0;
         foreach (var rut in ruts)
         {
-            foreach (var confirmed in repository.FindConfirmedByRut(rut!))
+            var matches = repository.FindConfirmedByRut(rut!);
+            var candidates = bouncedComuna is null
+                ? matches // recipient not identified — fall back to flagging every Confirmed match for the RUT
+                : matches.Where(c => string.Equals(c.Comuna, bouncedComuna, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            foreach (var confirmed in candidates)
             {
                 if (confirmed.ConfirmationBouncedAt is not null)
                 {
@@ -254,6 +265,29 @@ public sealed class AddressChangeRoutingService(
             logger.LogWarning(
                 "Rebote de confirmación detectado pero sin caso Confirmado que coincida (asunto: {Subject})", email.Subject);
         }
+    }
+
+    /// <summary>
+    /// Identifies which comuna's confirmation actually bounced by looking for that comuna's known
+    /// contact address literally quoted in the NDR body (Exchange echoes back the original
+    /// recipient, e.g. "Your message to x@y.cl could not be delivered"). Returns null — rather than
+    /// guessing — when no known address is found or more than one matches, mirroring
+    /// <see cref="IComunaDirectory.ResolveByDomain"/>'s "don't guess among several" rule.
+    /// </summary>
+    private static string? FindBouncedRecipientComuna(string? bodyText, IReadOnlyList<ComunaContact> contacts)
+    {
+        if (string.IsNullOrEmpty(bodyText))
+        {
+            return null;
+        }
+
+        var matches = contacts
+            .Where(c => bodyText.Contains(c.ContactEmail, StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.Comuna)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return matches.Count == 1 ? matches[0] : null;
     }
 
     /// <summary>

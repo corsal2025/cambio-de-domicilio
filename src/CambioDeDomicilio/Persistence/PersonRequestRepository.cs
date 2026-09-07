@@ -54,8 +54,11 @@ public interface IPersonRequestRepository
     int RevertUploadedBySourceMessageId(string sourceMessageId);
 
     /// <summary>Operator-triggered undo of a Confirmed case (paired with sending a rectification
-    /// email to the comuna) — resets Status/UploadedAt/ConfirmedAt/ConfirmedByUserId back to a
-    /// clean Pending state, as if the case had never been uploaded or confirmed.</summary>
+    /// email to the comuna) — resets Status/UploadedAt/ConfirmedAt/ConfirmedByUserId/
+    /// ConfirmationBouncedAt back to a clean Pending state, as if the case had never been
+    /// uploaded or confirmed. Clearing ConfirmationBouncedAt matters here: the confirmation
+    /// being retracted is the one that may have bounced, so a stale "REBOTÓ" flag must not
+    /// survive onto the next upload/confirm cycle for this case.</summary>
     void RevertConfirmedToPending(long id);
 
     void SetSectorPdfGenerated(long id, DateTimeOffset generatedAt);
@@ -425,7 +428,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         using var command = connection.CreateCommand();
         command.CommandText = """
             UPDATE PersonRequest
-            SET Status = 'Pending', UploadedAt = NULL, ConfirmedAt = NULL, ConfirmedByUserId = NULL
+            SET Status = 'Pending', UploadedAt = NULL, ConfirmedAt = NULL, ConfirmedByUserId = NULL,
+                ConfirmationBouncedAt = NULL
             WHERE Id = $id AND Status = 'Confirmed'
             """;
         command.Parameters.AddWithValue("$id", id);
