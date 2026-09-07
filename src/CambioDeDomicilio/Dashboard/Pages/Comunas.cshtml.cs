@@ -14,15 +14,31 @@ public class ComunasModel(IComunaDirectory directory, RouterOptions options) : P
 
     public void OnGet() => Load();
 
-    public IActionResult OnPostUpdateEmail(string comuna, string email)
+    public IActionResult OnPostUpdateContact(string comuna, string domain, string newDomain, string email)
     {
-        if (directory.UpdateContactEmail(options.ComunaDirectoryCsvPath, comuna, email))
+        if (directory.UpdateContact(options.ComunaDirectoryCsvPath, comuna, domain, newDomain, email))
         {
-            Message = $"Correo de {comuna} actualizado. Los próximos envíos usarán la nueva dirección.";
+            Message = $"Datos de {comuna} actualizados. Los próximos envíos usarán la nueva dirección.";
         }
         else
         {
-            Message = $"No se pudo actualizar {comuna}: revise que el correo tenga un formato válido.";
+            Message = $"No se pudo actualizar {comuna}: revise que el dominio y el correo tengan un formato válido.";
+            MessageIsError = true;
+        }
+
+        Load();
+        return Page();
+    }
+
+    public IActionResult OnPostDeleteContact(string comuna, string domain)
+    {
+        if (directory.DeleteContact(options.ComunaDirectoryCsvPath, comuna, domain))
+        {
+            Message = $"Comuna {comuna} ({domain}) eliminada del directorio.";
+        }
+        else
+        {
+            Message = $"No se pudo eliminar {comuna}: no se encontró en el directorio.";
             MessageIsError = true;
         }
 

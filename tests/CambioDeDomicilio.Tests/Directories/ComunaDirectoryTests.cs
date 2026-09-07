@@ -173,14 +173,14 @@ public class ComunaDirectoryTests
     }
 
     [Fact]
-    public void UpdateContactEmail_ValidChange_PersistsAndKeepsOtherRows()
+    public void UpdateContact_ValidChange_PersistsAndKeepsOtherRows()
     {
         var path = Path.GetTempFileName();
         File.WriteAllText(path,
             "Comuna,ContactEmail,Domain\nCatemu,viejo@municatemu.cl,municatemu.cl\nColina,luis@colina.cl,colina.cl\n");
         var directory = new ComunaDirectory();
 
-        var updated = directory.UpdateContactEmail(path, "Catemu", "nuevo@municatemu.cl");
+        var updated = directory.UpdateContact(path, "Catemu", "municatemu.cl", "municatemu.cl", "nuevo@municatemu.cl");
 
         Assert.True(updated);
         var reloaded = directory.LoadFromCsv(path);
@@ -190,14 +190,30 @@ public class ComunaDirectoryTests
     }
 
     [Fact]
-    public void UpdateContactEmail_UnknownComuna_ReturnsFalseWithoutModifying()
+    public void UpdateContact_DomainChanged_PersistsNewDomain()
+    {
+        var path = Path.GetTempFileName();
+        File.WriteAllText(path, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
+        var directory = new ComunaDirectory();
+
+        var updated = directory.UpdateContact(path, "Catemu", "municatemu.cl", "catemu.cl", "rfloresc@catemu.cl");
+
+        Assert.True(updated);
+        var contact = Assert.Single(directory.LoadFromCsv(path));
+        Assert.Equal("catemu.cl", contact.Domain);
+        Assert.Equal("rfloresc@catemu.cl", contact.ContactEmail);
+        File.Delete(path);
+    }
+
+    [Fact]
+    public void UpdateContact_UnknownComunaDomainPair_ReturnsFalseWithoutModifying()
     {
         var path = Path.GetTempFileName();
         var original = "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n";
         File.WriteAllText(path, original);
         var directory = new ComunaDirectory();
 
-        var updated = directory.UpdateContactEmail(path, "NoExiste", "x@y.cl");
+        var updated = directory.UpdateContact(path, "Catemu", "otrodominio.cl", "otrodominio.cl", "x@y.cl");
 
         Assert.False(updated);
         Assert.Equal(original, File.ReadAllText(path));
@@ -210,13 +226,76 @@ public class ComunaDirectoryTests
     [InlineData("con espacios@x.cl")]
     [InlineData("con,coma@x.cl")]
     [InlineData("sinpunto@dominio")]
-    public void UpdateContactEmail_InvalidEmailShape_IsRejected(string invalidEmail)
+    public void UpdateContact_InvalidEmailShape_IsRejected(string invalidEmail)
     {
         var path = Path.GetTempFileName();
         File.WriteAllText(path, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
         var directory = new ComunaDirectory();
 
-        Assert.False(directory.UpdateContactEmail(path, "Catemu", invalidEmail));
+        Assert.False(directory.UpdateContact(path, "Catemu", "municatemu.cl", "municatemu.cl", invalidEmail));
+        File.Delete(path);
+    }
+
+    [Theory]
+    [InlineData("sin-punto")]
+    [InlineData("con espacio.cl")]
+    [InlineData("con@arroba.cl")]
+    [InlineData("")]
+    public void UpdateContact_InvalidDomainShape_IsRejected(string invalidDomain)
+    {
+        var path = Path.GetTempFileName();
+        File.WriteAllText(path, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
+        var directory = new ComunaDirectory();
+
+        Assert.False(directory.UpdateContact(path, "Catemu", "municatemu.cl", invalidDomain, "rfloresc@municatemu.cl"));
+        File.Delete(path);
+    }
+
+    [Fact]
+    public void DeleteContact_ExistingRow_RemovesItAndKeepsOthers()
+    {
+        var path = Path.GetTempFileName();
+        File.WriteAllText(path,
+            "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\nColina,luis@colina.cl,colina.cl\n");
+        var directory = new ComunaDirectory();
+
+        var deleted = directory.DeleteContact(path, "Catemu", "municatemu.cl");
+
+        Assert.True(deleted);
+        var reloaded = directory.LoadFromCsv(path);
+        var remaining = Assert.Single(reloaded);
+        Assert.Equal("Colina", remaining.Comuna);
+        File.Delete(path);
+    }
+
+    [Fact]
+    public void DeleteContact_UnknownComunaDomainPair_ReturnsFalseWithoutModifying()
+    {
+        var path = Path.GetTempFileName();
+        var original = "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n";
+        File.WriteAllText(path, original);
+        var directory = new ComunaDirectory();
+
+        var deleted = directory.DeleteContact(path, "NoExiste", "municatemu.cl");
+
+        Assert.False(deleted);
+        Assert.Equal(original, File.ReadAllText(path));
+        File.Delete(path);
+    }
+
+    [Fact]
+    public void DeleteContact_OneOfTwoDomainsForSameComuna_RemovesOnlyThatRow()
+    {
+        var path = Path.GetTempFileName();
+        File.WriteAllText(path,
+            "Comuna,ContactEmail,Domain\nCatemu,a@municatemu.cl,municatemu.cl\nCatemu,b@gmail.com,gmail.com\n");
+        var directory = new ComunaDirectory();
+
+        var deleted = directory.DeleteContact(path, "Catemu", "gmail.com");
+
+        Assert.True(deleted);
+        var remaining = Assert.Single(directory.LoadFromCsv(path));
+        Assert.Equal("municatemu.cl", remaining.Domain);
         File.Delete(path);
     }
 

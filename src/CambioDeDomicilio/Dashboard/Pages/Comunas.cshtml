@@ -67,14 +67,28 @@
                 <tbody>
                 @foreach (var contact in Model.Contacts)
                 {
+                    var rowId = $"{contact.Comuna}-{contact.Domain}".Replace(" ", "-").Replace(".", "-");
                     <tr>
                         <td>@contact.Comuna</td>
-                        <td>@contact.Domain</td>
-                        <td colspan="2">
-                            <form method="post" asp-page-handler="UpdateEmail" style="display:flex; gap:8px; align-items:center;">
+                        <td>
+                            <input type="text" name="newDomain" form="edit-@rowId" value="@contact.Domain" required
+                                   style="width:140px; border:1px solid var(--color-border); border-radius:4px; padding:4px 6px; font-size:0.85rem;" />
+                        </td>
+                        <td>
+                            <input type="email" name="email" form="edit-@rowId" value="@contact.ContactEmail" required
+                                   style="width:100%; min-width:240px; border:1px solid var(--color-border); border-radius:4px; padding:4px 6px; font-size:0.85rem;" />
+                        </td>
+                        <td style="display:flex; gap:8px;">
+                            <form id="edit-@rowId" method="post" asp-page-handler="UpdateContact">
                                 <input type="hidden" name="comuna" value="@contact.Comuna" />
-                                <input type="email" name="email" value="@contact.ContactEmail" required style="flex:1; min-width:280px; border:1px solid var(--color-border); border-radius:4px; padding:4px 6px; font-size:0.85rem;" />
+                                <input type="hidden" name="domain" value="@contact.Domain" />
                                 <button type="submit" class="btn-primary">Guardar</button>
+                            </form>
+                            <form method="post" asp-page-handler="DeleteContact"
+                                  onsubmit="return confirm('¿Eliminar @contact.Comuna (@contact.Domain) del directorio?');">
+                                <input type="hidden" name="comuna" value="@contact.Comuna" />
+                                <input type="hidden" name="domain" value="@contact.Domain" />
+                                <button type="submit" class="btn-danger" title="Eliminar del directorio" aria-label="Eliminar comuna">Eliminar</button>
                             </form>
                         </td>
                     </tr>
