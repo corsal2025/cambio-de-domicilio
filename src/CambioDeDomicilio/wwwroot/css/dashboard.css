@@ -316,19 +316,38 @@ div.app-subnav {
     padding: 6px 24px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 16px;
     border-bottom: 1px solid var(--color-border);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
+.app-subnav-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.app-subnav-docs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    margin-left: auto;
+    padding-left: 18px;
+    border-left: 1px solid rgba(255, 255, 255, 0.22);
+}
+
 div.app-subnav span.app-subnav-label {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.6);
     font-size: 0.68rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin-right: 6px;
+    margin-right: 4px;
+    user-select: none;
 }
 
 a.nav-casos,
@@ -347,6 +366,7 @@ a.nav-pdf-oficina43 {
     align-items: center;
     gap: 6px;
     border: 1px solid transparent;
+    white-space: nowrap;
 }
 
 a.nav-casos {
@@ -374,18 +394,115 @@ a.nav-estadisticas:hover { background: rgba(168, 85, 247, 0.22); color: #ffffff;
 a.nav-estadisticas.active { background: #7c3aed; color: #ffffff; border-color: #c084fc; font-weight: 700; }
 
 a.nav-pdf-archivo {
-    background: rgba(148, 163, 184, 0.15);
-    color: #e2e8f0;
-    border-color: rgba(148, 163, 184, 0.35);
+    background: rgba(148, 163, 184, 0.18);
+    color: #f1f5f9;
+    border-color: rgba(148, 163, 184, 0.38);
 }
-a.nav-pdf-archivo:hover { background: rgba(148, 163, 184, 0.28); color: #ffffff; }
+a.nav-pdf-archivo:hover {
+    background: rgba(148, 163, 184, 0.3);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
 
 a.nav-pdf-oficina43 {
-    background: rgba(245, 158, 11, 0.12);
-    color: #fde68a;
-    border-color: rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.15);
+    color: #fef08a;
+    border-color: rgba(245, 158, 11, 0.42);
 }
-a.nav-pdf-oficina43:hover { background: rgba(245, 158, 11, 0.24); color: #ffffff; }
+a.nav-pdf-oficina43:hover {
+    background: rgba(245, 158, 11, 0.28);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+a.nav-pdf-archivo svg,
+a.nav-pdf-oficina43 svg {
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+
+/* ==========================================================================
+   BANNERS DE MENSAJE Y BÚSQUEDA CRUZADA
+   ========================================================================== */
+.message-banner {
+    padding: 9px 16px;
+    border-radius: var(--radius-md);
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-sm);
+}
+
+.message-banner.message-error {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.cross-search-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    background: #eff6ff;
+    border: 1px solid #93c5fd;
+    color: #1e3a8a;
+    font-size: 0.8125rem;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.cross-search-banner.cross-search-banner-info {
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #14532d;
+}
+
+.cross-search-icon {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.cross-search-text {
+    flex: 1;
+}
+
+.btn-cross-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #1d4ed8;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.75rem;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(29, 78, 216, 0.3);
+}
+
+.btn-cross-search:hover {
+    background: #1e40af;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(29, 78, 216, 0.35);
+}
+
+.cross-search-banner-info .btn-cross-search {
+    background: #16a34a;
+    box-shadow: 0 1px 3px rgba(22, 163, 74, 0.3);
+}
+
+.cross-search-banner-info .btn-cross-search:hover {
+    background: #15803d;
+    box-shadow: 0 3px 6px rgba(22, 163, 74, 0.35);
+}
 
 /* ==========================================================================
    LAYOUT PRINCIPAL Y CONTENEDORES
@@ -573,7 +690,7 @@ table.cases {
 table.cases-index {
     table-layout: auto;
     width: 100%;
-    min-width: 1180px;
+    min-width: max-content;
 }
 
 table.cases th {
@@ -584,20 +701,26 @@ table.cases th {
     font-weight: 700;
     letter-spacing: 0.05em;
     text-align: center;
-    padding: 10px 8px;
+    padding: 9px 12px;
     border-bottom: 2px solid var(--color-border);
     position: sticky;
     top: 0;
     z-index: 10;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    white-space: nowrap !important;
 }
 
 table.cases td {
-    padding: 7px 8px;
+    padding: 6px 12px;
     border-bottom: 1px solid var(--color-border-subtle);
     vertical-align: middle;
     text-align: center;
     transition: background var(--transition-fast);
+    white-space: nowrap !important;
+}
+
+table.cases tbody tr {
+    height: 38px;
 }
 
 /* Intercalado de filas neutro */
@@ -737,6 +860,7 @@ table.cases-index td.rut-cell .rut-input {
 
 table.cases-index .codigo-f8-input {
     width: 100%;
+    min-width: 110px;
     text-align: center;
 }
 
@@ -757,8 +881,22 @@ table.cases-index .codigo-f8-input {
 
 .fecha-form .fecha-input {
     flex: 1;
-    min-width: 0;
+    min-width: 140px;
     text-align: center;
+}
+
+table.cases-index td:last-child {
+    white-space: nowrap !important;
+    text-align: center;
+}
+
+table.cases-index td:last-child form {
+    display: inline-flex;
+    margin: 0 2px;
+}
+
+table.cases-index td:last-child button {
+    white-space: nowrap !important;
 }
 
 /* ==========================================================================

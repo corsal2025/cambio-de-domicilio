@@ -26,15 +26,36 @@
                 <a asp-page="/Comunas">Comunas</a>
                 <a asp-page="/Discarded">Descartados</a>
             </div>
+            <div class="nav-group nav-group-end">
+                <form method="get" class="nav-search">
+                    <input type="text" name="search" id="search-input" placeholder="Buscar por RUT o nombre..." value="@Model.SearchQuery" data-had-value="@(!string.IsNullOrEmpty(Model.SearchQuery) ? "true" : "false")" oninput="formatSearchRut(this); clearSearchIfEmpty(this)" />
+                    <button type="submit" class="nav-pill">Buscar</button>
+                    @if (!string.IsNullOrEmpty(Model.SearchQuery))
+                    {
+                        <a asp-page="/F8" class="nav-search-clear">Limpiar</a>
+                    }
+                </form>
+            </div>
         </nav>
     </header>
     <div class="app-subnav">
-        <span class="app-subnav-label">Otros sistemas</span>
-        <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
-        <a asp-page="/F8" class="nav-f8 active">F8</a>
-        <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
-        <a asp-page="/SectorF8" asp-route-sector="Archivo" class="nav-pdf-archivo">PDF Archivo</a>
-        <a asp-page="/SectorF8" asp-route-sector="Oficina43" class="nav-pdf-oficina43">PDF Oficina 43</a>
+        <div class="app-subnav-main">
+            <span class="app-subnav-label">Sistemas</span>
+            <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
+            <a asp-page="/F8" class="nav-f8 active">F8</a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
+        </div>
+        <div class="app-subnav-docs">
+            <span class="app-subnav-label">Documentos F8</span>
+            <a asp-page="/SectorF8" asp-route-sector="Archivo" class="nav-pdf-archivo" title="Generar listado F8 para Archivo">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                PDF Archivo
+            </a>
+            <a asp-page="/SectorF8" asp-route-sector="Oficina43" class="nav-pdf-oficina43" title="Generar listado F8 para Oficina 43">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                PDF Oficina 43
+            </a>
+        </div>
     </div>
 
     <main>
@@ -43,12 +64,40 @@
             <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
         }
 
+        @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+        {
+            if (Model.Cases.Count == 0 && Model.CasosMatchCount > 0)
+            {
+                <div class="cross-search-banner">
+                    <span class="cross-search-icon">🔍</span>
+                    <div class="cross-search-text">
+                        No se encontraron casos en F8 para <strong>"@Model.SearchQuery"</strong>, pero existe(n) <strong>@Model.CasosMatchCount caso(s)</strong> en <strong>Cambio de Domicilio</strong>.
+                    </div>
+                    <a asp-page="/Index" asp-route-search="@Model.SearchQuery" class="btn-cross-search">
+                        Ver en Cambio de Domicilio &rarr;
+                    </a>
+                </div>
+            }
+            else if (Model.Cases.Count > 0 && Model.CasosMatchCount > 0)
+            {
+                <div class="cross-search-banner cross-search-banner-info">
+                    <span class="cross-search-icon">ℹ️</span>
+                    <div class="cross-search-text">
+                        Esta persona también tiene <strong>@Model.CasosMatchCount caso(s)</strong> registrado(s) en <strong>Cambio de Domicilio</strong>.
+                    </div>
+                    <a asp-page="/Index" asp-route-search="@Model.SearchQuery" class="btn-cross-search">
+                        Ver en Cambio de Domicilio &rarr;
+                    </a>
+                </div>
+            }
+        }
+
         <div class="card table-card">
             <table class="cases cases-index cases-f8">
                 <thead>
                     <tr>
                         <th title="Selecciona los casos que deben incluirse en el próximo PDF Archivo/Oficina 43">Marcar</th>
-                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en amarillo">Pendiente<br />Carpeta</th>
+                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en amarillo">Pendiente Carpeta</th>
                         <th>Nombre</th>
                         <th>RUT</th>
                         <th>Comuna</th>
@@ -268,5 +317,31 @@
         }
     </script>
     <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
+    <script>
+        function formatSearchRut(input) {
+            var raw = input.value;
+            if (!/^\d+[kK]?$/.test(raw.replace(/[.\-]/g, ''))) {
+                return;
+            }
+
+            var clean = raw.replace(/[.\-]/g, '');
+            if (clean.length < 2) {
+                return;
+            }
+
+            var body = clean.slice(0, -1);
+            var dv = clean.slice(-1).toUpperCase();
+            var formattedBody = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+            input.value = formattedBody + '-' + dv;
+        }
+
+        function clearSearchIfEmpty(input) {
+            if (input.value === '' && input.dataset.hadValue === 'true') {
+                input.form.submit();
+            }
+            input.dataset.hadValue = input.value !== '' ? 'true' : 'false';
+        }
+    </script>
 </body>
 </html>

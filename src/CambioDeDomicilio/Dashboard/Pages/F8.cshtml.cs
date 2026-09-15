@@ -22,8 +22,15 @@ public class F8Model(
     public bool MessageIsError { get; set; }
     public int PlazoDiasHabiles => options.PlazoDiasHabiles;
 
-    public void OnGet()
+    [BindProperty(SupportsGet = true)]
+    public string? SearchQuery { get; set; }
+
+    /// <summary>Number of matching cases found in Casos (Cambio de Domicilio) for this search query.</summary>
+    public int CasosMatchCount { get; private set; }
+
+    public void OnGet(string? search = null)
     {
+        SearchQuery = search;
         Load();
     }
 
@@ -174,11 +181,30 @@ public class F8Model(
 
     private void Load()
     {
-        Cases = repository.GetAll()
-            .Where(c => c.Destination == CaseDestination.F8)
+        var all = repository.GetAll();
+        var f8Cases = all.Where(c => c.Destination == CaseDestination.F8);
+
+        if (!string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            var query = SearchQuery.Trim().ToUpperInvariant();
+            f8Cases = f8Cases.Where(c => MatchesQuery(c, query));
+
+            // Conteo de coincidencias cruzadas en Cambio de Domicilio
+            CasosMatchCount = all.Count(c => c.TransferredAt is null && MatchesQuery(c, query));
+        }
+
+        Cases = f8Cases
             .OrderBy(c => c.Status == RequestStatus.Confirmed)
             .ThenBy(c => c.ConfirmedAt)
             .ThenByDescending(c => c.ReceivedAt)
             .ToList();
+    }
+
+    private static bool MatchesQuery(PersonRequest c, string query)
+    {
+        var queryClean = query.Replace(".", string.Empty).Replace("-", string.Empty);
+        var rutClean = (c.Rut ?? string.Empty).Replace(".", string.Empty).Replace("-", string.Empty);
+        return (c.FullName ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase) ||
+               rutClean.Contains(queryClean, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -70,18 +70,57 @@
         </nav>
     </header>
     <div class="app-subnav">
-        <span class="app-subnav-label">Otros sistemas</span>
-        <a asp-page="/Index" class="nav-casos active">Cambio de Domicilio</a>
-        <a asp-page="/F8" class="nav-f8">F8</a>
-        <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
-        <a asp-page="/Sector" asp-route-sector="Archivo" class="nav-pdf-archivo">PDF Archivo</a>
-        <a asp-page="/Sector" asp-route-sector="Oficina43" class="nav-pdf-oficina43">PDF Oficina 43</a>
+        <div class="app-subnav-main">
+            <span class="app-subnav-label">Sistemas</span>
+            <a asp-page="/Index" class="nav-casos active">Cambio de Domicilio</a>
+            <a asp-page="/F8" class="nav-f8">F8</a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
+        </div>
+        <div class="app-subnav-docs">
+            <span class="app-subnav-label">Documentos</span>
+            <a asp-page="/Sector" asp-route-sector="Archivo" class="nav-pdf-archivo" title="Generar listado para Archivo">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                PDF Archivo
+            </a>
+            <a asp-page="/Sector" asp-route-sector="Oficina43" class="nav-pdf-oficina43" title="Generar listado para Oficina 43">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                PDF Oficina 43
+            </a>
+        </div>
     </div>
 
     <main>
         @if (Model.Message is not null)
         {
             <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+        {
+            if (Model.Cases.Count == 0 && Model.F8MatchCount > 0)
+            {
+                <div class="cross-search-banner">
+                    <span class="cross-search-icon">🔍</span>
+                    <div class="cross-search-text">
+                        No se encontraron casos en Cambio de Domicilio para <strong>"@Model.SearchQuery"</strong>, pero existe(n) <strong>@Model.F8MatchCount caso(s)</strong> en <strong>Casos F8</strong>.
+                    </div>
+                    <a asp-page="/F8" asp-route-search="@Model.SearchQuery" class="btn-cross-search">
+                        Ver en Casos F8 &rarr;
+                    </a>
+                </div>
+            }
+            else if (Model.Cases.Count > 0 && Model.F8MatchCount > 0)
+            {
+                <div class="cross-search-banner cross-search-banner-info">
+                    <span class="cross-search-icon">ℹ️</span>
+                    <div class="cross-search-text">
+                        Esta persona también tiene <strong>@Model.F8MatchCount caso(s)</strong> registrado(s) en <strong>Casos F8</strong>.
+                    </div>
+                    <a asp-page="/F8" asp-route-search="@Model.SearchQuery" class="btn-cross-search">
+                        Ver en Casos F8 &rarr;
+                    </a>
+                </div>
+            }
         }
 
         <div class="card card-manual-entry">
@@ -149,10 +188,10 @@
                 <thead>
                     <tr>
                         <th style="white-space:nowrap;">
-                            <span style="display:flex; flex-direction:column; align-items:center; gap:2px;">
-                                Marcar
+                            <span style="display:inline-flex; align-items:center; gap:6px; justify-content:center;">
+                                <span>Marcar</span>
                                 <form method="post" asp-page-handler="MarkAllVisible"
-                                      asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview">
+                                      asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" style="display:inline-flex; margin:0;">
                                     <input type="checkbox" class="marked-checkbox" title="Marcar/desmarcar todos los casos visibles"
                                            @(Model.AllVisibleMarked ? "checked" : "")
                                            onchange="this.nextElementSibling.value = this.checked; this.form.submit();" />
@@ -161,7 +200,7 @@
                             </span>
                         </th>
                         <th title="Marca un caso cuya carpeta física no fue posible localizar (solo fichas sin fecha o anteriores a 2000)">F8</th>
-                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en amarillo">Pendiente<br />Carpeta</th>
+                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en amarillo">Pendiente Carpeta</th>
                         <th>Nombre</th>
                         <th>RUT</th>
                         <th>Comuna</th>

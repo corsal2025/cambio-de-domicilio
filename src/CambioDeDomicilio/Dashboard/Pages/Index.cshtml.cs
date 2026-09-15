@@ -28,6 +28,9 @@ public class IndexModel(
     public bool OnlyNeedsReview { get; set; }
     public bool OnlyBounced { get; set; }
     public string? SearchQuery { get; set; }
+
+    /// <summary>Number of matching cases found in F8 for this search query.</summary>
+    public int F8MatchCount { get; private set; }
     public string? Message { get; set; }
     public bool MessageIsError { get; set; }
     public int PlazoDiasHabiles => options.PlazoDiasHabiles;
@@ -401,11 +404,10 @@ public class IndexModel(
         if (!string.IsNullOrWhiteSpace(SearchQuery))
         {
             var query = SearchQuery.Trim().ToUpperInvariant();
-            all = all.Where(c => 
-                (c.FullName ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                (c.Rut ?? string.Empty).Replace(".", string.Empty).Replace("-", string.Empty)
-                    .Contains(query.Replace(".", string.Empty).Replace("-", string.Empty), StringComparison.OrdinalIgnoreCase)
-            );
+            all = all.Where(c => MatchesQuery(c, query));
+
+            // Conteo de coincidencias cruzadas en F8
+            F8MatchCount = everything.Count(c => c.Destination == CaseDestination.F8 && MatchesQuery(c, query));
         }
 
         // Marked cases (checkbox "Marcar") float to the very top, ordered by MarkedAt ascending —
@@ -425,5 +427,13 @@ public class IndexModel(
             .ThenBy(c => c.ConfirmedAt)
             .ThenByDescending(c => c.ReceivedAt)
             .ToList();
+    }
+
+    private static bool MatchesQuery(PersonRequest c, string query)
+    {
+        var queryClean = query.Replace(".", string.Empty).Replace("-", string.Empty);
+        var rutClean = (c.Rut ?? string.Empty).Replace(".", string.Empty).Replace("-", string.Empty);
+        return (c.FullName ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase) ||
+               rutClean.Contains(queryClean, StringComparison.OrdinalIgnoreCase);
     }
 }
