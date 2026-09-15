@@ -84,13 +84,11 @@
             <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
         }
 
-        <div class="card card-manual-entry" style="padding: 10px 16px; margin-bottom: 10px;">
-            <form method="post" asp-page-handler="AddManualCases" id="manual-cases-form"
-                  style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-                <div>
+        <div class="card card-manual-entry">
+            <form method="post" asp-page-handler="AddManualCases" id="manual-cases-form" class="manual-entry-form">
+                <div class="form-group">
                     <label class="form-label" for="manual-comuna">Comuna</label>
-                    <select name="comuna" id="manual-comuna" required
-                            style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem;">
+                    <select name="comuna" id="manual-comuna" required class="form-control">
                         <option value="">Seleccione...</option>
                         @foreach (var contact in Model.ComunaOptions)
                         {
@@ -99,26 +97,24 @@
                     </select>
                 </div>
 
-                <div id="manual-case-rows" style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <div class="manual-case-row" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-                        <div>
+                <div id="manual-case-rows" class="manual-case-rows">
+                    <div class="manual-case-row">
+                        <div class="form-group">
                             <label class="form-label">Nombre completo</label>
                             <input type="text" name="nombre" required placeholder="ej: Gustavo Peña Castro"
-                                   style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem; min-width:220px;" />
+                                   class="form-control" style="min-width: 240px;" />
                         </div>
-                        <div>
+                        <div class="form-group">
                             <label class="form-label">RUT</label>
                             <input type="text" name="rut" required placeholder="ej: 18.785.387-7"
-                                   style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem;" />
+                                   class="form-control" style="min-width: 130px;" />
                         </div>
-                        <button type="button" class="manual-case-remove" title="Quitar fila"
-                                style="border:1px solid var(--color-border); border-radius:4px; padding:6px 10px; background:none; cursor:pointer;">&times;</button>
+                        <button type="button" class="manual-case-remove" title="Quitar fila">&times;</button>
                     </div>
                 </div>
 
-                <button type="button" id="manual-case-add"
-                        style="border:1px solid var(--color-border); border-radius:4px; padding:8px 16px; background:none; cursor:pointer;">+ Agregar otro</button>
-                <button type="submit" class="btn-primary" style="padding:8px 16px;">Agregar caso(s)</button>
+                <button type="button" id="manual-case-add" class="btn-add-more">+ Agregar otro</button>
+                <button type="submit" class="btn-primary">Agregar caso(s)</button>
             </form>
         </div>
 

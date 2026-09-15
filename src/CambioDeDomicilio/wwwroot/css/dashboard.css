@@ -1,377 +1,401 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ==========================================================================
+   DESIGN TOKENS — MUNICIPALIDAD DE VALPARAÍSO
+   ========================================================================== */
 :root {
-    --color-primary: #0b3d68;
-    --color-primary-dark: #082a49;
-    --color-accent: #1a73b0;
-    --color-bg: #f4f6f8;
+    /* Paleta Institucional */
+    --color-primary: #0a3356;
+    --color-primary-dark: #062038;
+    --color-primary-light: #114b7d;
+    --color-accent: #0284c7;
+    --color-accent-hover: #0369a1;
+    --color-accent-subtle: #e0f2fe;
+
+    /* Superficies y Neutros */
+    --color-bg: #f8fafc;
     --color-surface: #ffffff;
-    --color-border: #d7dde3;
-    --color-text: #1f2933;
-    --color-text-muted: #5c6b7a;
-    --color-pending: #6b7280;
-    --color-pending-bg: #eceff1;
-    --color-uploaded: #926100;
-    --color-uploaded-bg: #fff3d6;
-    --color-confirmed: #1e7a3d;
-    --color-confirmed-bg: #e3f6e9;
-    --color-review: #a11d33;
-    --color-review-bg: #fbe4e8;
-    --radius: 6px;
-    --shadow-sm: 0 1px 2px rgba(15, 30, 45, 0.08);
+    --color-surface-subtle: #f1f5f9;
+    --color-surface-hover: #f8fafc;
+    --color-border: #e2e8f0;
+    --color-border-subtle: #f1f5f9;
+    --color-border-strong: #cbd5e1;
+
+    /* Tipografía */
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --color-text: #0f172a;
+    --color-text-secondary: #334155;
+    --color-text-muted: #64748b;
+    --color-text-inverse: #ffffff;
+
+    /* Semántica de Estados (Soft badging & accesible contrast) */
+    --color-pending: #475569;
+    --color-pending-bg: #f1f5f9;
+    --color-pending-border: #cbd5e1;
+
+    --color-uploaded: #92400e;
+    --color-uploaded-bg: #fef3c7;
+    --color-uploaded-border: #fde68a;
+
+    --color-confirmed: #065f46;
+    --color-confirmed-bg: #ecfdf5;
+    --color-confirmed-border: #a7f3d0;
+
+    --color-review: #991b1b;
+    --color-review-bg: #fef2f2;
+    --color-review-border: #fecaca;
+
+    --color-bounced: #9f1239;
+    --color-bounced-bg: #fff1f2;
+    --color-bounced-border: #fecdd3;
+
+    --color-f8: #374151;
+    --color-f8-bg: #f3f4f6;
+    --color-f8-border: #d1d5db;
+
+    /* Resaltados de fila en tabla (Suaves y armónicos) */
+    --row-marked-bg: #ecfdf5;
+    --row-marked-border: #a7f3d0;
+    --row-pendiente-bg: #fefce8;
+    --row-pendiente-border: #fde047;
+    --row-confirmed-bg: #f0fdf4;
+    --row-review-bg: #fff1f2;
+    --row-bounced-bg: #ffe4e6;
+    --row-f8-bg: #f3f4f6;
+
+    /* Radios */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-full: 9999px;
+    --radius: var(--radius-md);
+
+    /* Elevación / Sombras */
+    --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+    --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+    --shadow-header: 0 4px 20px -2px rgba(10, 51, 86, 0.15);
+
+    /* Transiciones */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* { box-sizing: border-box; }
+/* ==========================================================================
+   RESET Y BASE
+   ========================================================================== */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
 
-/* Nothing on any page is meant to need page-level horizontal scroll — the cases table has its
-   own internal overflow-x:auto (.table-card) precisely so its scrollbar stays reachable without
-   scrolling the whole page first. Without this, a wide table with nothing else constraining it
-   makes <html> itself grow past the viewport width instead of clipping inside .table-card, so
-   the *page* scrolls right instead of the table, and scroll-preserve.js (which only restores the
-   table's own scrollLeft, not window.scrollX) can't bring it back — read by the operator as the
-   whole screen "jumping to the left" on every reload. */
 html {
     overflow-x: hidden;
+    font-size: 14px;
 }
 
 body {
     margin: 0;
-    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
     background: var(--color-bg);
     color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.45;
 }
 
+/* ==========================================================================
+   CABECERA INSTITUCIONAL
+   ========================================================================== */
 header.app-header {
-    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-    color: #fff;
-    padding: 14px 24px;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: var(--color-text-inverse);
+    padding: 10px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 10px;
-    box-shadow: var(--shadow-sm);
+    gap: 12px;
+    box-shadow: var(--shadow-header);
+    position: relative;
+    z-index: 20;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 header.app-header .brand {
     display: flex;
     align-items: center;
     gap: 14px;
-    font-weight: 600;
-    font-size: 1.35rem;
-    letter-spacing: 0.2px;
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
 }
 
 header.app-header .brand-logo {
-    height: 76px;
+    height: 52px;
     width: auto;
-    border-radius: 6px;
-    background: #fff;
-    padding: 3px;
+    border-radius: var(--radius-sm);
+    background: #ffffff;
+    padding: 3px 6px;
+    box-shadow: var(--shadow-sm);
+    object-fit: contain;
+}
+
+header.app-header .brand span {
+    display: flex;
+    flex-direction: column;
 }
 
 header.app-header .brand small {
     display: block;
-    font-weight: 400;
-    font-size: 0.9rem;
-    opacity: 0.85;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-}
-
-/* F8 is its own separate system (own screen, own data, own emails) — pulled out of the main nav
-   into a distinct strip so it reads as "somewhere else", not mixed in with the Cambio de
-   Domicilio view filters and tools. */
-div.app-subnav {
-    background: #12212f;
-    padding: 8px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-div.app-subnav span.app-subnav-label {
-    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
     font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-right: 4px;
+    margin-top: 1px;
 }
 
+header.app-header .brand small:last-child {
+    font-weight: 600;
+    color: #38bdf8;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+}
+
+/* ==========================================================================
+   BARRA DE NAVEGACIÓN Y FILTROS
+   ========================================================================== */
 nav.app-nav {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 4px;
+    justify-content: flex-end;
+    gap: 8px;
     flex-wrap: wrap;
     flex: 1;
 }
 
+.nav-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    padding: 2px 10px;
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.nav-group:first-child {
+    border-left: none;
+    padding-left: 0;
+}
+
+.nav-group-end {
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+    padding-left: 10px;
+}
+
 nav.app-nav a {
-    color: #eaf2fa;
+    color: rgba(255, 255, 255, 0.9);
     text-decoration: none;
-    padding: 4px 9px;
-    border-radius: var(--radius);
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-    white-space: nowrap;
-    transition: background 0.15s ease;
-}
-
-nav.app-nav a:hover { background: rgba(255, 255, 255, 0.15); }
-nav.app-nav a.active { background: rgba(255, 255, 255, 0.22); font-weight: 600; }
-
-/* Every nav link/button is colored by what it does, reusing the same status colors already used
-   on the case-list badges (Pendiente/Subido/Confirmado/Requiere revisión) so a filter pill and the
-   rows it filters to visually agree — plus three more groups (documents, reference views, and
-   sync) that don't otherwise have an established color of their own. Pill shape + uppercase
-   matches the Casos/F8/Certificado subnav strip so the whole header reads as one system. */
-nav.app-nav a.nav-pill,
-nav.app-nav form button.nav-pill {
-    border-radius: 999px;
+    padding: 5px 11px;
+    border-radius: var(--radius-full);
+    font-size: 0.76rem;
     font-weight: 600;
-    border: 1px solid transparent;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
-nav.app-nav a.nav-filter-pending { background: rgba(107, 114, 128, 0.2); border-color: rgba(107, 114, 128, 0.7); color: #d7dbe0; }
-nav.app-nav a.nav-filter-pending:hover { background: rgba(107, 114, 128, 0.32); }
-nav.app-nav a.nav-filter-pending.active { background: rgba(107, 114, 128, 0.45); }
-
-nav.app-nav a.nav-filter-uploaded { background: rgba(255, 178, 29, 0.2); border-color: rgba(255, 178, 29, 0.7); color: #ffd479; }
-nav.app-nav a.nav-filter-uploaded:hover { background: rgba(255, 178, 29, 0.32); }
-nav.app-nav a.nav-filter-uploaded.active { background: rgba(255, 178, 29, 0.45); }
-
-nav.app-nav a.nav-filter-confirmed { background: rgba(30, 122, 61, 0.25); border-color: rgba(52, 199, 107, 0.7); color: #86efac; }
-nav.app-nav a.nav-filter-confirmed:hover { background: rgba(30, 122, 61, 0.38); }
-nav.app-nav a.nav-filter-confirmed.active { background: rgba(30, 122, 61, 0.5); }
-
-nav.app-nav a.nav-filter-review { background: rgba(161, 29, 51, 0.25); border-color: rgba(239, 68, 68, 0.7); color: #fca5a5; }
-nav.app-nav a.nav-filter-review:hover { background: rgba(161, 29, 51, 0.38); }
-nav.app-nav a.nav-filter-review.active { background: rgba(161, 29, 51, 0.5); }
-
-/* Documents: PDF generation and the bulk "select for this sector" actions that feed it — same
-   amber family as the F8 subnav pill, since both are ultimately about the printed folder list. */
-nav.app-nav a.nav-doc,
-nav.app-nav form button.nav-doc {
-    background: rgba(255, 196, 0, 0.18);
-    border-color: rgba(255, 196, 0, 0.6);
-    color: #ffe28a;
+nav.app-nav a:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
 }
-nav.app-nav a.nav-doc:hover, nav.app-nav form button.nav-doc:hover { background: rgba(255, 196, 0, 0.3); }
 
-/* Reference views: read-only lookups, not actions — kept neutral/muted on purpose. */
-nav.app-nav a.nav-reference {
-    background: rgba(148, 163, 184, 0.16);
-    border-color: rgba(148, 163, 184, 0.55);
-    color: #cbd5e1;
+nav.app-nav a.active {
+    background: #ffffff;
+    color: var(--color-primary-dark);
+    border-color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
-nav.app-nav a.nav-reference:hover { background: rgba(148, 163, 184, 0.28); }
 
-/* Sync/search: teal, same family as the Certificado subnav pill — an active, positive action. */
-nav.app-nav form.nav-search,
+nav.app-nav a.active .badge {
+    background: var(--color-review);
+    color: #ffffff;
+}
+
+/* Acciones en la cabecera */
+.nav-search {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.nav-search input[type="text"] {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius-full);
+    padding: 5px 12px;
+    font-size: 0.76rem;
+    font-family: inherit;
+    min-width: 170px;
+    outline: none;
+    transition: all var(--transition-fast);
+}
+
+.nav-search input[type="text"]::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.nav-search input[type="text"]:focus {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
+}
+
+.nav-search button,
+nav.app-nav form button {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius-full);
+    padding: 5px 12px;
+    font-size: 0.76rem;
+    font-family: inherit;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+}
+
+.nav-search button:hover,
+nav.app-nav form button:hover {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
 nav.app-nav form button.nav-sync {
-    background: transparent;
+    background: #0284c7;
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
 }
-nav.app-nav .nav-search button.nav-pill,
-nav.app-nav form button.nav-sync {
-    background: rgba(84, 199, 165, 0.18);
-    border-color: rgba(84, 199, 165, 0.6);
-    color: #a7ecd8;
-}
-nav.app-nav .nav-search button.nav-pill:hover,
+
 nav.app-nav form button.nav-sync:hover {
-    background: rgba(84, 199, 165, 0.3);
+    background: #0369a1;
+    border-color: #7dd3fc;
 }
 
-/* Account: neutral, same muted family as the reference-view pills. */
-nav.app-nav a.nav-account {
-    background: rgba(148, 163, 184, 0.16);
-    border-color: rgba(148, 163, 184, 0.55);
-    color: #cbd5e1;
+.nav-search-clear {
+    font-size: 0.72rem;
+    color: #bae6fd;
+    text-decoration: underline;
+    white-space: nowrap;
 }
-nav.app-nav a.nav-account:hover { background: rgba(148, 163, 184, 0.28); }
 
-/* Logout: same red as Requiere revisión / btn-danger elsewhere in the app — an exit action. */
-nav.app-nav form button.nav-logout {
-    background: rgba(161, 29, 51, 0.25);
-    border-color: rgba(239, 68, 68, 0.7);
-    color: #fca5a5;
+.nav-search-clear:hover {
+    color: #ffffff;
 }
-nav.app-nav form button.nav-logout:hover { background: rgba(161, 29, 51, 0.4); }
 
-/* Casos (Cambio de Domicilio) and F8 are the two separate tracks (their own screens, own data,
-   own emails) — a distinct pill per track marks each as "a different system". Not scoped to
-   nav.app-nav since they now live in their own div.app-subnav strip, always shown together
-   (including on each track's own page) so switching between them is one click from anywhere. */
+/* ==========================================================================
+   SUB-NAVEGACIÓN (SISTEMAS Y DOCUMENTOS)
+   ========================================================================== */
+div.app-subnav {
+    background: #0b2238;
+    padding: 6px 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+div.app-subnav span.app-subnav-label {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-right: 6px;
+}
+
 a.nav-casos,
 a.nav-f8,
 a.nav-estadisticas,
 a.nav-pdf-archivo,
 a.nav-pdf-oficina43 {
     font-weight: 600;
-    border-radius: 999px;
-    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    padding: 5px 12px;
     text-decoration: none;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    font-size: 0.82rem;
-    transition: background 0.15s ease;
+    font-size: 0.76rem;
+    letter-spacing: 0.01em;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
 }
 
-/* Sky blue — distinct from F8's amber. */
 a.nav-casos {
-    background: rgba(56, 189, 248, 0.18);
-    border: 1px solid rgba(56, 189, 248, 0.6);
-    color: #a8e2fb;
+    background: rgba(56, 189, 248, 0.12);
+    color: #bae6fd;
+    border-color: rgba(56, 189, 248, 0.3);
 }
-a.nav-casos:hover { background: rgba(56, 189, 248, 0.3); }
-a.nav-casos.active { background: rgba(56, 189, 248, 0.4); }
+a.nav-casos:hover { background: rgba(56, 189, 248, 0.22); color: #ffffff; }
+a.nav-casos.active { background: #0284c7; color: #ffffff; border-color: #38bdf8; font-weight: 700; }
 
 a.nav-f8 {
-    background: rgba(255, 196, 0, 0.18);
-    border: 1px solid rgba(255, 196, 0, 0.6);
-    color: #ffe28a;
+    background: rgba(251, 191, 36, 0.12);
+    color: #fef08a;
+    border-color: rgba(251, 191, 36, 0.3);
 }
-a.nav-f8:hover { background: rgba(255, 196, 0, 0.3); }
-a.nav-f8.active { background: rgba(255, 196, 0, 0.4); }
+a.nav-f8:hover { background: rgba(251, 191, 36, 0.22); color: #ffffff; }
+a.nav-f8.active { background: #d97706; color: #ffffff; border-color: #fbbf24; font-weight: 700; }
 
-/* Violet — statistics is a read-only reporting layer over the other tracks, not another
-   workflow, so it gets its own distinct color rather than reusing one of theirs. */
 a.nav-estadisticas {
-    background: rgba(167, 139, 250, 0.18);
-    border: 1px solid rgba(167, 139, 250, 0.6);
-    color: #d6c9fc;
+    background: rgba(168, 85, 247, 0.12);
+    color: #e9d5ff;
+    border-color: rgba(168, 85, 247, 0.3);
 }
-a.nav-estadisticas:hover { background: rgba(167, 139, 250, 0.3); }
-a.nav-estadisticas.active { background: rgba(167, 139, 250, 0.4); }
+a.nav-estadisticas:hover { background: rgba(168, 85, 247, 0.22); color: #ffffff; }
+a.nav-estadisticas.active { background: #7c3aed; color: #ffffff; border-color: #c084fc; font-weight: 700; }
 
-/* Archivo vs Oficina 43 get their own distinct colors (not both the same pill) so they read as
-   two different documents at a glance, matching the Archivo/Oficina43 sector split shown on the
-   case rows themselves. */
 a.nav-pdf-archivo {
-    background: rgba(148, 163, 184, 0.2);
-    border: 1px solid rgba(148, 163, 184, 0.7);
-    color: #dde3ea;
+    background: rgba(148, 163, 184, 0.15);
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.35);
 }
-a.nav-pdf-archivo:hover { background: rgba(148, 163, 184, 0.32); }
+a.nav-pdf-archivo:hover { background: rgba(148, 163, 184, 0.28); color: #ffffff; }
 
 a.nav-pdf-oficina43 {
-    background: rgba(255, 196, 0, 0.18);
-    border: 1px solid rgba(255, 196, 0, 0.6);
-    color: #ffe28a;
+    background: rgba(245, 158, 11, 0.12);
+    color: #fde68a;
+    border-color: rgba(245, 158, 11, 0.35);
 }
-a.nav-pdf-oficina43:hover { background: rgba(255, 196, 0, 0.3); }
+a.nav-pdf-oficina43:hover { background: rgba(245, 158, 11, 0.24); color: #ffffff; }
 
-nav.app-nav form button {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    border-radius: var(--radius);
-    padding: 4px 9px;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-    white-space: nowrap;
-    cursor: pointer;
-}
-nav.app-nav form button:hover { background: rgba(255, 255, 255, 0.22); }
-
-/* Three logical groups (view filters | reference tools | search+actions) instead of one long
-   run of links — each group wraps as a unit and gets a divider, so on a narrow window the nav
-   breaks between groups rather than mid-group. nav-group-end pins right on wide screens via
-   margin-left:auto and drops that once the row wraps (flex-wrap puts it on its own line). */
-.nav-group {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    flex-wrap: wrap;
-    padding: 2px 8px;
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.nav-group:first-child {
-    padding-left: 0;
-    border-left: none;
-}
-
-/* No longer forced onto its own row (flex-basis:100%) — with the smaller pill size below, all
-   three groups (filters | tools | search+actions) now fit on one line at normal window widths,
-   which is the point of a single continuous nav strip instead of it wrapping into separate rows. */
-.nav-group-end {
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
-    padding-left: 8px;
-}
-
-.nav-search {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-}
-
-.nav-search input[type="text"] {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    border-radius: var(--radius);
-    padding: 4px 8px;
-    font-size: 0.7rem;
-    min-width: 140px;
-}
-
-.nav-search input[type="text"]::placeholder {
-    color: rgba(255, 255, 255, 0.65);
-}
-
-.nav-search button {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    border-radius: var(--radius);
-    padding: 4px 9px;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-    cursor: pointer;
-}
-.nav-search button:hover { background: rgba(255, 255, 255, 0.22); }
-
-.nav-search-clear {
-    font-size: 0.68rem;
-    text-decoration: underline;
-    white-space: nowrap;
-}
-
+/* ==========================================================================
+   LAYOUT PRINCIPAL Y CONTENEDORES
+   ========================================================================== */
 main {
-    padding: 20px 24px 40px;
-    max-width: 1400px;
+    padding: 16px 24px 32px;
+    max-width: 1440px;
     margin: 0 auto;
 }
 
-.message-banner {
-    background: var(--color-confirmed-bg);
-    border: 1px solid var(--color-confirmed);
-    color: var(--color-confirmed);
-    padding: 10px 14px;
-    border-radius: var(--radius);
-    margin-bottom: 16px;
-    font-size: 0.9rem;
-}
-
-.card {
-    background: var(--color-surface);
-    border-radius: var(--radius);
-    border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-sm);
-    overflow-x: auto;
-    overflow-y: hidden;
-}
-
-/* On the cases table (Index page), pin the table's own area to the viewport height instead of
-   letting the whole page scroll — otherwise the horizontal scrollbar sits at the bottom of a
-   potentially very long table, requiring a long vertical scroll first just to reach it. With
-   this, the horizontal scrollbar (and the vertical one, for tall tables) stays reachable right
-   at the bottom of the visible table area. */
 body.cases-page {
     display: flex;
     flex-direction: column;
@@ -380,6 +404,7 @@ body.cases-page {
     max-height: 100vh;
     max-height: 100dvh;
     overflow: hidden;
+    background: var(--color-bg);
 }
 
 body.cases-page main {
@@ -388,181 +413,492 @@ body.cases-page main {
     flex-direction: column;
     max-width: none;
     width: 100%;
-    padding: 10px 14px 12px;
+    padding: 10px 16px 12px;
     min-height: 0;
     min-width: 0;
     overflow: hidden;
 }
 
-/* min-width: 0 overrides the flex-item default of min-width: auto, which otherwise refuses to
-   shrink this element below the table's full content width — without it, the table pushes
-   .table-card (and the whole page) wider than the viewport instead of scrolling internally, so
-   the *window* ends up needing horizontal scroll too. scroll-preserve.js only restores the
-   table's own scrollLeft, not window.scrollX, so that page-level overflow read back as "jumping
-   to the left" on every reload. */
+/* ==========================================================================
+   TARJETAS Y CONTENEDORES
+   ========================================================================== */
+.card {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-fast);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Tarjeta de Entrada Manual */
+.card-manual-entry {
+    padding: 12px 18px;
+    margin-bottom: 12px;
+    background: #ffffff;
+    border-left: 4px solid var(--color-primary);
+}
+
+.manual-entry-form {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.form-control,
+select.form-control,
+input.form-control {
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 0.8125rem;
+    font-family: inherit;
+    color: var(--color-text);
+    background: #ffffff;
+    outline: none;
+    transition: all var(--transition-fast);
+}
+
+.form-control:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18);
+}
+
+.manual-case-rows {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.manual-case-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.manual-case-remove {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    background: var(--color-surface-subtle);
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.manual-case-remove:hover {
+    background: var(--color-review-bg);
+    color: var(--color-review);
+    border-color: var(--color-review-border);
+}
+
+.btn-add-more {
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    padding: 7px 14px;
+    background: transparent;
+    color: var(--color-accent);
+    font-weight: 600;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-add-more:hover {
+    background: var(--color-accent-subtle);
+    border-color: var(--color-accent);
+}
+
+/* ==========================================================================
+   TABLA DE CASOS (COMPONENTE CRÍTICO OPERATIVO)
+   ========================================================================== */
 .card.table-card {
     flex: 1;
     width: 100%;
     min-height: 0;
     min-width: 0;
     overflow: auto;
-    border-radius: var(--radius);
+    border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
     background: var(--color-surface);
     box-shadow: var(--shadow-sm);
 }
 
+/* Scrollbar estilizada */
 .card.table-card::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 9px;
+    height: 9px;
 }
 .card.table-card::-webkit-scrollbar-track {
     background: #f1f5f9;
-    border-radius: 4px;
 }
 .card.table-card::-webkit-scrollbar-thumb {
-    background: #94a3b8;
-    border-radius: 4px;
+    background: #cbd5e1;
+    border-radius: var(--radius-full);
     border: 2px solid #f1f5f9;
 }
 .card.table-card::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
+    background: #94a3b8;
 }
 
 table.cases {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    font-size: 0.88rem;
+    font-size: 0.8125rem;
 }
-
-table.cases th {
-    background: #eef2f6;
-    color: var(--color-text-muted);
-    text-transform: uppercase;
-    font-size: 0.72rem;
-    letter-spacing: 0.4px;
-    text-align: center;
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--color-border);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    box-shadow: 0 1px 2px rgba(15, 30, 45, 0.08);
-}
-
-table.cases td {
-    padding: 7px 10px;
-    border-bottom: 1px solid var(--color-border);
-    vertical-align: middle;
-}
-
-table.cases tbody tr:nth-child(even) { background: #fafbfc; }
-table.cases tbody tr:hover { background: #f0f6fb; }
 
 table.cases-index {
     table-layout: auto;
-    font-size: 0.74rem;
     width: 100%;
     min-width: 1180px;
 }
 
-/* Zebra striping is computed server-side into an explicit class instead of relying on
-   :nth-child, since row visibility/order has changed before under a fixed layout — keeping
-   this explicit avoids depending on layout details that are unrelated to the striping itself. */
-table.cases-index tbody tr:nth-child(even) {
-    background: transparent;
+table.cases th {
+    background: #f8fafc;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-align: center;
+    padding: 10px 8px;
+    border-bottom: 2px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
+table.cases td {
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--color-border-subtle);
+    vertical-align: middle;
+    text-align: center;
+    transition: background var(--transition-fast);
+}
+
+/* Intercalado de filas neutro */
 table.cases-index tbody tr.row-alt {
-    background: #fafbfc;
+    background: #fbfcfd;
 }
 
-table.cases-index th {
-    padding: 6px 6px;
-    font-size: 0.66rem;
-    line-height: 1.2;
+table.cases tbody tr:hover {
+    background: #f1f5f9;
 }
 
-table.cases-index td {
-    padding: 5px 6px;
-    font-weight: 700;
+/* Estados de fila sutiles y profesionales (en lugar de colores fosforescentes) */
+table.cases-index tbody tr.row-confirmed {
+    background: var(--row-confirmed-bg) !important;
+}
+table.cases-index tbody tr.row-confirmed:hover {
+    background: #dcfce7 !important;
 }
 
-table.cases-index td input {
-    font-weight: 700;
+table.cases-index tbody tr.row-needs-review {
+    background: var(--row-review-bg) !important;
+}
+table.cases-index tbody tr.row-needs-review:hover {
+    background: #ffe4e6 !important;
 }
 
-table.cases-index th,
-table.cases-index td {
+table.cases-index tbody tr.row-bounced {
+    background: var(--row-bounced-bg) !important;
+}
+table.cases-index tbody tr.row-bounced:hover {
+    background: #fecdd3 !important;
+}
+
+/* Reactividad en vivo vía :has() para checkboxes */
+table.cases-index tbody tr:has(input[name="markedValue"]:checked) {
+    background: var(--row-marked-bg) !important;
+}
+table.cases-index tbody tr:has(input[name="markedValue"]:checked):hover {
+    background: #bbf7d0 !important;
+}
+
+table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked) {
+    background: var(--row-pendiente-bg) !important;
+}
+table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover {
+    background: #fef08a !important;
+}
+
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) {
+    background: var(--row-f8-bg) !important;
+}
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover {
+    background: #e5e7eb !important;
+}
+
+/* Indicador F8 en checkbox: sustituye animación tosca por indicador ámbar sobrio */
+table.cases-index tbody tr td.marked-cell:nth-child(2) {
+    position: relative;
+    overflow: visible;
+    padding-right: 18px;
+}
+
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td.marked-cell:nth-child(2)::after {
+    content: "!";
+    position: absolute;
+    top: 50%;
+    right: 3px;
+    transform: translateY(-50%);
+    background: #f59e0b;
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Checkboxes modernos */
+.marked-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+    border-radius: var(--radius-xs);
+}
+
+/* Campos de edición inline */
+table.cases-index .input-inline {
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: var(--radius-xs);
+    padding: 3px 6px;
+    font-size: 0.8125rem;
+    font-family: inherit;
+    font-weight: 600;
+    color: var(--color-text);
+    outline: none;
+    transition: all var(--transition-fast);
+}
+
+table.cases-index .input-inline:hover {
+    border-color: var(--color-border-strong);
+    background: #ffffff;
+}
+
+table.cases-index .input-inline:focus {
+    border-color: var(--color-accent);
+    background: #ffffff;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+table.cases-index td.name-cell {
+    text-align: left;
+}
+
+table.cases-index td.name-cell .name-with-alert {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+table.cases-index td.name-cell .name-input {
+    width: 100%;
+    min-width: 38ch;
+}
+
+table.cases-index td.rut-cell .rut-input {
+    width: 100%;
+    min-width: 12ch;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+table.cases-index .codigo-f8-input {
+    width: 100%;
     text-align: center;
 }
 
-table.cases-index th:nth-child(1), table.cases-index td:nth-child(1) { width: 50px; min-width: 50px; }
-table.cases-index th:nth-child(2), table.cases-index td:nth-child(2) { width: 50px; min-width: 50px; }
-table.cases-index th:nth-child(3), table.cases-index td:nth-child(3) { width: 70px; min-width: 70px; }
-table.cases-index th:nth-child(4), table.cases-index td:nth-child(4) { min-width: 220px; }
-table.cases-index th:nth-child(5), table.cases-index td:nth-child(5) { width: 110px; min-width: 110px; }
-table.cases-index th:nth-child(6), table.cases-index td:nth-child(6) { width: 100px; min-width: 100px; }
-table.cases-index th:nth-child(7), table.cases-index td:nth-child(7) { width: 90px; min-width: 90px; }
-table.cases-index th:nth-child(8), table.cases-index td:nth-child(8) { width: 120px; min-width: 120px; }
-table.cases-index th:nth-child(9), table.cases-index td:nth-child(9) { width: 90px; min-width: 90px; }
-table.cases-index th:nth-child(10), table.cases-index td:nth-child(10) { width: 110px; min-width: 110px; }
-table.cases-index th:nth-child(11), table.cases-index td:nth-child(11) { width: 80px; min-width: 80px; }
-table.cases-index th:nth-child(12), table.cases-index td:nth-child(12) { width: 140px; min-width: 140px; }
-
-/* F8 page table: auto layout instead of cases-index's fixed % columns, so each column shrinks to
-   fit its actual content (short RUT/badges/buttons) instead of leaving fixed-% whitespace. */
-table.cases-f8.cases-index {
-    table-layout: auto;
-    width: 100%;
-    min-width: 1180px;
+.review-alert {
+    flex: none;
+    color: var(--color-review);
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: help;
 }
 
-table.cases-f8.cases-index th,
-table.cases-f8.cases-index td {
-    width: auto;
+.fecha-form {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+}
+
+.fecha-form .fecha-input {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+}
+
+/* ==========================================================================
+   BADGES Y CHIPS DE ESTADO
+   ========================================================================== */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: var(--radius-full);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+    line-height: 1.2;
     white-space: nowrap;
 }
 
-table.cases-f8.cases-index td.name-cell {
-    white-space: normal;
+.badge-pending {
+    background: var(--color-pending-bg);
+    color: var(--color-pending);
+    border-color: var(--color-pending-border);
 }
 
-/* Auto layout doesn't grow a column to fit an <input>'s value — inputs have a fixed default
-   intrinsic width unlike plain text. Give the name field enough room for a full "Nombre Apellido
-   Apellido" without a min-width tied to the fixed cases-index percentage columns. */
-table.cases-f8.cases-index .name-input {
-    min-width: 46ch;
+.badge-uploaded {
+    background: var(--color-uploaded-bg);
+    color: var(--color-uploaded);
+    border-color: var(--color-uploaded-border);
 }
 
+.badge-confirmed {
+    background: var(--color-confirmed-bg);
+    color: var(--color-confirmed);
+    border-color: var(--color-confirmed-border);
+}
 
-table.cases-index .badge {
-    padding: 2px 8px;
-    font-size: 0.7rem;
+.badge-review {
+    background: var(--color-review-bg);
+    color: var(--color-review);
+    border-color: var(--color-review-border);
+}
+
+.badge-ok {
+    background: var(--color-confirmed-bg);
+    color: var(--color-confirmed);
+    border-color: var(--color-confirmed-border);
+}
+
+.badge-bounced {
+    background: var(--color-bounced-bg);
+    color: var(--color-bounced);
+    border-color: var(--color-bounced-border);
+    margin-left: 4px;
+}
+
+/* ==========================================================================
+   BOTONES Y ACCIONES
+   ========================================================================== */
+button.btn-primary {
+    background: var(--color-accent);
+    color: #ffffff;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    box-shadow: 0 1px 2px rgba(2, 132, 199, 0.2);
     white-space: nowrap;
 }
 
-table.cases-index button.btn-primary {
+button.btn-primary:hover {
+    background: var(--color-accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
+}
+
+button.btn-primary:active {
+    transform: translateY(0);
+}
+
+button.btn-danger {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    transition: all var(--transition-fast);
+}
+
+button.btn-danger:hover {
+    color: var(--color-review);
+    background: var(--color-review-bg);
+    border-color: var(--color-review-border);
+}
+
+button.btn-outline-danger {
+    background: #ffffff;
+    color: var(--color-review);
+    border: 1px solid var(--color-review-border);
+    border-radius: var(--radius-sm);
     padding: 4px 10px;
-    font-size: 0.76rem;
-    white-space: nowrap;
+    font-size: 0.74rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-fast);
 }
 
-/* The "Traspaso a F8" button sits in its own stacked block in the Acción column rather than
-   inline next to the delete icon, so the column stays readable. */
+button.btn-outline-danger:hover {
+    background: var(--color-review-bg);
+    border-color: var(--color-review);
+}
+
+/* Acciones en la última columna */
+table.cases-index td:last-child {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+table.cases-index td:last-child form {
+    margin: 0;
+}
+
 table.cases-index .transfer-choice {
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
 
-/* Both the transfer-choice buttons (.f8-only) and "Marcar subida" (.no-f8-only) are always
-   rendered for a Pending case (see Index.cshtml's Acción column) — this picks which one shows,
-   reacting live to the F8 checkbox via :has() instead of waiting for a page reload, same reasoning
-   as the row-tint rules above. Default state (hidden) matches an unchecked checkbox; the :has()
-   override below flips it the instant F8 is ticked, and back the instant it's unticked, since
-   :has() tracks live checked state, not the original rendered attribute. */
 table.cases-index td .f8-only {
     display: none;
 }
@@ -575,477 +911,227 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no
     display: none !important;
 }
 
-table.cases-index .transfer-choice button.btn-primary {
-    padding: 3px 8px;
-    font-size: 0.68rem;
-    width: 100%;
-}
-
-table.cases-index td:last-child {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-table.cases-index td:last-child {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-table.cases-index td:last-child form {
-    margin: 0;
-}
-
-table.cases-index .input-inline {
-    padding: 3px 4px;
-    font-size: 0.74rem;
-}
-
-table.cases-index td.name-cell {
-    text-align: left;
-}
-
-/* width:100% here fills whatever extra room the column has (so short names don't leave a
-   visible gap); the per-row inline `min-width: Nch` (see Index.cshtml) is what actually forces
-   the column itself to grow — table-layout:auto respects an input's min-width when sizing its
-   column even under width:100%, unlike the HTML `size` attribute, which browsers ignore for
-   column sizing once a CSS width is set. */
-table.cases-index td.name-cell .name-input {
-    width: 100%;
-    min-width: 46ch;
-    box-sizing: border-box;
-    font-size: 0.66rem;
-    padding-left: 3px;
-    padding-right: 3px;
-}
-
-table.cases-index td.rut-cell .rut-input {
-    width: 100%;
-    min-width: 12ch;
-    box-sizing: border-box;
-    text-align: center;
-}
-
-table.cases-index .codigo-f8-input {
-    width: 100%;
-    box-sizing: border-box;
-    text-align: center;
-}
-
-/* No overflow/ellipsis clipping here on purpose — every cases table now uses table-layout:auto
-   (see .cases-f8 override, applied to all three case-list pages), which grows each column to fit
-   its widest cell instead of clipping. Long comuna names or RUTs stay fully visible. */
-table.cases-index td.text-cell,
-table.cases-index td.rut-cell {
-    white-space: nowrap;
-}
-
-table.cases-index .marked-checkbox {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-}
-
-/* Scoped to the markedValue checkbox specifically (not the shared .marked-checkbox class, which
-   the F8/Pendiente Carpeta checkboxes also use) — :has() reacts live to the checkbox's checked
-   state, so the tint appears instantly on click. This matters now that toggling goes through
-   fetch() (see submitCheckboxToggle) instead of a full-page reload: the old row-*-pending classes
-   are computed server-side and only update on the next render, so relying on them alone left the
-   row showing no color change at all until a manual refresh. */
-table.cases-index tbody tr:has(input[name="markedValue"]:checked) {
-    background: #bfe3b4 !important;
-}
-
-table.cases-index tbody tr:has(input[name="markedValue"]:checked):hover {
-    background: #aed89f !important;
-}
-
-/* Same live-update reasoning as the markedValue rule above, for the Pendiente Carpeta checkbox. */
-table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked) {
-    background: #fff3b0 !important;
-}
-
-table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover {
-    background: #ffe98a !important;
-}
-
-/* Confirmed (folder already uploaded + comuna already notified) is the most important
-   status to spot at a glance, so it wins over both the zebra stripe and the "marked" tint. */
-table.cases-index tbody tr.row-confirmed {
-    background: #b8d9f0 !important;
-}
-
-table.cases-index tbody tr.row-confirmed:hover {
-    background: #a0c8ea !important;
-}
-
-/* Needs-review (incomplete/unreliable extracted data) also needs to win over the zebra
-   stripe and the "marked" tint — same reasoning as row-confirmed above. It never overlaps
-   row-confirmed in practice: confirming a case already requires NeedsReview to be false. */
-table.cases-index tbody tr.row-needs-review {
-    background: var(--color-review-bg) !important;
-}
-
-table.cases-index tbody tr.row-needs-review:hover {
-    background: #f6d0d8 !important;
-}
-
-/* A bounced confirmation (the comuna's mail server rejected our "carpeta subida" notice) is a
-   confirmed case that still needs operator action, so it wins over the calm row-confirmed blue —
-   a warm red-tinted row plus the REBOTÓ badge in the status column. */
-table.cases-index tbody tr.row-bounced {
-    background: #f7c9c0 !important;
-}
-
-table.cases-index tbody tr.row-bounced:hover {
-    background: #f2b3a6 !important;
-}
-
-/* Pendiente Carpeta and F8 pending backgrounds are driven ONLY by the live :has() rules above/below
-   — no server-rendered class version. A class-based rule (tr.row-pendiente-carpeta / .row-f8-pending)
-   is baked into the HTML at render time and never removed by fetch()-based toggling (see
-   submitCheckboxToggle): pairing it with a live :has() rule as an OR meant unchecking the box
-   cleared the live half but left the stale class still matching, so the color never went away.
-   :has() alone is correct in both directions since it always reflects the checkbox's current
-   state, checked or not. */
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) {
-    background: #8c8c8c !important;
-}
-
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover {
-    background: #7c7c7c !important;
-}
-
-/* Reserved padding-right applies to EVERY row in this column, checked or not — not just the ones
-   showing the glyph. That keeps the checkbox's centered position identical across all rows; if the
-   padding only applied to checked rows, the checkbox itself would shift between checked/unchecked
-   rows even though the column width (shared across the whole auto-layout column) stays the same
-   either way. The glyph is then absolutely positioned inside that reserved space, so it never
-   touches the checkbox's own layout. */
-table.cases-index tbody tr td.marked-cell:nth-child(2) {
-    position: relative;
-    overflow: visible;
-    padding-right: 20px;
-}
-
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td.marked-cell:nth-child(2)::after {
-    content: "⚠";
-    position: absolute;
-    top: 50%;
-    right: 2px;
-    color: #ffd400;
-    font-size: 1.4rem;
-    font-weight: 700;
-    text-shadow: 0 0 3px #000;
-    line-height: 1;
-    animation: f8-alert-blink 1s step-start infinite;
-}
-
-/* transform is set inside the keyframe (not as a static property above) because the animation
-   overrides any transform declared outside it — centering vertically has to happen at each step. */
-@keyframes f8-alert-blink {
-    0%, 49% { opacity: 1; transform: translateY(-50%); }
-    50%, 100% { opacity: 0; transform: translateY(-50%); }
-}
-
-/* Groups the alert symbol and the name input on one row — without this, the input's own
-   width:100% makes it wrap onto its own line below the alert instead of sitting beside it. */
-table.cases-index td.name-cell .name-with-alert {
+/* ==========================================================================
+   BANNERS DE MENSAJE Y ALERTAS
+   ========================================================================== */
+.message-banner {
+    background: var(--color-confirmed-bg);
+    border: 1px solid var(--color-confirmed-border);
+    border-left: 4px solid var(--color-confirmed);
+    color: var(--color-confirmed);
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    font-size: 0.84rem;
+    font-weight: 500;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 10px;
+    box-shadow: var(--shadow-xs);
 }
 
-@keyframes review-alert-blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.2; }
-}
-
-.review-alert {
-    flex: none;
+.message-error {
+    background: var(--color-review-bg);
+    border-color: var(--color-review-border);
+    border-left-color: var(--color-review);
     color: var(--color-review);
-    font-weight: 700;
-    font-size: 0.95rem;
-    cursor: help;
-    animation: review-alert-blink 1.2s ease-in-out infinite;
-}
-
-table.cases-index td.review-cell {
-    text-align: left;
-}
-
-table.cases-index td.text-cell {
-    white-space: nowrap;
-    text-align: center;
-}
-
-.fecha-form {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    justify-content: center;
-}
-
-.fecha-form .fecha-input {
-    flex: 1;
-    min-width: 0;
-    text-align: center;
-}
-
-.badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 0.76rem;
-    font-weight: 600;
-}
-
-.badge-pending { background: var(--color-pending-bg); color: var(--color-pending); }
-.badge-uploaded { background: var(--color-uploaded-bg); color: var(--color-uploaded); }
-.badge-confirmed { background: var(--color-confirmed-bg); color: var(--color-confirmed); }
-.badge-review { background: var(--color-review-bg); color: var(--color-review); }
-.badge-ok { background: var(--color-confirmed-bg); color: var(--color-confirmed); }
-.badge-bounced { background: #c0392b; color: #fff; margin-left: 4px; }
-
-.message-error { background: var(--color-review-bg); border-color: var(--color-review); color: var(--color-review); }
-
-.input-inline {
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    padding: 4px 6px;
-    font-size: 0.85rem;
 }
 
 .review-hint {
-    margin-top: 4px;
-    font-size: 0.72rem;
+    margin: 8px 0 14px;
+    font-size: 0.8125rem;
     color: var(--color-text-muted);
-}
-
-.form-label {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-    margin-bottom: 4px;
-}
-
-.input-block {
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 9px 10px;
-    margin-bottom: 14px;
+    background: var(--color-surface);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius);
-    font-size: 0.9rem;
+    border-left: 3px solid var(--color-accent);
 }
 
-input[type="date"] {
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    padding: 4px 6px;
-    font-size: 0.85rem;
-}
-
-button.btn-primary {
-    background: var(--color-accent);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius);
-    padding: 6px 14px;
-    font-size: 0.85rem;
-    cursor: pointer;
-}
-button.btn-primary:hover { background: var(--color-primary); }
-
-button.btn-danger {
-    background: none;
-    border: none;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 4px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 0;
-}
-button.btn-danger:hover {
-    color: var(--color-review);
-    background: var(--color-review-bg);
-}
-
-button.btn-outline-danger {
-    background: none;
-    color: var(--color-review);
-    border: 1px solid var(--color-review);
-    border-radius: var(--radius);
-    padding: 6px 14px;
-    font-size: 0.85rem;
-    cursor: pointer;
-}
-button.btn-outline-danger:hover { background: var(--color-review-bg); }
-
+/* ==========================================================================
+   PANTALLA DE LOGIN
+   ========================================================================== */
 .login-shell {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(160deg, var(--color-primary-dark), #051627);
+    background: linear-gradient(145deg, var(--color-primary-dark) 0%, #031424 100%);
+    padding: 20px;
 }
 
 .login-card {
-    background: linear-gradient(160deg, var(--color-primary), var(--color-primary-dark));
-    border-radius: 14px;
-    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.4);
-    padding: 32px 36px;
-    width: 340px;
-    color: #fff;
+    background: #ffffff;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+    padding: 36px 40px;
+    width: 100%;
+    max-width: 400px;
+    color: var(--color-text);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .login-logo {
     display: flex;
     justify-content: center;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .login-logo img {
     height: 72px;
     width: auto;
-    border-radius: 8px;
-    background: #fff;
-    padding: 6px 10px;
+    object-fit: contain;
 }
 
 .login-card h1 {
-    font-size: 1.2rem;
-    font-weight: 700;
-    margin: 0 0 12px;
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0 0 6px;
     text-align: center;
-    color: #fff;
-}
-
-.login-card .login-title {
-    font-size: 1.4rem;
-    font-weight: 600;
-    margin: 0 0 4px;
-    color: #fff;
+    color: var(--color-primary-dark);
 }
 
 .login-card p.subtitle {
-    margin: 0 0 20px;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 24px;
+    font-size: 0.84rem;
+    color: var(--color-text-muted);
+    text-align: center;
 }
 
 .login-card label {
     display: block;
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 0.78rem;
+    font-weight: 700;
     margin-bottom: 6px;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .login-card input {
     display: block;
     width: 100%;
-    padding: 10px 12px;
-    margin-bottom: 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    background: #ffffff;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
     font-size: 0.9rem;
-    color: #fff;
-}
-
-.login-card input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    font-family: inherit;
+    color: var(--color-text);
+    transition: all var(--transition-fast);
 }
 
 .login-card input:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.6);
-    background: rgba(255, 255, 255, 0.14);
-}
-
-.login-card .password-field {
-    position: relative;
-}
-
-.login-card .password-field input {
-    padding-right: 36px;
-}
-
-.login-card .password-toggle {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 14px;
-    width: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: none;
-    padding: 0;
-    color: rgba(255, 255, 255, 0.6);
-    cursor: pointer;
-}
-
-.login-card .password-toggle:hover,
-.login-card .password-toggle.active {
-    color: #fff;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
 }
 
 .login-card button {
     width: 100%;
-    padding: 10px;
-    background: #fff;
-    color: var(--color-primary-dark);
+    padding: 11px;
+    background: var(--color-primary);
+    color: #ffffff;
     border: none;
-    border-radius: var(--radius);
-    font-size: 0.9rem;
-    font-weight: 600;
+    border-radius: var(--radius-sm);
+    font-size: 0.92rem;
+    font-weight: 700;
+    font-family: inherit;
     cursor: pointer;
-    margin-top: 4px;
-}
-.login-card button:hover { background: rgba(255, 255, 255, 0.85); }
-
-.login-card .error {
-    color: #ffb4be;
-    font-size: 0.82rem;
-    margin-top: 10px;
+    margin-top: 6px;
+    transition: all var(--transition-fast);
+    box-shadow: 0 2px 4px rgba(10, 51, 86, 0.3);
 }
 
-.login-links {
+.login-card button:hover {
+    background: var(--color-primary-light);
+    transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   FORMULARIOS Y TARJETAS GENERALES
+   ========================================================================== */
+.card-form {
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    background: #ffffff;
+    border-left: 4px solid var(--color-primary);
+}
+
+.action-bar {
+    margin-bottom: 14px;
     display: flex;
-    justify-content: space-between;
-    margin-top: 18px;
-    font-size: 0.82rem;
+    justify-content: flex-start;
 }
 
-.login-links a {
-    color: rgba(255, 255, 255, 0.8);
-    text-decoration: none;
+/* ==========================================================================
+   ESTADÍSTICAS Y GRÁFICOS INSTITUCIONALES
+   ========================================================================== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 20px;
 }
 
-.login-links a:hover {
-    color: #fff;
-    text-decoration: underline;
+.stats-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: all var(--transition-fast);
 }
 
-/* Breakpoints responsivos para pantallas compactas, ventanas reducidas o modo split-screen.
-   Garantiza que la cabecera, subnavegación y tarjetas ocupen un espacio mínimo vertical
-   y dejen todo el resto del viewport para la tabla de datos y sus barras de scroll. */
+.stats-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border-strong);
+}
+
+.stats-card h2 {
+    font-size: 0.88rem;
+    font-weight: 700;
+    margin: 0 0 16px;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: center;
+    border-bottom: 1px solid var(--color-border-subtle);
+    padding-bottom: 8px;
+}
+
+.stats-card canvas {
+    max-height: 260px;
+}
+
+.stats-card-wide {
+    grid-column: 1 / -1;
+}
+
+.stats-card-wide canvas {
+    max-height: 420px;
+}
+
+.stats-nodata {
+    color: var(--color-text-muted);
+    font-size: 0.88rem;
+    text-align: center;
+    padding: 40px 0;
+    font-style: italic;
+}
+
+/* ==========================================================================
+   RESPONSIVIDAD Y BREAKPOINTS
+   ========================================================================== */
 @media (max-width: 1200px) {
     header.app-header {
         padding: 8px 16px;
     }
 
     header.app-header .brand-logo {
-        height: 52px;
+        height: 44px;
     }
 
     header.app-header .brand {
@@ -1057,54 +1143,27 @@ button.btn-outline-danger:hover { background: var(--color-review-bg); }
         padding: 6px 16px;
         gap: 6px;
     }
-
-    div.app-subnav a {
-        font-size: 0.75rem;
-        padding: 4px 10px;
-    }
 }
 
 @media (max-width: 900px) {
     header.app-header {
-        padding: 6px 12px;
+        padding: 8px 12px;
     }
 
     header.app-header .brand-logo {
-        height: 40px;
+        height: 38px;
     }
 
     header.app-header .brand {
-        font-size: 1rem;
-    }
-
-    header.app-header .brand small {
-        font-size: 0.75rem;
-    }
-
-    nav.app-nav a,
-    nav.app-nav form button {
-        padding: 3px 7px;
-        font-size: 0.65rem;
+        font-size: 1.05rem;
     }
 
     .nav-search input[type="text"] {
-        min-width: 90px;
-        font-size: 0.68rem;
-        padding: 3px 6px;
-    }
-
-    div.app-subnav {
-        padding: 4px 10px;
-        flex-wrap: wrap;
+        min-width: 110px;
     }
 
     body.cases-page main {
-        padding: 6px 8px 8px;
-    }
-
-    .card.card-manual-entry {
-        padding: 8px 12px !important;
-        margin-bottom: 8px !important;
+        padding: 8px 10px 10px;
     }
 }
 
@@ -1112,8 +1171,8 @@ button.btn-outline-danger:hover { background: var(--color-review-bg); }
     header.app-header {
         flex-direction: column;
         align-items: stretch;
-        padding: 6px 10px;
-        gap: 6px;
+        padding: 10px;
+        gap: 8px;
     }
 
     header.app-header .brand {
@@ -1139,12 +1198,7 @@ button.btn-outline-danger:hover { background: var(--color-review-bg); }
 
     div.app-subnav {
         flex-wrap: wrap;
-        padding: 4px 8px;
-        gap: 4px;
-    }
-
-    .login-card {
-        width: 100%;
-        padding: 24px 20px;
+        padding: 6px 10px;
+        gap: 5px;
     }
 }

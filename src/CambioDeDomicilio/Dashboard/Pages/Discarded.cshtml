@@ -12,17 +12,24 @@
 <body>
     <header class="app-header">
         <div class="brand">
-            CambioDeDomicilio
-            <small>Municipalidad de Valparaíso — Correos descartados</small>
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                CambioDeDomicilio
+                <small>Municipalidad de Valparaíso</small>
+                <small>Correos descartados</small>
+            </span>
         </div>
         <nav class="app-nav">
-            <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
-            <a asp-page="/Comunas">Comunas</a>
-            <a asp-page="/Discarded" class="active">Descartados</a>
+            <div class="nav-group">
+                <a asp-page="/Index">Volver a Casos</a>
+                <a asp-page="/Comunas">Comunas</a>
+                <a asp-page="/Discarded" class="active">Descartados</a>
+            </div>
         </nav>
     </header>
     <div class="app-subnav">
         <span class="app-subnav-label">Otros sistemas</span>
+        <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
         <a asp-page="/F8" class="nav-f8">F8</a>
         <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
     </div>
@@ -35,10 +42,12 @@
 
         @if (Model.Items.Count > 0)
         {
-            <form method="post" asp-page-handler="DeleteAll" style="margin-bottom: 14px;"
-                  onsubmit="return confirm('Esto elimina TODOS los correos descartados de la lista de forma permanente. ¿Confirmar?');">
-                <button type="submit" class="btn-outline-danger">Eliminar todos</button>
-            </form>
+            <div class="action-bar">
+                <form method="post" asp-page-handler="DeleteAll"
+                      onsubmit="return confirm('Esto elimina TODOS los correos descartados de la lista de forma permanente. ¿Confirmar?');">
+                    <button type="submit" class="btn-outline-danger">Eliminar todos</button>
+                </form>
+            </div>
         }
 
         <div class="card">

@@ -421,6 +421,39 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
+    public async Task OnPostSyncNowAsync_BrowserAbortsRequestMidCycle_DoesNotCancelTheCycle()
+    {
+        // A slow cycle (e.g. many inbox messages during the bounce check) can outlive the browser
+        // request — a closed tab or proxy timeout aborts HttpContext.RequestAborted while the EWS
+        // calls are still in flight. The cycle must not be tied to that token, or the operator sees
+        // the sync silently fail mid-way with no clear reason.
+        var reader = new RecordingEmailReader();
+        var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
+        var workerOptions = new RouterOptions
+        {
+            Ews = new EwsOptions { Url = "https://mail.munivalpo.cl/EWS/Exchange.asmx", Username = "u", Password = "p" },
+            MailboxAddress = "cambiodedomicilio@munivalpo.cl",
+            OwnDomain = "munivalpo.cl",
+            SqliteDbPath = dbPath,
+            ComunaDirectoryCsvPath = csvPath,
+            ReportCsvPath = "unused-report-aborted.csv",
+            NotificationEmailAddress = "raul.salazar1984@gmail.com"
+        };
+        var worker = new RouterWorker(routingService, reader, repository, new NoOpCsvReportWriter(), workerOptions, NullLogger<RouterWorker>.Instance);
+        var abortedModel = new IndexModel(repository, discardedRepository, routingService, worker, workerOptions, NullLogger<IndexModel>.Instance)
+        {
+            PageContext = new PageContext
+            {
+                HttpContext = new DefaultHttpContext { RequestAborted = new CancellationToken(canceled: true) }
+            }
+        };
+
+        await abortedModel.OnPostSyncNowAsync();
+
+        Assert.False(reader.AnyCallSawCancelledToken);
+    }
+
+    [Fact]
     public void OnPostAddManualCase_ValidData_InsertsPendingCaseNotNeedingReview()
     {
         model.OnPostAddManualCase("Catemu", "Gustavo Peña Castro", "18785387-7");
@@ -715,6 +748,23 @@ public class IndexModelTests : IDisposable
 
         public Task<IReadOnlyList<IncomingEmail>> GetInboxMessagesSinceAsync(DateTimeOffset receivedSince, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
+    }
+
+    private sealed class RecordingEmailReader : IEmailReader
+    {
+        public bool AnyCallSawCancelledToken { get; private set; }
+
+        public Task<IReadOnlyList<IncomingEmail>> GetMessagesInFolderAsync(string folderDisplayName, CancellationToken cancellationToken)
+        {
+            AnyCallSawCancelledToken |= cancellationToken.IsCancellationRequested;
+            return Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
+        }
+
+        public Task<IReadOnlyList<IncomingEmail>> GetInboxMessagesSinceAsync(DateTimeOffset receivedSince, CancellationToken cancellationToken)
+        {
+            AnyCallSawCancelledToken |= cancellationToken.IsCancellationRequested;
+            return Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
+        }
     }
 
     private sealed class NoOpEmailMover : IEmailMover

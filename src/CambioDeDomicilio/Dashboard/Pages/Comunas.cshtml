@@ -12,17 +12,24 @@
 <body>
     <header class="app-header">
         <div class="brand">
-            CambioDeDomicilio
-            <small>Municipalidad de Valparaíso — Directorio de comunas</small>
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                CambioDeDomicilio
+                <small>Municipalidad de Valparaíso</small>
+                <small>Directorio de comunas</small>
+            </span>
         </div>
         <nav class="app-nav">
-            <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
-            <a asp-page="/Comunas" class="active">Comunas</a>
-            <a asp-page="/Discarded">Descartados</a>
+            <div class="nav-group">
+                <a asp-page="/Index">Volver a Casos</a>
+                <a asp-page="/Comunas" class="active">Comunas</a>
+                <a asp-page="/Discarded">Descartados</a>
+            </div>
         </nav>
     </header>
     <div class="app-subnav">
         <span class="app-subnav-label">Otros sistemas</span>
+        <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
         <a asp-page="/F8" class="nav-f8">F8</a>
         <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
     </div>
@@ -30,27 +37,27 @@
     <main>
         @if (Model.Message is not null)
         {
-            <p class="message-banner" style="@(Model.MessageIsError ? "background:#fbe4e8;border-color:#a11d33;color:#a11d33;" : "")">@Model.Message</p>
+            <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
         }
 
-        <div class="card" style="padding: 20px 24px; margin-bottom: 16px;">
-            <form method="post" asp-page-handler="AddContact" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-                <div>
+        <div class="card card-form">
+            <form method="post" asp-page-handler="AddContact" class="manual-entry-form">
+                <div class="form-group">
                     <label class="form-label" for="new-comuna">Comuna</label>
                     <input type="text" name="comuna" id="new-comuna" required placeholder="ej: Villa Alemana"
-                           style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem;" />
+                           class="form-control" />
                 </div>
-                <div>
+                <div class="form-group">
                     <label class="form-label" for="new-domain">Dominio del correo</label>
                     <input type="text" name="domain" id="new-domain" required placeholder="ej: villaalemana.cl"
-                           style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem;" />
+                           class="form-control" />
                 </div>
-                <div>
+                <div class="form-group">
                     <label class="form-label" for="new-email">Correo de contacto</label>
                     <input type="email" name="email" id="new-email" required placeholder="ej: contacto@villaalemana.cl"
-                           style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem; min-width:260px;" />
+                           class="form-control" style="min-width:260px;" />
                 </div>
-                <button type="submit" class="btn-primary" style="padding:8px 16px;">Agregar comuna</button>
+                <button type="submit" class="btn-primary">Agregar comuna</button>
             </form>
         </div>
 

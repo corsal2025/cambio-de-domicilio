@@ -298,7 +298,11 @@ public class IndexModel(
 
     public async Task<IActionResult> OnPostSyncNowAsync()
     {
-        var ran = await routerWorker.RunCycleAsync(HttpContext.RequestAborted);
+        // Not HttpContext.RequestAborted: a slow cycle (many inbox messages during the bounce
+        // check) can outlive the browser request. Tying it to the request token meant a closed
+        // tab or proxy timeout aborted the EWS calls mid-cycle, so the sync appeared to silently
+        // fail even though nothing was actually broken.
+        var ran = await routerWorker.RunCycleAsync(CancellationToken.None);
         Message = ran
             ? "Sincronización completada."
             : "Ya hay una sincronización en curso, intente en unos segundos.";
