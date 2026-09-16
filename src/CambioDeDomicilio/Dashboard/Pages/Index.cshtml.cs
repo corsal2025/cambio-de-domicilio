@@ -305,11 +305,22 @@ public class IndexModel(
         // check) can outlive the browser request. Tying it to the request token meant a closed
         // tab or proxy timeout aborted the EWS calls mid-cycle, so the sync appeared to silently
         // fail even though nothing was actually broken.
-        var ran = await routerWorker.RunCycleAsync(CancellationToken.None);
-        Message = ran
-            ? "Sincronización completada."
-            : "Ya hay una sincronización en curso, intente en unos segundos.";
-        MessageIsError = !ran;
+        var result = await routerWorker.RunCycleAsync(CancellationToken.None);
+        if (result.AlreadyRunning)
+        {
+            Message = "Ya hay una sincronización en curso, intente en unos segundos.";
+            MessageIsError = true;
+        }
+        else if (!result.Success)
+        {
+            Message = result.ErrorMessage ?? "Error al sincronizar con el servidor de correo.";
+            MessageIsError = true;
+        }
+        else
+        {
+            Message = "Sincronización completada.";
+            MessageIsError = false;
+        }
         Load();
         return Page();
     }

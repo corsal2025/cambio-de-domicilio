@@ -19,7 +19,7 @@ public static class EwsMessages
     /// does not change on move, so time-filtering it would silently drop manually-triaged mail.
     /// Idempotency (see AddressChangeRoutingService) is what prevents reprocessing, not this filter.
     /// </summary>
-    public static string BuildFindItemRequest(EwsFolderRef folder, int maxEntries = 200) =>
+    public static string BuildFindItemRequest(EwsFolderRef folder, int offset = 0, int maxEntries = 200) =>
         Envelope(
             new XElement(M + "FindItem",
                 new XAttribute("Traversal", "Shallow"),
@@ -27,11 +27,11 @@ public static class EwsMessages
                     new XElement(T + "BaseShape", "IdOnly")),
                 new XElement(M + "IndexedPageItemView",
                     new XAttribute("MaxEntriesReturned", maxEntries),
-                    new XAttribute("Offset", 0),
+                    new XAttribute("Offset", offset),
                     new XAttribute("BasePoint", "Beginning")),
                 new XElement(M + "SortOrder",
                     new XElement(T + "FieldOrder",
-                        new XAttribute("Order", "Ascending"),
+                        new XAttribute("Order", "Descending"),
                         new XElement(T + "FieldURI", new XAttribute("FieldURI", "item:DateTimeReceived")))),
                 new XElement(M + "ParentFolderIds", ParentFolderElement(folder))));
 
@@ -42,7 +42,7 @@ public static class EwsMessages
     /// hours of the send, so a short look-back window covers every bounce worth acting on while
     /// keeping the result set small. Idempotency (ProcessedBounce) still prevents re-processing.
     /// </summary>
-    public static string BuildFindInboxItemsSinceRequest(DateTimeOffset receivedSince, int maxEntries = 200) =>
+    public static string BuildFindInboxItemsSinceRequest(DateTimeOffset receivedSince, int offset = 0, int maxEntries = 200) =>
         Envelope(
             new XElement(M + "FindItem",
                 new XAttribute("Traversal", "Shallow"),
@@ -50,7 +50,7 @@ public static class EwsMessages
                     new XElement(T + "BaseShape", "IdOnly")),
                 new XElement(M + "IndexedPageItemView",
                     new XAttribute("MaxEntriesReturned", maxEntries),
-                    new XAttribute("Offset", 0),
+                    new XAttribute("Offset", offset),
                     new XAttribute("BasePoint", "Beginning")),
                 new XElement(M + "Restriction",
                     new XElement(T + "IsGreaterThanOrEqualTo",

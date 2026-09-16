@@ -287,6 +287,100 @@ public class EwsEmailReaderTests
         Assert.False(moved);
     }
 
+    [Fact]
+    public async Task GetMessagesInFolderAsync_MultiplePages_FetchesAllPagesUntilLast()
+    {
+        var page1Xml = $"""
+            <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+              <soap:Body>
+                <m:FindItemResponse>
+                  <m:ResponseMessages>
+                    <m:FindItemResponseMessage ResponseClass="Success">
+                      <m:RootFolder TotalItemsInView="2" IncludesLastItemInRange="false">
+                        <t:Items>
+                          <t:Message><t:ItemId Id="item-p1-1" ChangeKey="ck-1"/></t:Message>
+                          <t:Message><t:ItemId Id="item-p1-2" ChangeKey="ck-2"/></t:Message>
+                        </t:Items>
+                      </m:RootFolder>
+                    </m:FindItemResponseMessage>
+                  </m:ResponseMessages>
+                </m:FindItemResponse>
+              </soap:Body>
+            </soap:Envelope>
+            """;
+
+        var page2Xml = $"""
+            <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+              <soap:Body>
+                <m:FindItemResponse>
+                  <m:ResponseMessages>
+                    <m:FindItemResponseMessage ResponseClass="Success">
+                      <m:RootFolder TotalItemsInView="1" IncludesLastItemInRange="true">
+                        <t:Items>
+                          <t:Message><t:ItemId Id="item-p2-1" ChangeKey="ck-3"/></t:Message>
+                        </t:Items>
+                      </m:RootFolder>
+                    </m:FindItemResponseMessage>
+                  </m:ResponseMessages>
+                </m:FindItemResponse>
+              </soap:Body>
+            </soap:Envelope>
+            """;
+
+        var getItemXml = $"""
+            <soap:Envelope xmlns:soap="{SoapNs}" xmlns:t="{TNs}" xmlns:m="{MNs}">
+              <soap:Body>
+                <m:GetItemResponse>
+                  <m:ResponseMessages>
+                    <m:GetItemResponseMessage ResponseClass="Success">
+                      <m:Items>
+                        <t:Message>
+                          <t:ItemId Id="item-p1-1" ChangeKey="ck-1"/>
+                          <t:Subject>Req 1</t:Subject>
+                          <t:Body BodyType="Text">RUT 1-9</t:Body>
+                          <t:DateTimeReceived>2026-09-01T10:00:00Z</t:DateTimeReceived>
+                          <t:ConversationId Id="c-1"/>
+                          <t:From><t:Mailbox><t:EmailAddress>a@b.cl</t:EmailAddress></t:Mailbox></t:From>
+                          <t:InternetMessageId>&lt;m1@b.cl&gt;</t:InternetMessageId>
+                        </t:Message>
+                        <t:Message>
+                          <t:ItemId Id="item-p1-2" ChangeKey="ck-2"/>
+                          <t:Subject>Req 2</t:Subject>
+                          <t:Body BodyType="Text">RUT 2-7</t:Body>
+                          <t:DateTimeReceived>2026-09-02T10:00:00Z</t:DateTimeReceived>
+                          <t:ConversationId Id="c-2"/>
+                          <t:From><t:Mailbox><t:EmailAddress>a@b.cl</t:EmailAddress></t:Mailbox></t:From>
+                          <t:InternetMessageId>&lt;m2@b.cl&gt;</t:InternetMessageId>
+                        </t:Message>
+                        <t:Message>
+                          <t:ItemId Id="item-p2-1" ChangeKey="ck-3"/>
+                          <t:Subject>Req 3</t:Subject>
+                          <t:Body BodyType="Text">RUT 3-5</t:Body>
+                          <t:DateTimeReceived>2026-09-03T10:00:00Z</t:DateTimeReceived>
+                          <t:ConversationId Id="c-3"/>
+                          <t:From><t:Mailbox><t:EmailAddress>a@b.cl</t:EmailAddress></t:Mailbox></t:From>
+                          <t:InternetMessageId>&lt;m3@b.cl&gt;</t:InternetMessageId>
+                        </t:Message>
+                      </m:Items>
+                    </m:GetItemResponseMessage>
+                  </m:ResponseMessages>
+                </m:GetItemResponse>
+              </soap:Body>
+            </soap:Envelope>
+            """;
+
+        var client = new RecordingClient([FindFolderFoundXml, page1Xml, page2Xml, getItemXml]);
+        var reader = new EwsEmailReader(client, NullLogger<EwsEmailReader>.Instance);
+
+        var messages = await reader.GetMessagesInFolderAsync("CARP. PARA PEDIR", CancellationToken.None);
+
+        Assert.Equal(3, messages.Count);
+        var findRequests = client.Requests.Where(r => r.Contains("FindItem")).ToList();
+        Assert.Equal(2, findRequests.Count);
+        Assert.Contains("Offset=\"0\"", findRequests[0]);
+        Assert.Contains("Offset=\"2\"", findRequests[1]);
+    }
+
     private sealed class RecordingClient(IReadOnlyList<string> responses) : IEwsClient
     {
         private int callIndex;
