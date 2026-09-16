@@ -113,6 +113,11 @@
             color: var(--color-text-muted);
         }
 
+        table.cases.doc-table th:nth-child(2),
+        table.cases.doc-table td:nth-child(2) {
+            text-align: left;
+        }
+
         .doc-empty {
             padding: 20px;
             text-align: center;
@@ -250,7 +255,7 @@
                             correlativo++;
                             <tr>
                                 <td>@correlativo</td>
-                                <td>@item.FullName</td>
+                                <td style="text-align:left;">@item.FullName</td>
                                 <td style="text-align:center;">@item.Rut</td>
                                 <td style="text-align:center;">@item.Comuna</td>
                                 <td style="text-align:center;">@(item.FechaUltimaCarpeta is { } f ? CambioDeDomicilio.Domain.SpanishDate.Format(f) : "")</td>
