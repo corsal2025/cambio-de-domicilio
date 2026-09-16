@@ -51,7 +51,7 @@ public class IndexModel(
         if (string.IsNullOrWhiteSpace(fecha))
         {
             repository.ClearFechaUltimaCarpeta(id);
-            return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview });
+            return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
         }
 
         if (!SpanishDate.TryParse(fecha, out var parsed))
@@ -63,7 +63,7 @@ public class IndexModel(
         }
 
         repository.SetFechaUltimaCarpeta(id, parsed);
-        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview });
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
     }
 
     public IActionResult OnPostSetPersonData(long id, string nombre, string rut)
@@ -421,9 +421,11 @@ public class IndexModel(
         // back to Pending) must stay in its original position instead of jumping to the top just
         // because its database row is newer.
         Cases = all
-            .OrderByDescending(c => c.Marked)
+            .OrderBy(c => c.Status == RequestStatus.Confirmed)
+            .ThenByDescending(c => c.Marked && c.SectorPdfGeneratedAt is null)
+            .ThenByDescending(c => c.Marked)
             .ThenBy(c => c.MarkedAt)
-            .ThenBy(c => c.Status == RequestStatus.Confirmed)
+            .ThenBy(c => c.FechaUltimaCarpeta is not null)
             .ThenBy(c => c.ConfirmedAt)
             .ThenByDescending(c => c.ReceivedAt)
             .ToList();

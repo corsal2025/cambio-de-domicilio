@@ -230,7 +230,7 @@
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="checkbox" name="markedValue" class="marked-checkbox"
                                        data-pdf-generated-at="@(item.SectorPdfGeneratedAt is { } pdfAt ? SpanishDate.Format(DateOnly.FromDateTime(pdfAt.LocalDateTime)) : "")"
-                                       @(item.Marked ? "checked" : "") onchange="toggleMutuallyExclusive(this, 'markedValue', 'pendienteCarpetaValue')"
+                                       @(item.Marked ? "checked" : "") onchange="toggleRowCheckbox(this, 'markedValue')"
                                        title="@(item.Marked ? "Desmarcar caso" : "Marcar caso")" />
                             </form>
                         </td>
@@ -238,7 +238,7 @@
                             <form method="post" asp-page-handler="ToggleFolderNotFound" class="marked-form">
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="checkbox" name="folderNotFoundValue" class="marked-checkbox"
-                                       @(item.FolderNotFound ? "checked" : "") onchange="submitCheckboxToggle(this, 'folderNotFoundValue')"
+                                       @(item.FolderNotFound ? "checked" : "") onchange="toggleRowCheckbox(this, 'folderNotFoundValue')"
                                        title="F8 - Carpeta no encontrada" />
                             </form>
                         </td>
@@ -246,7 +246,7 @@
                             <form method="post" asp-page-handler="TogglePendienteCarpeta" class="marked-form">
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="checkbox" name="pendienteCarpetaValue" class="marked-checkbox"
-                                       @(item.PendienteCarpeta ? "checked" : "") onchange="toggleMutuallyExclusive(this, 'pendienteCarpetaValue', 'markedValue')"
+                                       @(item.PendienteCarpeta ? "checked" : "") onchange="toggleRowCheckbox(this, 'pendienteCarpetaValue')"
                                        title="@(item.PendienteCarpeta ? "Desmarcar pendiente carpeta" : "Marcar pendiente carpeta")" />
                             </form>
                         </td>
@@ -436,24 +436,23 @@
             });
         }
 
-        // Marcar and Pendiente Carpeta are mutually exclusive (a row is either green or yellow,
-        // never both) but not locked — checking one clears the other automatically, and the
-        // cleared one can still be re-checked manually afterward at any time.
-        function toggleMutuallyExclusive(checkbox, fieldName, otherFieldName) {
-            // Re-marking a case that already had a PDF generated resets SectorPdfGeneratedAt
-            // server-side so it prints again — let the operator know that's what's happening.
-            if (fieldName === 'markedValue' && checkbox.checked && checkbox.dataset.pdfGeneratedAt) {
-                alert('Ya se había generado un PDF para esta persona el ' + checkbox.dataset.pdfGeneratedAt + '. Se incluirá de nuevo en el próximo PDF.');
-            }
-            submitCheckboxToggle(checkbox, fieldName);
+        // Marcar, F8 y Pendiente Carpeta son mutuamente excluyentes en la misma fila:
+        // marcar una desmarca automáticamente las otras dos en la interfaz y en el servidor.
+        function toggleRowCheckbox(checkbox, fieldName) {
             if (checkbox.checked) {
+                if (fieldName === 'markedValue' && checkbox.dataset.pdfGeneratedAt) {
+                    alert('Ya se había generado un PDF para esta persona el ' + checkbox.dataset.pdfGeneratedAt + '. Se incluirá de nuevo en el próximo PDF.');
+                }
                 var row = checkbox.closest('tr');
-                var other = row ? row.querySelector('input[name="' + otherFieldName + '"]') : null;
-                if (other && other.checked) {
-                    other.checked = false;
-                    submitCheckboxToggle(other, otherFieldName);
+                if (row) {
+                    row.querySelectorAll('.marked-checkbox').forEach(function (other) {
+                        if (other !== checkbox) {
+                            other.checked = false;
+                        }
+                    });
                 }
             }
+            submitCheckboxToggle(checkbox, fieldName);
         }
     </script>
     <script>

@@ -546,9 +546,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         // order cases were ticked in, so the marked set stays sorted the same way on screen and
         // in the printed PDF.
         command.CommandText = marked
-            ? "UPDATE PersonRequest SET Marked = $marked, SectorPdfGeneratedAt = NULL, MarkedAt = $markedAt WHERE Id = $id"
-            : "UPDATE PersonRequest SET Marked = $marked, MarkedAt = NULL WHERE Id = $id";
-        command.Parameters.AddWithValue("$marked", marked ? 1 : 0);
+            ? "UPDATE PersonRequest SET Marked = 1, SectorPdfGeneratedAt = NULL, MarkedAt = $markedAt, FolderNotFound = 0, PendienteCarpeta = 0 WHERE Id = $id"
+            : "UPDATE PersonRequest SET Marked = 0, MarkedAt = NULL WHERE Id = $id";
         if (marked)
         {
             command.Parameters.AddWithValue("$markedAt", DateTimeOffset.UtcNow.ToString("O"));
@@ -561,8 +560,9 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
-        command.CommandText = "UPDATE PersonRequest SET FolderNotFound = $folderNotFound WHERE Id = $id";
-        command.Parameters.AddWithValue("$folderNotFound", folderNotFound ? 1 : 0);
+        command.CommandText = folderNotFound
+            ? "UPDATE PersonRequest SET FolderNotFound = 1, Marked = 0, MarkedAt = NULL, PendienteCarpeta = 0 WHERE Id = $id"
+            : "UPDATE PersonRequest SET FolderNotFound = 0 WHERE Id = $id";
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
@@ -571,8 +571,9 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
-        command.CommandText = "UPDATE PersonRequest SET PendienteCarpeta = $pendienteCarpeta WHERE Id = $id";
-        command.Parameters.AddWithValue("$pendienteCarpeta", pendienteCarpeta ? 1 : 0);
+        command.CommandText = pendienteCarpeta
+            ? "UPDATE PersonRequest SET PendienteCarpeta = 1, Marked = 0, MarkedAt = NULL, FolderNotFound = 0 WHERE Id = $id"
+            : "UPDATE PersonRequest SET PendienteCarpeta = 0 WHERE Id = $id";
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
@@ -613,7 +614,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         using var command = connection.CreateCommand();
         command.CommandText = """
             UPDATE PersonRequest
-            SET Status = 'Confirmed', ConfirmedAt = $confirmedAt, ConfirmedByUserId = $confirmedByUserId
+            SET Status = 'Confirmed', ConfirmedAt = $confirmedAt, ConfirmedByUserId = $confirmedByUserId,
+                Marked = 0, MarkedAt = NULL, PendienteCarpeta = 0
             WHERE Id = $id
             """;
         command.Parameters.AddWithValue("$confirmedAt", confirmedAt.ToString("O"));

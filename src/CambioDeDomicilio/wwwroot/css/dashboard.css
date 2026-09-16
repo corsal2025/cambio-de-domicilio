@@ -121,6 +121,7 @@ header.app-header {
     position: relative;
     z-index: 20;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
 }
 
 header.app-header .brand {
@@ -321,6 +322,7 @@ div.app-subnav {
     border-bottom: 1px solid var(--color-border);
     flex-wrap: nowrap;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
 }
 
 .app-subnav-main {
@@ -525,13 +527,14 @@ body.cases-page {
 }
 
 body.cases-page main {
-    flex: 1;
+    flex: 1 1 0;
     display: flex;
     flex-direction: column;
     max-width: none;
     width: 100%;
-    padding: 10px 16px 12px;
+    padding: 8px 16px 10px;
     min-height: 0;
+    height: 0;
     min-width: 0;
     overflow: hidden;
 }
@@ -553,8 +556,9 @@ body.cases-page main {
 
 /* Tarjeta de Entrada Manual */
 .card-manual-entry {
-    padding: 12px 18px;
-    margin-bottom: 12px;
+    flex-shrink: 0;
+    padding: 8px 16px;
+    margin-bottom: 8px;
     background: #ffffff;
     border-left: 4px solid var(--color-primary);
 }
@@ -652,32 +656,35 @@ input.form-control {
    TABLA DE CASOS (COMPONENTE CRÍTICO OPERATIVO)
    ========================================================================== */
 .card.table-card {
-    flex: 1;
+    flex: 1 1 0;
     width: 100%;
     min-height: 0;
+    height: 0;
     min-width: 0;
     overflow: auto;
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
     background: var(--color-surface);
     box-shadow: var(--shadow-sm);
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 #f1f5f9;
 }
 
 /* Scrollbar estilizada */
 .card.table-card::-webkit-scrollbar {
-    width: 9px;
-    height: 9px;
+    width: 10px;
+    height: 10px;
 }
 .card.table-card::-webkit-scrollbar-track {
     background: #f1f5f9;
 }
 .card.table-card::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: #94a3b8;
     border-radius: var(--radius-full);
     border: 2px solid #f1f5f9;
 }
 .card.table-card::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: #64748b;
 }
 
 table.cases {
@@ -763,17 +770,17 @@ table.cases-index tbody tr:has(input[name="markedValue"]:checked):hover {
 }
 
 table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked) {
-    background: var(--row-pendiente-bg) !important;
+    background: #fefce8 !important;
 }
 table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover {
-    background: #fef08a !important;
+    background: #fef9c3 !important;
 }
 
 table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) {
-    background: var(--row-f8-bg) !important;
+    background: #fff7ed !important;
 }
 table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover {
-    background: #e5e7eb !important;
+    background: #ffedd5 !important;
 }
 
 /* Indicador F8 en checkbox: sustituye animación tosca por indicador ámbar sobrio */
@@ -1263,29 +1270,10 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no
 /* ==========================================================================
    RESPONSIVIDAD Y BREAKPOINTS
    ========================================================================== */
-@media (max-width: 1200px) {
+@media (max-width: 1200px), (max-height: 760px) {
     header.app-header {
-        padding: 8px 16px;
-    }
-
-    header.app-header .brand-logo {
-        height: 44px;
-    }
-
-    header.app-header .brand {
-        font-size: 1.15rem;
-        gap: 10px;
-    }
-
-    div.app-subnav {
-        padding: 6px 16px;
-        gap: 6px;
-    }
-}
-
-@media (max-width: 900px) {
-    header.app-header {
-        padding: 8px 12px;
+        padding: 6px 14px;
+        gap: 8px;
     }
 
     header.app-header .brand-logo {
@@ -1294,6 +1282,39 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no
 
     header.app-header .brand {
         font-size: 1.05rem;
+        gap: 8px;
+    }
+
+    header.app-header .brand small {
+        font-size: 0.68rem;
+    }
+
+    div.app-subnav {
+        padding: 4px 14px;
+        gap: 6px;
+    }
+
+    body.cases-page main {
+        padding: 6px 10px 8px;
+    }
+
+    .card.card-manual-entry {
+        padding: 6px 12px;
+        margin-bottom: 6px;
+    }
+}
+
+@media (max-width: 900px) {
+    header.app-header {
+        padding: 6px 10px;
+    }
+
+    header.app-header .brand-logo {
+        height: 34px;
+    }
+
+    header.app-header .brand {
+        font-size: 0.95rem;
     }
 
     .nav-search input[type="text"] {
@@ -1301,7 +1322,7 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no
     }
 
     body.cases-page main {
-        padding: 8px 10px 10px;
+        padding: 4px 8px 6px;
     }
 }
 
@@ -1309,8 +1330,8 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no
     header.app-header {
         flex-direction: column;
         align-items: stretch;
-        padding: 10px;
-        gap: 8px;
+        padding: 8px;
+        gap: 6px;
     }
 
     header.app-header .brand {
@@ -1336,7 +1357,7 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no
 
     div.app-subnav {
         flex-wrap: wrap;
-        padding: 6px 10px;
-        gap: 5px;
+        padding: 4px 8px;
+        gap: 4px;
     }
 }
