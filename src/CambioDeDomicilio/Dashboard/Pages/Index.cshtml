@@ -186,9 +186,17 @@
         <div class="card table-card">
             <table class="cases cases-index">
                 <thead>
-                    <tr>
-                        <th style="white-space:nowrap;">
-                            <span style="display:inline-flex; align-items:center; gap:6px; justify-content:center;">
+                    <tr class="header-groups">
+                        <th colspan="3" class="th-group th-group-frozen th-group-1">Marcado</th>
+                        <th colspan="2" class="th-group th-group-frozen th-group-2 th-group-frozen-end">Contribuyente</th>
+                        <th class="th-group">Destino</th>
+                        <th colspan="3" class="th-group">Plazos y Estado</th>
+                        <th colspan="2" class="th-group">Carpeta física</th>
+                        <th class="th-group">Acción</th>
+                    </tr>
+                    <tr class="header-cols">
+                        <th>
+                            <div style="display:inline-flex; flex-direction:column; align-items:center; gap:3px; justify-content:center;">
                                 <span>Marcar</span>
                                 <form method="post" asp-page-handler="MarkAllVisible"
                                       asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" style="display:inline-flex; margin:0;">
@@ -197,17 +205,17 @@
                                            onchange="this.nextElementSibling.value = this.checked; this.form.submit();" />
                                     <input type="hidden" name="marked" value="@(Model.AllVisibleMarked ? "true" : "false")" />
                                 </form>
-                            </span>
+                            </div>
                         </th>
                         <th title="Marca un caso cuya carpeta física no fue posible localizar (solo fichas sin fecha o anteriores a 2000)">F8</th>
-                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en amarillo">Pendiente Carpeta</th>
+                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en amarillo">Pendiente<br />Carpeta</th>
                         <th>Nombre</th>
                         <th>RUT</th>
                         <th>Comuna</th>
                         <th>Recibido</th>
-                        <th>Plazo (15 días hábiles)</th>
+                        <th>Plazo<br /><span class="th-subtext">(15 días hábiles)</span></th>
                         <th>Estado</th>
-                        <th>Fecha última carpeta</th>
+                        <th>Fecha última<br />Carpeta</th>
                         <th>Sector</th>
                         <th>Acción</th>
                     </tr>
@@ -260,11 +268,14 @@
                                 <span class="review-alert" aria-label="Requiere revisión"
                                       title="Requiere revisión — datos no extraíbles del correo (asunto: @item.SourceSubject)">⚠</span>
                             }
-                            @* min-width in `ch` (not the `size` attribute) sets the column's floor: `size` estimates
-                               using the "0" glyph, which under-counts wide capitals (W, M) common in these names and
-                               let the column collapse below what the actual text needs. width:100% (see CSS) then
-                               lets each row's input still fill any extra space the widest name in the column grants it. *@
+                            @* size in characters (not `ch` width) drives the column's real width — the column
+                               auto-fits to the widest name in it because each row's input reports its own
+                               intrinsic width via `size`, computed from the actual name length (+2 padding,
+                               floor of 12 so short names don't collapse the column below a usable minimum,
+                               ceiling of 60 so one garbled/unparsed name — see NeedsReview — can't blow up
+                               the column width for every other row). *@
                             <input type="text" name="nombre" value="@item.FullName" placeholder="Nombre completo" required
+                                   size="@Math.Clamp((item.FullName?.Length ?? 0) + 2, 12, 60)"
                                    class="input-inline name-input" form="person-form-@item.Id" onchange="savePersonFieldIfDoneEditing(this)"
                                    title="@(item.NeedsReview ? $"Requiere revisión — datos no extraíbles del correo (asunto: {item.SourceSubject})" : "")" />
                             </span>
@@ -509,6 +520,47 @@
             }
             input.dataset.hadValue = input.value !== '' ? 'true' : 'false';
         }
+    </script>
+    <script>
+        (function () {
+            var table = document.querySelector('table.cases-index');
+            if (!table) return;
+
+            var isF8 = table.classList.contains('cases-f8');
+            var freezeCount = isF8 ? 4 : 5;
+            var headerCells = table.querySelectorAll('thead tr.header-cols > *');
+            var groupRow = table.querySelector('thead tr.header-groups');
+
+            function setFreezeOffsets() {
+                var cumulative = 0;
+                for (var i = 0; i < freezeCount && i < headerCells.length; i++) {
+                    cumulative += headerCells[i].getBoundingClientRect().width;
+                    if (i < freezeCount - 1) {
+                        table.style.setProperty('--freeze-left-' + (i + 2), cumulative + 'px');
+                    }
+                }
+                if (groupRow) {
+                    table.style.setProperty('--header-row2-top', groupRow.getBoundingClientRect().height + 'px');
+                }
+            }
+
+            setFreezeOffsets();
+
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(setFreezeOffsets);
+            }
+
+            if (window.ResizeObserver) {
+                var ro = new ResizeObserver(setFreezeOffsets);
+                ro.observe(table);
+            } else {
+                var resizeTimer = null;
+                window.addEventListener('resize', function () {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(setFreezeOffsets, 100);
+                });
+            }
+        })();
     </script>
 </body>
 </html>

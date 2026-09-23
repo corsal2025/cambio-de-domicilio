@@ -91,8 +91,20 @@
 }
 
 html {
-    overflow-x: hidden;
     font-size: 14px;
+    overflow-y: scroll;
+}
+
+html.cases-page-html,
+html:has(body.cases-page) {
+    /* auto, not hidden: this is a safety net, not the normal path. A correctly-sized window
+       never triggers it (content fits exactly in 100%, auto shows nothing). If any browser
+       quirk ever makes the flex chain a few px taller than the viewport, this gives the operator
+       a real, native scrollbar to reach it instead of silently clipping it away with no way to
+       get it back short of resizing the window. */
+    overflow: auto !important;
+    height: 100% !important;
+    max-height: 100% !important;
 }
 
 body {
@@ -518,11 +530,10 @@ main {
 body.cases-page {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
-    max-height: 100vh;
-    max-height: 100dvh;
-    overflow: hidden;
+    height: 100% !important;
+    max-height: 100% !important;
+    /* auto, not hidden — see html.cases-page-html above for why. */
+    overflow: auto !important;
     background: var(--color-bg);
 }
 
@@ -536,7 +547,8 @@ body.cases-page main {
     min-height: 0;
     height: 0;
     min-width: 0;
-    overflow: hidden;
+    /* auto, not hidden — see html.cases-page-html above for why. */
+    overflow: auto;
 }
 
 /* ==========================================================================
@@ -658,33 +670,36 @@ input.form-control {
 .card.table-card {
     flex: 1 1 0;
     width: 100%;
+    max-width: 100%;
     min-height: 0;
     height: 0;
     min-width: 0;
-    overflow: auto;
+    overflow-x: scroll !important;
+    overflow-y: scroll !important;
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
     background: var(--color-surface);
     box-shadow: var(--shadow-sm);
-    scrollbar-width: thin;
-    scrollbar-color: #94a3b8 #f1f5f9;
+    scrollbar-width: auto;
+    scrollbar-color: #475569 #f1f5f9;
 }
 
 /* Scrollbar estilizada */
 .card.table-card::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
 }
 .card.table-card::-webkit-scrollbar-track {
     background: #f1f5f9;
+    border-radius: 4px;
 }
 .card.table-card::-webkit-scrollbar-thumb {
-    background: #94a3b8;
+    background: #475569;
     border-radius: var(--radius-full);
     border: 2px solid #f1f5f9;
 }
 .card.table-card::-webkit-scrollbar-thumb:hover {
-    background: #64748b;
+    background: #1e293b;
 }
 
 table.cases {
@@ -702,19 +717,76 @@ table.cases-index {
 
 table.cases th {
     background: #f8fafc;
-    color: var(--color-text-secondary);
+    color: #1e293b;
     text-transform: uppercase;
-    font-size: 0.68rem;
+    font-size: 0.92rem;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.03em;
     text-align: center;
-    padding: 9px 12px;
+    vertical-align: middle;
+    padding: 10px 10px;
     border-bottom: 2px solid var(--color-border);
     position: sticky;
     top: 0;
     z-index: 10;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-    white-space: nowrap !important;
+    line-height: 1.25;
+    white-space: normal;
+}
+
+.th-subtext {
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    letter-spacing: 0;
+    text-transform: none;
+    margin-top: 1px;
+}
+
+/* Cabecera en doble fila: fila superior agrupa columnas relacionadas,
+   fila inferior mantiene el nombre de cada columna. Solo aplica a las
+   tablas cases-index (Casos y F8) — las demás tablas .cases siguen
+   con fila única y heredan las reglas th de arriba sin cambios. */
+table.cases-index thead tr.header-groups th.th-group {
+    background: var(--color-primary);
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    border-right: 1px solid rgba(255, 255, 255, 0.18);
+    position: sticky;
+    top: 0;
+    z-index: 13;
+    text-align: center;
+    white-space: nowrap;
+    box-shadow: none;
+}
+
+table.cases-index thead tr.header-groups th.th-group:last-child {
+    border-right: none;
+}
+
+table.cases-index thead tr.header-cols th {
+    top: var(--header-row2-top, 31px);
+}
+
+table.cases-index thead tr.header-groups th.th-group-frozen {
+    z-index: 14;
+}
+
+table.cases-index:not(.cases-f8) th.th-group-1 { left: 0; }
+table.cases-index:not(.cases-f8) th.th-group-2 { left: var(--freeze-left-4, 0px); }
+
+table.cases-f8 th.th-group-1 { left: 0; }
+table.cases-f8 th.th-group-2 { left: var(--freeze-left-3, 0px); }
+
+table.cases-index thead tr.header-groups th.th-group-frozen-end {
+    box-shadow: 3px 0 5px -2px rgba(15, 23, 42, 0.18);
+    border-right: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 table.cases td {
@@ -724,15 +796,17 @@ table.cases td {
     text-align: center;
     transition: background var(--transition-fast);
     white-space: nowrap !important;
+    font-weight: 700;
 }
 
 table.cases tbody tr {
     height: 38px;
+    background: #ffffff;
 }
 
 /* Intercalado de filas neutro */
 table.cases-index tbody tr.row-alt {
-    background: #fbfcfd;
+    background: #f8fafc;
 }
 
 table.cases tbody tr:hover {
@@ -809,6 +883,59 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td.mar
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+/* Columnas fijas al scrollear horizontalmente, para mantener siempre visible
+   la identificación del contribuyente (Nombre y RUT) junto a sus acciones:
+   - Index (5 columnas): Marcar, F8, Pendiente Carpeta, Nombre, RUT.
+   - F8 (4 columnas): Marcar, Pendiente Carpeta, Nombre, RUT.
+   Los offsets left se calculan dinámicamente en JS desde el ancho real de las columnas. */
+table.cases-index:not(.cases-f8) tbody tr td:nth-child(-n+5) {
+    position: sticky;
+    background: inherit;
+    z-index: 2;
+}
+table.cases-index:not(.cases-f8) thead tr.header-cols th:nth-child(-n+5) {
+    position: sticky;
+    background: #f8fafc;
+    z-index: 12;
+}
+table.cases-index:not(.cases-f8) tbody tr > :nth-child(1),
+table.cases-index:not(.cases-f8) thead tr.header-cols > :nth-child(1) { left: 0; }
+table.cases-index:not(.cases-f8) tbody tr > :nth-child(2),
+table.cases-index:not(.cases-f8) thead tr.header-cols > :nth-child(2) { left: var(--freeze-left-2, 0px); }
+table.cases-index:not(.cases-f8) tbody tr > :nth-child(3),
+table.cases-index:not(.cases-f8) thead tr.header-cols > :nth-child(3) { left: var(--freeze-left-3, 0px); }
+table.cases-index:not(.cases-f8) tbody tr > :nth-child(4),
+table.cases-index:not(.cases-f8) thead tr.header-cols > :nth-child(4) { left: var(--freeze-left-4, 0px); }
+table.cases-index:not(.cases-f8) tbody tr > :nth-child(5),
+table.cases-index:not(.cases-f8) thead tr.header-cols > :nth-child(5) {
+    left: var(--freeze-left-5, 0px);
+    box-shadow: 3px 0 5px -2px rgba(15, 23, 42, 0.18);
+    border-right: 2px solid var(--color-border);
+}
+
+table.cases-f8 tbody tr td:nth-child(-n+4) {
+    position: sticky;
+    background: inherit;
+    z-index: 2;
+}
+table.cases-f8 thead tr.header-cols th:nth-child(-n+4) {
+    position: sticky;
+    background: #f8fafc;
+    z-index: 12;
+}
+table.cases-f8 tbody tr > :nth-child(1),
+table.cases-f8 thead tr.header-cols > :nth-child(1) { left: 0; }
+table.cases-f8 tbody tr > :nth-child(2),
+table.cases-f8 thead tr.header-cols > :nth-child(2) { left: var(--freeze-left-2, 0px); }
+table.cases-f8 tbody tr > :nth-child(3),
+table.cases-f8 thead tr.header-cols > :nth-child(3) { left: var(--freeze-left-3, 0px); }
+table.cases-f8 tbody tr > :nth-child(4),
+table.cases-f8 thead tr.header-cols > :nth-child(4) {
+    left: var(--freeze-left-4, 0px);
+    box-shadow: 3px 0 5px -2px rgba(15, 23, 42, 0.18);
+    border-right: 2px solid var(--color-border);
+}
+
 /* Checkboxes modernos */
 .marked-checkbox {
     width: 16px;
@@ -826,7 +953,7 @@ table.cases-index .input-inline {
     padding: 3px 6px;
     font-size: 0.8125rem;
     font-family: inherit;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--color-text);
     outline: none;
     transition: all var(--transition-fast);
@@ -854,13 +981,13 @@ table.cases-index td.name-cell .name-with-alert {
 }
 
 table.cases-index td.name-cell .name-input {
-    width: 100%;
-    min-width: 38ch;
+    width: auto;
+    min-width: 10ch;
 }
 
 table.cases-index td.rut-cell .rut-input {
-    width: 100%;
-    min-width: 12ch;
+    width: auto;
+    min-width: 10ch;
     text-align: center;
     font-variant-numeric: tabular-nums;
 }
