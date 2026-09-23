@@ -331,6 +331,15 @@ public sealed class AddressChangeRoutingService(
         }
 
         repository.MarkUploaded(request.Id, DateTimeOffset.UtcNow);
+
+        // Auto-moves to the Caja screen's queue the moment the folder is uploaded — F8 cases keep
+        // their own Destination.F8 flow instead (never redirected here), and a case somehow already
+        // sitting elsewhere is left untouched rather than silently reassigned.
+        if (!viaF8 && request.Destination == CaseDestination.None)
+        {
+            repository.SetDestination(request.Id, CaseDestination.Caja, DateTimeOffset.UtcNow);
+        }
+
         return await SendConfirmationAsync(requestId, contacts, cancellationToken, viaF8);
     }
 

@@ -424,6 +424,172 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void GetCajaQueue_OnlyReturnsUnboxedCajaDestinationCases_OrderedByFechaUltimaCarpeta()
+    {
+        var later = repository.Insert(NewRequest("msg-later", rut: "12.345.678-5"));
+        repository.SetFechaUltimaCarpeta(later, new DateOnly(2024, 5, 1));
+        repository.SetDestination(later, CaseDestination.Caja, DateTimeOffset.UtcNow);
+
+        var earlier = repository.Insert(NewRequest("msg-earlier", rut: "9.868.019-K"));
+        repository.SetFechaUltimaCarpeta(earlier, new DateOnly(2024, 1, 1));
+        repository.SetDestination(earlier, CaseDestination.Caja, DateTimeOffset.UtcNow);
+
+        // Not in the queue: still in Casos (Destination.None) and transferred to F8.
+        repository.Insert(NewRequest("msg-none", rut: "5.126.663-2"));
+        var f8Case = repository.Insert(NewRequest("msg-f8", rut: "7.036.145-6"));
+        repository.SetDestination(f8Case, CaseDestination.F8, DateTimeOffset.UtcNow);
+
+        var queue = repository.GetCajaQueue();
+
+        Assert.Equal(2, queue.Count);
+        Assert.Equal(earlier, queue[0].Id);
+        Assert.Equal(later, queue[1].Id);
+    }
+
+    [Fact]
+    public void CloseBox_AssignsQueuedCasesToNewSequentiallyNumberedBox()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetDestination(id, CaseDestination.Caja, DateTimeOffset.UtcNow);
+
+        var firstBox = repository.CloseBox(DateTimeOffset.UtcNow);
+        Assert.Equal(1, firstBox.Number);
+        Assert.Empty(repository.GetCajaQueue());
+        Assert.Equal(id, Assert.Single(repository.GetCasesByBoxId(firstBox.Id)).Id);
+
+        var idTwo = repository.Insert(NewRequest("msg-2", rut: "12.345.678-5"));
+        repository.SetDestination(idTwo, CaseDestination.Caja, DateTimeOffset.UtcNow);
+        var secondBox = repository.CloseBox(DateTimeOffset.UtcNow);
+
+        Assert.Equal(2, secondBox.Number);
+        Assert.Equal(idTwo, Assert.Single(repository.GetCasesByBoxId(secondBox.Id)).Id);
+        // Closing a second box must not reassign what's already settled in the first one.
+        Assert.Equal(id, Assert.Single(repository.GetCasesByBoxId(firstBox.Id)).Id);
+    }
+
+    [Fact]
+    public void CloseBox_EmptyQueue_StillCreatesABox()
+    {
+        var box = repository.CloseBox(DateTimeOffset.UtcNow);
+
+        Assert.Equal(1, box.Number);
+        Assert.Empty(repository.GetCasesByBoxId(box.Id));
+    }
+
+    [Fact]
+    public void GetBoxes_ReturnsMostRecentlyClosedFirst()
+    {
+        repository.CloseBox(DateTimeOffset.UtcNow);
+        repository.CloseBox(DateTimeOffset.UtcNow);
+
+        var boxes = repository.GetBoxes();
+
+        Assert.Equal(2, boxes.Count);
+        Assert.Equal(2, boxes[0].Number);
+        Assert.Equal(1, boxes[1].Number);
+    }
+
+    [Fact]
+    public void RevertConfirmedToPending_UnboxedCajaCase_ReturnsToCasos()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetDestination(id, CaseDestination.Caja, DateTimeOffset.UtcNow);
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
+
+        repository.RevertConfirmedToPending(id);
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.None, stored.Destination);
+        Assert.Null(stored.TransferredAt);
+        Assert.Equal(RequestStatus.Pending, stored.Status);
+    }
+
+    [Fact]
+    public void RevertConfirmedToPending_AlreadyBoxedCajaCase_StaysInItsBox()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetDestination(id, CaseDestination.Caja, DateTimeOffset.UtcNow);
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
+        var box = repository.CloseBox(DateTimeOffset.UtcNow);
+
+        repository.RevertConfirmedToPending(id);
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.Caja, stored.Destination);
+        Assert.Equal(box.Id, stored.BoxId);
+    }
+
+    [Fact]
+    public void RevertUploadedBySourceMessageId_AlreadyBoxedCajaCase_StaysInItsBox()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetDestination(id, CaseDestination.Caja, DateTimeOffset.UtcNow);
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        var box = repository.CloseBox(DateTimeOffset.UtcNow);
+
+        repository.RevertUploadedBySourceMessageId("msg-1");
+
+        var stored = repository.FindById(id)!;
+        // A boxed case's Status still reverts (the email really did reappear in the source
+        // folder), but its physical box assignment is historical record and must survive.
+        Assert.Equal(RequestStatus.Pending, stored.Status);
+        Assert.Equal(CaseDestination.Caja, stored.Destination);
+        Assert.Equal(box.Id, stored.BoxId);
+    }
+
+    [Fact]
+    public void EnsureSchema_LegacyDatabaseRebuild_PreservesBoxId()
+    {
+        // Simulates a database still on the pre-multi-contributor schema (SourceMessageId
+        // UNIQUE), which EnsureSchema rebuilds via a hand-written column list — this test locks
+        // in that BoxId, added well after that rebuild path was written, is actually carried
+        // through it instead of silently dropped by an out-of-sync column list.
+        using (var connection = new SqliteConnection($"Data Source={dbPath}"))
+        {
+            connection.Open();
+            using var create = connection.CreateCommand();
+            create.CommandText = """
+                DROP TABLE PersonRequest;
+                CREATE TABLE PersonRequest (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    FullName TEXT NULL,
+                    Rut TEXT NULL,
+                    Comuna TEXT NULL,
+                    SourceMessageId TEXT NOT NULL UNIQUE,
+                    SourceConversationId TEXT NULL,
+                    SourceSubject TEXT NOT NULL,
+                    SourceSender TEXT NOT NULL,
+                    NeedsReview INTEGER NOT NULL,
+                    Status TEXT NOT NULL,
+                    ReceivedAt TEXT NOT NULL,
+                    FechaUltimaCarpeta TEXT NULL,
+                    UploadedAt TEXT NULL,
+                    ConfirmedAt TEXT NULL,
+                    ConfirmedByUserId INTEGER NULL,
+                    CreatedAt TEXT NOT NULL
+                );
+                INSERT INTO PersonRequest
+                    (FullName, Rut, Comuna, SourceMessageId, SourceSubject, SourceSender, NeedsReview, Status, ReceivedAt, CreatedAt)
+                VALUES
+                    ('GUSTAVO ANDRÉS PEÑA CASTRO', '18.785.387-7', 'Catemu', 'msg-legacy', 'Solicitud', 'a@b.cl', 0, 'Uploaded', '2024-01-01T00:00:00+00:00', '2024-01-01T00:00:00+00:00');
+                """;
+            create.ExecuteNonQuery();
+        }
+
+        var legacyRepository = new PersonRequestRepository($"Data Source={dbPath}");
+        legacyRepository.EnsureSchema();
+
+        // BoxId is added (as NULL) by EnsureColumnExists before the rebuild strips the UNIQUE
+        // constraint, so this proves the rebuild's hand-written column list still carries it —
+        // it round-trips as null here since there's no Box row to point it at yet.
+        var stored = legacyRepository.GetAll().Single();
+        Assert.Null(stored.BoxId);
+        Assert.Equal("msg-legacy", stored.SourceMessageId);
+    }
+
+    [Fact]
     public void EnsureSchema_CalledTwice_IsIdempotent()
     {
         // Full backfill-from-old-MovedToF8At-data testing is skipped here: simulating a

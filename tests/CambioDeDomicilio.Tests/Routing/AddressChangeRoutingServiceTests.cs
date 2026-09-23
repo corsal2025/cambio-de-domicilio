@@ -333,6 +333,32 @@ public class AddressChangeRoutingServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task MarkUploadedAndConfirmAsync_NotViaF8_MovesCaseToCajaQueue()
+    {
+        var id = InsertPending();
+
+        await sut.MarkUploadedAndConfirmAsync(id, Contacts, CancellationToken.None);
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.Caja, stored.Destination);
+        Assert.NotNull(stored.TransferredAt);
+        Assert.Contains(repository.GetCajaQueue(), c => c.Id == id);
+    }
+
+    [Fact]
+    public async Task MarkUploadedAndConfirmAsync_ViaF8_DoesNotMoveCaseToCajaQueue()
+    {
+        var id = InsertPending();
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+
+        await sut.MarkUploadedAndConfirmAsync(id, Contacts, CancellationToken.None, viaF8: true);
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.F8, stored.Destination);
+        Assert.Empty(repository.GetCajaQueue());
+    }
+
+    [Fact]
     public async Task MarkUploadedAndConfirmAsync_MissingFechaUltimaCarpeta_RefusesWithoutMovingOrSending()
     {
         sut.ProcessIncomingRequest(NewEmail("msg-1", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7"), Contacts);

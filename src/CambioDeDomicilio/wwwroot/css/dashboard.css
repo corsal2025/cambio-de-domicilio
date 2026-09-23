@@ -797,6 +797,9 @@ table.cases td {
     transition: background var(--transition-fast);
     white-space: nowrap !important;
     font-weight: 700;
+    /* Visual only — text-transform doesn't touch the stored value, so RUTs, dates and the
+       underlying FullName stay exactly as typed/saved; this just displays them uppercase. */
+    text-transform: uppercase;
 }
 
 table.cases tbody tr {

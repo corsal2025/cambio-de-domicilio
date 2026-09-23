@@ -103,6 +103,11 @@ public sealed class PersonRequest
     /// not yet transferred. Once set, the case is excluded from Casos (Index) and shows only on its
     /// Destination's dedicated screen.</summary>
     public DateTimeOffset? TransferredAt { get; set; }
+
+    /// <summary>Which physical box (see <see cref="Box"/>) this case's folder was packed into.
+    /// Null means it's still in the Caja screen's open queue, waiting for the operator to press
+    /// "Cerrar Caja". Only meaningful for cases with Destination == Caja.</summary>
+    public long? BoxId { get; set; }
 }
 
 public enum CaseDestination
@@ -110,5 +115,19 @@ public enum CaseDestination
     /// <summary>Not yet transferred out of Casos — default for every case.</summary>
     None,
     /// <summary>Transferred to the /F8 screen.</summary>
-    F8
+    F8,
+    /// <summary>Automatically moved to the /Caja screen the moment the folder is marked uploaded
+    /// (see AddressChangeRoutingService.MarkUploadedAndConfirmAsync) — never set for F8 cases,
+    /// which keep their own Destination.F8 flow instead.</summary>
+    Caja
+}
+
+/// <summary>A closed batch of Caja cases, in the physical order they were packed — see
+/// PersonRequestRepository.CloseBox. Numbered sequentially; once closed a box's membership never
+/// changes.</summary>
+public sealed class Box
+{
+    public long Id { get; set; }
+    public int Number { get; set; }
+    public DateTimeOffset ClosedAt { get; set; }
 }

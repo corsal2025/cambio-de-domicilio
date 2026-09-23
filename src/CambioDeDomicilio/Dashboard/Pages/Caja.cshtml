@@ -1,0 +1,250 @@
+@page "{boxId:long?}"
+@model CambioDeDomicilio.Dashboard.Pages.CajaModel
+@using CambioDeDomicilio.Domain
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Caja — CambioDeDomicilio</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <style>
+        .caja-section {
+            margin-bottom: 24px;
+        }
+
+        .caja-section h2 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin: 0 0 10px;
+        }
+
+        .caja-empty {
+            padding: 20px;
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 0.82rem;
+        }
+
+        table.boxes-history td:first-child, table.boxes-history th:first-child { width: 70px; }
+
+        a.box-link {
+            color: var(--color-accent);
+            font-weight: 700;
+            text-decoration: none;
+        }
+        a.box-link:hover { text-decoration: underline; }
+
+        .doc-sheet { background: #fff; }
+        .doc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 3px solid var(--color-primary);
+            padding-bottom: 12px;
+        }
+        .doc-header .doc-seal { height: 52px; width: auto; flex: none; object-fit: contain; }
+        .doc-header .doc-title-block { display: flex; gap: 12px; align-items: center; }
+        .doc-header .doc-org {
+            margin: 0; font-size: 0.64rem; color: var(--color-text-muted);
+            text-transform: uppercase; letter-spacing: 0.7px; font-weight: 600;
+        }
+        .doc-header h2 { margin: 2px 0 0; color: var(--color-primary); font-size: 1.05rem; font-weight: 700; }
+        .doc-header .doc-meta {
+            text-align: right; font-size: 0.68rem; color: var(--color-text-muted); white-space: nowrap;
+            background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius);
+            padding: 6px 12px; line-height: 1.5;
+        }
+        .doc-header .doc-meta strong { color: var(--color-primary); }
+        .doc-count { margin: 10px 2px 0; font-size: 0.7rem; color: var(--color-text-muted); }
+
+        @@media print {
+            header.app-header, .app-subnav, .no-print { display: none; }
+            body { background: #fff; }
+            main { padding: 0; max-width: none; }
+            .card { border: none; box-shadow: none; }
+            table.cases th { background: #eef2f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            table.cases td, table.cases th { border: 1px solid #999; }
+            tbody tr { break-inside: avoid; }
+        }
+    </style>
+    <style id="page-size-style">
+        @@page { size: A4; margin: 12mm; }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="brand">
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                CambioDeDomicilio
+                <small>Municipalidad de Valparaíso</small>
+                <small>Caja</small>
+            </span>
+        </div>
+        <nav class="app-nav">
+            <div class="nav-group">
+                <a asp-page="/Index">Volver a Casos</a>
+                <a asp-page="/F8">F8</a>
+            </div>
+        </nav>
+    </header>
+    <div class="app-subnav">
+        <div class="app-subnav-main">
+            <span class="app-subnav-label">Sistemas</span>
+            <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
+            <a asp-page="/F8" class="nav-f8">F8</a>
+            <a asp-page="/Caja" class="nav-f8" style="background: rgba(34,197,94,0.14); color:#bbf7d0; border-color: rgba(34,197,94,0.32);">Caja</a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
+        </div>
+    </div>
+
+    <main>
+    @if (Model.SelectedBox is { } box)
+    {
+        <div class="no-print" style="margin-bottom: 14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <a asp-page="/Caja" class="btn-primary" style="text-decoration:none; display:inline-block;">&larr; Volver a Caja</a>
+            <button type="button" class="btn-primary" onclick="window.print()">Imprimir / Guardar como PDF</button>
+        </div>
+
+        <div class="doc-sheet">
+            <div class="doc-header">
+                <div class="doc-title-block">
+                    <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="doc-seal" />
+                    <div>
+                        <p class="doc-org">Municipalidad de Valparaíso — Dirección de Tránsito</p>
+                        <h2>Cambio de Domicilio — Listado Caja N° @box.Number</h2>
+                    </div>
+                </div>
+                <div class="doc-meta">
+                    <div>Caja: <strong>N° @box.Number</strong></div>
+                    <div>Cerrada: <strong>@box.ClosedAt.LocalDateTime.ToString("dd-MM-yyyy HH:mm")</strong></div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+                @if (Model.SelectedBoxCases.Count == 0)
+                {
+                    <p class="caja-empty">Esta caja se cerró sin carpetas.</p>
+                }
+                else
+                {
+                    <table class="cases doc-table">
+                        <thead>
+                            <tr>
+                                <th>N°</th>
+                                <th style="text-align:left;">Nombre completo</th>
+                                <th>RUT</th>
+                                <th>Comuna</th>
+                                <th>Fecha última carpeta</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @{ var correlativo = 0; }
+                        @foreach (var item in Model.SelectedBoxCases)
+                        {
+                            correlativo++;
+                            <tr>
+                                <td>@correlativo</td>
+                                <td style="text-align:left;">@item.FullName</td>
+                                <td style="text-align:center;">@item.Rut</td>
+                                <td style="text-align:center;">@item.Comuna</td>
+                                <td style="text-align:center;">@(item.SinCarpeta ? "S/C" : item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")</td>
+                                <td style="text-align:center;">@item.Status</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+            <p class="doc-count">Total: @Model.SelectedBoxCases.Count carpeta(s)</p>
+        </div>
+    }
+    else
+    {
+        <div class="caja-section">
+            <h2>Cola actual — sin caja asignada (@Model.Queue.Count)</h2>
+            <div class="card table-card" style="height:auto; overflow:visible;">
+                @if (Model.Queue.Count == 0)
+                {
+                    <p class="caja-empty">
+                        No hay carpetas en cola. En cuanto marques una carpeta como "subida" en Casos,
+                        aparece acá automáticamente, ordenada por Fecha última Carpeta.
+                    </p>
+                }
+                else
+                {
+                    <table class="cases doc-table">
+                        <thead>
+                            <tr>
+                                <th>N°</th>
+                                <th style="text-align:left;">Nombre completo</th>
+                                <th>RUT</th>
+                                <th>Comuna</th>
+                                <th>Fecha última carpeta</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @{ var correlativo = 0; }
+                        @foreach (var item in Model.Queue)
+                        {
+                            correlativo++;
+                            <tr>
+                                <td>@correlativo</td>
+                                <td style="text-align:left;">@item.FullName</td>
+                                <td style="text-align:center;">@item.Rut</td>
+                                <td style="text-align:center;">@item.Comuna</td>
+                                <td style="text-align:center;">@(item.SinCarpeta ? "S/C" : item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")</td>
+                                <td style="text-align:center;"><span class="badge @(item.Status == RequestStatus.Confirmed ? "badge-confirmed" : "badge-uploaded")">@item.Status</span></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+            <form method="post" asp-page-handler="CerrarCaja" style="margin-top:12px;"
+                  onsubmit="return confirm('Esto cierra la caja actual con las @Model.Queue.Count carpeta(s) de la cola. No se puede deshacer. ¿Confirmar?');">
+                <button type="submit" class="btn-primary" @(Model.Queue.Count == 0 ? "disabled" : "")>Cerrar Caja</button>
+            </form>
+        </div>
+
+        <div class="caja-section">
+            <h2>Cajas cerradas (@Model.ClosedBoxes.Count)</h2>
+            <div class="card table-card" style="height:auto; overflow:visible;">
+                @if (Model.ClosedBoxes.Count == 0)
+                {
+                    <p class="caja-empty">Todavía no se ha cerrado ninguna caja.</p>
+                }
+                else
+                {
+                    <table class="cases boxes-history">
+                        <thead>
+                            <tr>
+                                <th>Caja</th>
+                                <th>Cerrada</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var closedBox in Model.ClosedBoxes)
+                        {
+                            <tr>
+                                <td>N° @closedBox.Number</td>
+                                <td>@closedBox.ClosedAt.LocalDateTime.ToString("dd-MM-yyyy HH:mm")</td>
+                                <td><a asp-page="/Caja" asp-route-boxId="@closedBox.Id" class="box-link">Ver listado / imprimir</a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    }
+    </main>
+</body>
+</html>

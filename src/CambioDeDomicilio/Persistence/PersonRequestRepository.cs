@@ -63,6 +63,25 @@ public interface IPersonRequestRepository
 
     void SetSectorPdfGenerated(long id, DateTimeOffset generatedAt);
 
+    /// <summary>Cases waiting to be packed — Destination == Caja and not yet assigned to a closed
+    /// box — ordered by Fecha última Carpeta (cases without a date, i.e. Sin Carpeta, sort last).</summary>
+    IReadOnlyList<PersonRequest> GetCajaQueue();
+
+    /// <summary>Closes the current Caja queue: assigns every currently-queued case to a new,
+    /// sequentially-numbered box and returns it. A queue that reads empty at the moment this runs
+    /// still gets a box record (so the operator's "Cerrar Caja" click always has a result to look
+    /// at), just with zero cases in it.</summary>
+    Box CloseBox(DateTimeOffset closedAt);
+
+    /// <summary>Every closed box, most recently closed first.</summary>
+    IReadOnlyList<Box> GetBoxes();
+
+    Box? FindBoxById(long id);
+
+    /// <summary>Cases packed into a given closed box, ordered by Fecha última Carpeta (the same
+    /// order they were queued in before the box was closed).</summary>
+    IReadOnlyList<PersonRequest> GetCasesByBoxId(long boxId);
+
     /// <summary>Permanently removes a case — operator-triggered, for entries that shouldn't have
     /// been tracked at all (e.g. a mistaken manual entry). Not the same as reverting a status.</summary>
     void Delete(long id);
@@ -116,10 +135,17 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 BounceMessageId TEXT PRIMARY KEY,
                 ProcessedAt TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS Box (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Number INTEGER NOT NULL,
+                ClosedAt TEXT NOT NULL
+            );
             """;
         command.ExecuteNonQuery();
 
         EnsureColumnExists(connection, "Marked", "Marked INTEGER NOT NULL DEFAULT 0");
+        EnsureColumnExists(connection, "BoxId", "BoxId INTEGER NULL");
         EnsureColumnExists(connection, "SectorPdfGeneratedAt", "SectorPdfGeneratedAt TEXT NULL");
         EnsureColumnExists(connection, "FolderNotFound", "FolderNotFound INTEGER NOT NULL DEFAULT 0");
         EnsureColumnExists(connection, "FolderNotFoundNotifiedAt", "FolderNotFoundNotifiedAt TEXT NULL");
@@ -210,16 +236,17 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                     PendienteCarpeta INTEGER NOT NULL DEFAULT 0,
                     MarkedAt TEXT NULL,
                     SinCarpeta INTEGER NOT NULL DEFAULT 0,
-                    ConfirmationBouncedAt TEXT NULL
+                    ConfirmationBouncedAt TEXT NULL,
+                    BoxId INTEGER NULL
                 );
                 INSERT INTO PersonRequest_new
                     (Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
                      NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
-                     FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta, ConfirmationBouncedAt)
+                     FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta, ConfirmationBouncedAt, BoxId)
                 SELECT
                     Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
                     NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
-                    FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta, ConfirmationBouncedAt
+                    FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta, ConfirmationBouncedAt, BoxId
                 FROM PersonRequest;
                 DROP TABLE PersonRequest;
                 ALTER TABLE PersonRequest_new RENAME TO PersonRequest;
@@ -413,9 +440,14 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
+        // Only pulls the case back out of the Caja queue if it's still unboxed (BoxId IS NULL) —
+        // once a box is closed its membership is historical record and must not silently change
+        // just because the source email reappeared.
         command.CommandText = """
             UPDATE PersonRequest
-            SET Status = 'Pending', UploadedAt = NULL
+            SET Status = 'Pending', UploadedAt = NULL,
+                Destination = CASE WHEN Destination = 'Caja' AND BoxId IS NULL THEN 'None' ELSE Destination END,
+                TransferredAt = CASE WHEN Destination = 'Caja' AND BoxId IS NULL THEN NULL ELSE TransferredAt END
             WHERE SourceMessageId = $id AND Status = 'Uploaded'
             """;
         command.Parameters.AddWithValue("$id", sourceMessageId);
@@ -426,10 +458,13 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
+        // Same unboxed-only guard as RevertUploadedBySourceMessageId — see its comment.
         command.CommandText = """
             UPDATE PersonRequest
             SET Status = 'Pending', UploadedAt = NULL, ConfirmedAt = NULL, ConfirmedByUserId = NULL,
-                ConfirmationBouncedAt = NULL
+                ConfirmationBouncedAt = NULL,
+                Destination = CASE WHEN Destination = 'Caja' AND BoxId IS NULL THEN 'None' ELSE Destination END,
+                TransferredAt = CASE WHEN Destination = 'Caja' AND BoxId IS NULL THEN NULL ELSE TransferredAt END
             WHERE Id = $id AND Status = 'Confirmed'
             """;
         command.Parameters.AddWithValue("$id", id);
@@ -638,6 +673,115 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         return results;
     }
 
+    public IReadOnlyList<PersonRequest> GetCajaQueue()
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        // Cases with no Fecha última Carpeta (Sin Carpeta ticked) sort after every dated case,
+        // instead of floating to the top the way NULL normally would in SQLite's ASC ordering.
+        command.CommandText = """
+            SELECT * FROM PersonRequest
+            WHERE Destination = 'Caja' AND BoxId IS NULL
+            ORDER BY FechaUltimaCarpeta IS NULL, FechaUltimaCarpeta, UploadedAt
+            """;
+        using var reader = command.ExecuteReader();
+        var results = new List<PersonRequest>();
+        while (reader.Read())
+        {
+            results.Add(Map(reader));
+        }
+        return results;
+    }
+
+    public Box CloseBox(DateTimeOffset closedAt)
+    {
+        using var connection = Open();
+        using var transaction = connection.BeginTransaction();
+
+        long boxId;
+        int number;
+        using (var insertCommand = connection.CreateCommand())
+        {
+            insertCommand.Transaction = transaction;
+            insertCommand.CommandText = """
+                INSERT INTO Box (Number, ClosedAt)
+                VALUES ((SELECT COALESCE(MAX(Number), 0) + 1 FROM Box), $closedAt);
+                SELECT last_insert_rowid();
+                """;
+            insertCommand.Parameters.AddWithValue("$closedAt", closedAt.ToString("O"));
+            boxId = (long)insertCommand.ExecuteScalar()!;
+        }
+
+        using (var numberCommand = connection.CreateCommand())
+        {
+            numberCommand.Transaction = transaction;
+            numberCommand.CommandText = "SELECT Number FROM Box WHERE Id = $id";
+            numberCommand.Parameters.AddWithValue("$id", boxId);
+            number = Convert.ToInt32(numberCommand.ExecuteScalar());
+        }
+
+        using (var assignCommand = connection.CreateCommand())
+        {
+            assignCommand.Transaction = transaction;
+            assignCommand.CommandText = "UPDATE PersonRequest SET BoxId = $boxId WHERE Destination = 'Caja' AND BoxId IS NULL";
+            assignCommand.Parameters.AddWithValue("$boxId", boxId);
+            assignCommand.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
+        return new Box { Id = boxId, Number = number, ClosedAt = closedAt };
+    }
+
+    public IReadOnlyList<Box> GetBoxes()
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM Box ORDER BY Number DESC";
+        using var reader = command.ExecuteReader();
+        var results = new List<Box>();
+        while (reader.Read())
+        {
+            results.Add(MapBox(reader));
+        }
+        return results;
+    }
+
+    public Box? FindBoxById(long id)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM Box WHERE Id = $id LIMIT 1";
+        command.Parameters.AddWithValue("$id", id);
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? MapBox(reader) : null;
+    }
+
+    public IReadOnlyList<PersonRequest> GetCasesByBoxId(long boxId)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT * FROM PersonRequest
+            WHERE BoxId = $boxId
+            ORDER BY FechaUltimaCarpeta IS NULL, FechaUltimaCarpeta, UploadedAt
+            """;
+        command.Parameters.AddWithValue("$boxId", boxId);
+        using var reader = command.ExecuteReader();
+        var results = new List<PersonRequest>();
+        while (reader.Read())
+        {
+            results.Add(Map(reader));
+        }
+        return results;
+    }
+
+    private static Box MapBox(SqliteDataReader reader) => new()
+    {
+        Id = reader.GetInt64(reader.GetOrdinal("Id")),
+        Number = reader.GetInt32(reader.GetOrdinal("Number")),
+        ClosedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ClosedAt")))
+    };
+
     private SqliteConnection Open()
     {
         var connection = new SqliteConnection(connectionString);
@@ -672,6 +816,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         CodigoF8 = reader.IsDBNull(reader.GetOrdinal("CodigoF8")) ? null : reader.GetString(reader.GetOrdinal("CodigoF8")),
         Destination = Enum.Parse<CaseDestination>(reader.GetString(reader.GetOrdinal("Destination"))),
         TransferredAt = reader.IsDBNull(reader.GetOrdinal("TransferredAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("TransferredAt"))),
-        ConfirmationBouncedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmationBouncedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmationBouncedAt")))
+        ConfirmationBouncedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmationBouncedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmationBouncedAt"))),
+        BoxId = reader.IsDBNull(reader.GetOrdinal("BoxId")) ? null : reader.GetInt64(reader.GetOrdinal("BoxId"))
     };
 }
