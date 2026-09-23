@@ -157,9 +157,9 @@
                                       title="Requiere revisión — datos no extraíbles del correo (asunto: @item.SourceSubject)">⚠</span>
                             }
                             <input type="text" name="nombre" value="@item.FullName" placeholder="Nombre completo" required
-                                   size="@Math.Clamp((item.FullName?.Length ?? 0) + 2, 12, 60)"
+                                   size="@Math.Clamp((item.FullName?.Length ?? 0) + 2, 12, 34)"
                                    class="input-inline name-input" form="person-form-@item.Id" onchange="savePersonFieldIfDoneEditing(this)"
-                                   title="@(item.NeedsReview ? $"Requiere revisión — datos no extraíbles del correo (asunto: {item.SourceSubject})" : "")" />
+                                   title="@(item.NeedsReview ? $"Requiere revisión — datos no extraíbles del correo (asunto: {item.SourceSubject})" : item.FullName)" />
                             </span>
                         </td>
                         <td class="text-cell rut-cell">

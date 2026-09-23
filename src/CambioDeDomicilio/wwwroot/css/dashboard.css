@@ -983,6 +983,14 @@ table.cases-index td.name-cell .name-with-alert {
 table.cases-index td.name-cell .name-input {
     width: auto;
     min-width: 10ch;
+    /* When the 5 frozen columns combined are wider than the visible table viewport (a long name
+       plus a narrow/split browser window), position: sticky has nowhere to put this column but
+       overlapping the ones before it — confirmed by direct measurement. This cap keeps that
+       combined width in check for realistically long names. A long name still edits fine — the
+       input scrolls its own text under the cursor — and the full value is in `title`. */
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 table.cases-index td.rut-cell .rut-input {

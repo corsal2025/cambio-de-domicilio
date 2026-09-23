@@ -272,12 +272,12 @@
                                auto-fits to the widest name in it because each row's input reports its own
                                intrinsic width via `size`, computed from the actual name length (+2 padding,
                                floor of 12 so short names don't collapse the column below a usable minimum,
-                               ceiling of 60 so one garbled/unparsed name — see NeedsReview — can't blow up
-                               the column width for every other row). *@
+                               ceiling of 34 to stay under the CSS max-width cap on .name-input — see
+                               dashboard.css for why that cap is load-bearing, not cosmetic). *@
                             <input type="text" name="nombre" value="@item.FullName" placeholder="Nombre completo" required
-                                   size="@Math.Clamp((item.FullName?.Length ?? 0) + 2, 12, 60)"
+                                   size="@Math.Clamp((item.FullName?.Length ?? 0) + 2, 12, 34)"
                                    class="input-inline name-input" form="person-form-@item.Id" onchange="savePersonFieldIfDoneEditing(this)"
-                                   title="@(item.NeedsReview ? $"Requiere revisión — datos no extraíbles del correo (asunto: {item.SourceSubject})" : "")" />
+                                   title="@(item.NeedsReview ? $"Requiere revisión — datos no extraíbles del correo (asunto: {item.SourceSubject})" : item.FullName)" />
                             </span>
                         </td>
                         <td class="text-cell rut-cell">
