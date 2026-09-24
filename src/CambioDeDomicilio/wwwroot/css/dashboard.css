@@ -146,7 +146,7 @@ header.app-header .brand {
 }
 
 header.app-header .brand-logo {
-    height: 52px;
+    height: 72px;
     width: auto;
     border-radius: var(--radius-sm);
     background: #ffffff;
@@ -787,11 +787,7 @@ table.cases-index thead tr.header-groups th.th-group-frozen {
     z-index: 14;
 }
 
-table.cases-index:not(.cases-f8) th.th-group-1 { left: 0; }
-table.cases-index:not(.cases-f8) th.th-group-2 { left: var(--freeze-left-4, 0px); }
-
-table.cases-f8 th.th-group-1 { left: 0; }
-table.cases-f8 th.th-group-2 { left: var(--freeze-left-3, 0px); }
+table.cases-index th.th-group-1 { left: 0; }
 
 table.cases-index thead tr.header-groups th.th-group-frozen-end {
     box-shadow: 3px 0 5px -2px rgba(15, 23, 42, 0.18);
@@ -869,34 +865,20 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover 
     background: #ffedd5 !important;
 }
 
-/* Anchos explícitos para columnas fijas de selección para evitar solapamiento entre Marcar, F8 y Pendiente */
-table.cases-index thead tr.header-cols > th:nth-child(1),
-table.cases-index tbody tr > td:nth-child(1) {
-    width: auto;
+/* Checkbox columns (Marcar, F8, Pendiente Carpeta) sit after RUT and scroll with the rest. */
+table.cases-index thead tr.header-cols > th:has(.marked-checkbox),
+table.cases-index tbody tr > td.marked-cell {
     min-width: 58px;
     text-align: center;
 }
-table.cases-index:not(.cases-f8) thead tr.header-cols > th:nth-child(2),
-table.cases-index:not(.cases-f8) tbody tr > td:nth-child(2) {
-    width: auto;
-    min-width: 54px;
-    text-align: center;
-    position: sticky;
-    z-index: 2;
-}
-table.cases-index:not(.cases-f8) thead tr.header-cols > th:nth-child(3),
-table.cases-index:not(.cases-f8) tbody tr > td:nth-child(3) {
-    width: auto;
-    min-width: 88px;
-    text-align: center;
-}
 
-/* Indicador F8 en checkbox */
-table.cases-index:not(.cases-f8) tbody tr td.marked-cell:nth-child(2) {
+/* F8 indicator ("!") on the F8 checkbox cell. */
+table.cases-index tbody tr td.marked-cell.f8-cell {
+    position: relative;
     overflow: visible;
 }
 
-table.cases-index:not(.cases-f8) tbody tr:has(input[name="folderNotFoundValue"]:checked) td.marked-cell:nth-child(2)::after {
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td.f8-cell::after {
     content: "!";
     position: absolute;
     top: 50%;
@@ -915,87 +897,42 @@ table.cases-index:not(.cases-f8) tbody tr:has(input[name="folderNotFoundValue"]:
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-/* Columnas fijas al scrollear horizontalmente, para mantener siempre visible
-   la identificación del contribuyente (Nombre y RUT) junto a sus acciones:
-   - Index (5 columnas): Marcar, F8, Pendiente Carpeta, Nombre, RUT.
-   - F8 (4 columnas): Marcar, Pendiente Carpeta, Nombre, RUT.
-   Los offsets left se calculan dinámicamente en JS desde el ancho real de las columnas. */
-table.cases-index:not(.cases-f8) tbody tr td:nth-child(-n+5) {
+/* Frozen columns while scrolling horizontally: only Nombre and RUT (Casos and F8). The RUT
+   column's left offset is computed in JS from the real width of Nombre (--freeze-left-2). */
+table.cases-index tbody tr td:nth-child(-n+2) {
     position: sticky;
-    background: inherit;
     z-index: 2;
 }
-table.cases-index:not(.cases-f8) thead tr.header-cols th:nth-child(-n+5) {
+table.cases-index thead tr.header-cols th:nth-child(-n+2) {
     position: sticky;
     background: #f8fafc;
     z-index: 12;
 }
-table.cases-index:not(.cases-f8) tbody tr > :nth-child(1),
-table.cases-index:not(.cases-f8) thead tr.header-cols > :nth-child(1) { left: 0; }
-table.cases-index:not(.cases-f8) tbody tr > :nth-child(2),
-table.cases-index:not(.cases-f8) thead tr.header-cols > :nth-child(2) { left: var(--freeze-left-2, 0px); }
-table.cases-index:not(.cases-f8) tbody tr > :nth-child(3),
-table.cases-index:not(.cases-f8) thead tr.header-cols > :nth-child(3) { left: var(--freeze-left-3, 0px); }
-table.cases-index:not(.cases-f8) tbody tr > :nth-child(4),
-table.cases-index:not(.cases-f8) thead tr.header-cols > :nth-child(4) { left: var(--freeze-left-4, 0px); }
-table.cases-index:not(.cases-f8) tbody tr > :nth-child(5),
-table.cases-index:not(.cases-f8) thead tr.header-cols > :nth-child(5) {
-    left: var(--freeze-left-5, 0px);
+table.cases-index tbody tr > :nth-child(1),
+table.cases-index thead tr.header-cols > :nth-child(1) { left: 0; }
+table.cases-index tbody tr > :nth-child(2),
+table.cases-index thead tr.header-cols > :nth-child(2) {
+    left: var(--freeze-left-2, 0px);
     box-shadow: 3px 0 5px -2px rgba(15, 23, 42, 0.18);
     border-right: 2px solid var(--color-border);
 }
 
-table.cases-f8 tbody tr td:nth-child(-n+4) {
-    position: sticky;
-    background: inherit;
-    z-index: 2;
-}
-table.cases-f8 thead tr.header-cols th:nth-child(-n+4) {
-    position: sticky;
-    background: #f8fafc;
-    z-index: 12;
-}
-table.cases-f8 tbody tr > :nth-child(1),
-table.cases-f8 thead tr.header-cols > :nth-child(1) { left: 0; }
-table.cases-f8 tbody tr > :nth-child(2),
-table.cases-f8 thead tr.header-cols > :nth-child(2) { left: var(--freeze-left-2, 0px); }
-table.cases-f8 tbody tr > :nth-child(3),
-table.cases-f8 thead tr.header-cols > :nth-child(3) { left: var(--freeze-left-3, 0px); }
-table.cases-f8 tbody tr > :nth-child(4),
-table.cases-f8 thead tr.header-cols > :nth-child(4) {
-    left: var(--freeze-left-4, 0px);
-    box-shadow: 3px 0 5px -2px rgba(15, 23, 42, 0.18);
-    border-right: 2px solid var(--color-border);
-}
-
-/* Fondos sólidos explícitos para celdas fijas, evitando transparencias o sangrado al scrollear */
-table.cases-index:not(.cases-f8) tbody tr td:nth-child(-n+5) { background-color: #ffffff; }
-table.cases-index:not(.cases-f8) tbody tr.row-alt td:nth-child(-n+5) { background-color: #f8fafc; }
-table.cases-index:not(.cases-f8) tbody tr:hover td:nth-child(-n+5) { background-color: #f1f5f9; }
-table.cases-index:not(.cases-f8) tbody tr.row-confirmed td:nth-child(-n+5) { background-color: var(--row-confirmed-bg) !important; }
-table.cases-index:not(.cases-f8) tbody tr.row-confirmed:hover td:nth-child(-n+5) { background-color: #dcfce7 !important; }
-table.cases-index:not(.cases-f8) tbody tr.row-needs-review td:nth-child(-n+5) { background-color: var(--row-review-bg) !important; }
-table.cases-index:not(.cases-f8) tbody tr.row-needs-review:hover td:nth-child(-n+5) { background-color: #ffe4e6 !important; }
-table.cases-index:not(.cases-f8) tbody tr.row-bounced td:nth-child(-n+5) { background-color: var(--row-bounced-bg) !important; }
-table.cases-index:not(.cases-f8) tbody tr.row-bounced:hover td:nth-child(-n+5) { background-color: #fecdd3 !important; }
-table.cases-index:not(.cases-f8) tbody tr:has(input[name="markedValue"]:checked) td:nth-child(-n+5) { background-color: var(--row-marked-bg) !important; }
-table.cases-index:not(.cases-f8) tbody tr:has(input[name="markedValue"]:checked):hover td:nth-child(-n+5) { background-color: #bbf7d0 !important; }
-table.cases-index:not(.cases-f8) tbody tr:has(input[name="pendienteCarpetaValue"]:checked) td:nth-child(-n+5) { background-color: #fefce8 !important; }
-table.cases-index:not(.cases-f8) tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover td:nth-child(-n+5) { background-color: #fef9c3 !important; }
-table.cases-index:not(.cases-f8) tbody tr:has(input[name="folderNotFoundValue"]:checked) td:nth-child(-n+5) { background-color: #fff7ed !important; }
-table.cases-index:not(.cases-f8) tbody tr:has(input[name="folderNotFoundValue"]:checked):hover td:nth-child(-n+5) { background-color: #ffedd5 !important; }
-
-table.cases-f8 tbody tr td:nth-child(-n+4) { background-color: #ffffff; }
-table.cases-f8 tbody tr.row-alt td:nth-child(-n+4) { background-color: #f8fafc; }
-table.cases-f8 tbody tr:hover td:nth-child(-n+4) { background-color: #f1f5f9; }
-table.cases-f8 tbody tr.row-confirmed td:nth-child(-n+4) { background-color: var(--row-confirmed-bg) !important; }
-table.cases-f8 tbody tr.row-confirmed:hover td:nth-child(-n+4) { background-color: #dcfce7 !important; }
-table.cases-f8 tbody tr.row-needs-review td:nth-child(-n+4) { background-color: var(--row-review-bg) !important; }
-table.cases-f8 tbody tr.row-needs-review:hover td:nth-child(-n+4) { background-color: #ffe4e6 !important; }
-table.cases-f8 tbody tr:has(input[name="markedValue"]:checked) td:nth-child(-n+4) { background-color: var(--row-marked-bg) !important; }
-table.cases-f8 tbody tr:has(input[name="markedValue"]:checked):hover td:nth-child(-n+4) { background-color: #bbf7d0 !important; }
-table.cases-f8 tbody tr:has(input[name="pendienteCarpetaValue"]:checked) td:nth-child(-n+4) { background-color: #fefce8 !important; }
-table.cases-f8 tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover td:nth-child(-n+4) { background-color: #fef9c3 !important; }
+/* Solid backgrounds on the frozen cells so scrolled content never shows through. */
+table.cases-index tbody tr td:nth-child(-n+2) { background-color: #ffffff; }
+table.cases-index tbody tr.row-alt td:nth-child(-n+2) { background-color: #f8fafc; }
+table.cases-index tbody tr:hover td:nth-child(-n+2) { background-color: #f1f5f9; }
+table.cases-index tbody tr.row-confirmed td:nth-child(-n+2) { background-color: var(--row-confirmed-bg) !important; }
+table.cases-index tbody tr.row-confirmed:hover td:nth-child(-n+2) { background-color: #dcfce7 !important; }
+table.cases-index tbody tr.row-needs-review td:nth-child(-n+2) { background-color: var(--row-review-bg) !important; }
+table.cases-index tbody tr.row-needs-review:hover td:nth-child(-n+2) { background-color: #ffe4e6 !important; }
+table.cases-index tbody tr.row-bounced td:nth-child(-n+2) { background-color: var(--row-bounced-bg) !important; }
+table.cases-index tbody tr.row-bounced:hover td:nth-child(-n+2) { background-color: #fecdd3 !important; }
+table.cases-index tbody tr:has(input[name="markedValue"]:checked) td:nth-child(-n+2) { background-color: var(--row-marked-bg) !important; }
+table.cases-index tbody tr:has(input[name="markedValue"]:checked):hover td:nth-child(-n+2) { background-color: #bbf7d0 !important; }
+table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked) td:nth-child(-n+2) { background-color: #fefce8 !important; }
+table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover td:nth-child(-n+2) { background-color: #fef9c3 !important; }
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td:nth-child(-n+2) { background-color: #fff7ed !important; }
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover td:nth-child(-n+2) { background-color: #ffedd5 !important; }
 
 /* Checkboxes modernos */
 .marked-checkbox {
@@ -1469,7 +1406,7 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no
     }
 
     header.app-header .brand-logo {
-        height: 38px;
+        height: 58px;
     }
 
     header.app-header .brand {
@@ -1502,7 +1439,7 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no
     }
 
     header.app-header .brand-logo {
-        height: 34px;
+        height: 46px;
     }
 
     header.app-header .brand {

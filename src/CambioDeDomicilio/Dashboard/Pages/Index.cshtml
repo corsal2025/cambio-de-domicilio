@@ -199,14 +199,16 @@
             <table class="cases cases-index">
                 <thead>
                     <tr class="header-groups">
-                        <th colspan="3" class="th-group th-group-frozen th-group-1">Marcado</th>
-                        <th colspan="2" class="th-group th-group-frozen th-group-2 th-group-frozen-end">Contribuyente</th>
+                        <th colspan="2" class="th-group th-group-frozen th-group-1 th-group-frozen-end">Contribuyente</th>
+                        <th colspan="3" class="th-group">Marcado</th>
                         <th class="th-group">Destino</th>
                         <th colspan="3" class="th-group">Plazos y Estado</th>
                         <th colspan="2" class="th-group">Carpeta física</th>
                         <th class="th-group">Acción</th>
                     </tr>
                     <tr class="header-cols">
+                        <th>Nombre</th>
+                        <th>RUT</th>
                         <th>
                             <div style="display:inline-flex; flex-direction:column; align-items:center; gap:3px; justify-content:center;">
                                 <span>Marcar</span>
@@ -221,8 +223,6 @@
                         </th>
                         <th title="Marca un caso cuya carpeta física no fue posible localizar (solo fichas sin fecha o anteriores a 2000)">F8</th>
                         <th title="Marca la carpeta como pendiente de retiro — resalta la fila en amarillo">Pendiente<br />Carpeta</th>
-                        <th>Nombre</th>
-                        <th>RUT</th>
                         <th>Comuna</th>
                         <th>Recibido</th>
                         <th>Plazo<br /><span class="th-subtext">(15 días hábiles)</span></th>
@@ -245,31 +245,6 @@
                     var bouncedClass = item.ConfirmationBouncedAt is not null ? "row-bounced" : "";
                     rowIndex++;
                     <tr class="@rowClass @statusRowClass @f8PendingClass @pendienteCarpetaClass @bouncedClass">
-                        <td class="marked-cell">
-                            <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
-                                <input type="hidden" name="id" value="@item.Id" />
-                                <input type="checkbox" name="markedValue" class="marked-checkbox"
-                                       data-pdf-generated-at="@(item.SectorPdfGeneratedAt is { } pdfAt ? SpanishDate.Format(DateOnly.FromDateTime(pdfAt.LocalDateTime)) : "")"
-                                       @(item.Marked ? "checked" : "") onchange="toggleRowCheckbox(this, 'markedValue')"
-                                       title="@(item.Marked ? "Desmarcar caso" : "Marcar caso")" />
-                            </form>
-                        </td>
-                        <td class="marked-cell">
-                            <form method="post" asp-page-handler="ToggleFolderNotFound" class="marked-form">
-                                <input type="hidden" name="id" value="@item.Id" />
-                                <input type="checkbox" name="folderNotFoundValue" class="marked-checkbox"
-                                       @(item.FolderNotFound ? "checked" : "") onchange="toggleRowCheckbox(this, 'folderNotFoundValue')"
-                                       title="F8 - Carpeta no encontrada" />
-                            </form>
-                        </td>
-                        <td class="marked-cell">
-                            <form method="post" asp-page-handler="TogglePendienteCarpeta" class="marked-form">
-                                <input type="hidden" name="id" value="@item.Id" />
-                                <input type="checkbox" name="pendienteCarpetaValue" class="marked-checkbox"
-                                       @(item.PendienteCarpeta ? "checked" : "") onchange="toggleRowCheckbox(this, 'pendienteCarpetaValue')"
-                                       title="@(item.PendienteCarpeta ? "Desmarcar pendiente carpeta" : "Marcar pendiente carpeta")" />
-                            </form>
-                        </td>
                         <td class="name-cell">
                             <form method="post" asp-page-handler="SetPersonData" id="person-form-@item.Id">
                                 <input type="hidden" name="id" value="@item.Id" />
@@ -295,6 +270,31 @@
                             <input type="text" name="rut" value="@item.Rut" placeholder="RUT" required size="13"
                                    class="input-inline rut-input" form="person-form-@item.Id" onchange="savePersonFieldIfDoneEditing(this)"
                                    oncopy="var s=this.value.substring(this.selectionStart,this.selectionEnd)||this.value; event.clipboardData.setData('text/plain', s.replace(/\./g,'')); event.preventDefault();" />
+                        </td>
+                        <td class="marked-cell">
+                            <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="checkbox" name="markedValue" class="marked-checkbox"
+                                       data-pdf-generated-at="@(item.SectorPdfGeneratedAt is { } pdfAt ? SpanishDate.Format(DateOnly.FromDateTime(pdfAt.LocalDateTime)) : "")"
+                                       @(item.Marked ? "checked" : "") onchange="toggleRowCheckbox(this, 'markedValue')"
+                                       title="@(item.Marked ? "Desmarcar caso" : "Marcar caso")" />
+                            </form>
+                        </td>
+                        <td class="marked-cell f8-cell">
+                            <form method="post" asp-page-handler="ToggleFolderNotFound" class="marked-form">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="checkbox" name="folderNotFoundValue" class="marked-checkbox"
+                                       @(item.FolderNotFound ? "checked" : "") onchange="toggleRowCheckbox(this, 'folderNotFoundValue')"
+                                       title="F8 - Carpeta no encontrada" />
+                            </form>
+                        </td>
+                        <td class="marked-cell">
+                            <form method="post" asp-page-handler="TogglePendienteCarpeta" class="marked-form">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="checkbox" name="pendienteCarpetaValue" class="marked-checkbox"
+                                       @(item.PendienteCarpeta ? "checked" : "") onchange="toggleRowCheckbox(this, 'pendienteCarpetaValue')"
+                                       title="@(item.PendienteCarpeta ? "Desmarcar pendiente carpeta" : "Marcar pendiente carpeta")" />
+                            </form>
                         </td>
                         <td class="text-cell">@item.Comuna</td>
                         <td class="text-cell">@item.ReceivedAt.LocalDateTime.ToString("dd-MM-yyyy")</td>
@@ -574,7 +574,7 @@
             if (!table) return;
 
             var isF8 = table.classList.contains('cases-f8');
-            var freezeCount = isF8 ? 4 : 5;
+            var freezeCount = 2; // Nombre + RUT
             var headerCells = table.querySelectorAll('thead tr.header-cols > *');
             var groupRow = table.querySelector('thead tr.header-groups');
 

@@ -135,13 +135,17 @@
     @if (Model.SelectedBox is { } box)
     {
         <div class="no-print" style="margin-bottom: 14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <a asp-page="/Caja" class="btn-primary" style="text-decoration:none; display:inline-block;">&larr; Volver a Caja</a>
-            <button type="button" class="btn-primary" onclick="window.print()">Imprimir / Guardar como PDF</button>
+            <a asp-page="/Caja" class="btn-action btn-action--return" style="text-decoration:none;" title="Volver al listado de cajas" aria-label="Volver a Caja">
+                <partial name="_NavIcon" model="@("back")" /><span>Volver a Caja</span>
+            </a>
+            <button type="button" class="btn-action btn-action--upload" onclick="window.print()" title="Imprimir o guardar el listado como PDF" aria-label="Imprimir o guardar como PDF">
+                <partial name="_NavIcon" model="@("pdf")" /><span>Imprimir / Guardar como PDF</span>
+            </button>
             <form method="post" asp-page-handler="ReopenBox" style="display:inline; margin-left:auto;"
                   onsubmit="return confirm('¿Reabrir la Caja @box.Code? Sus carpetas volverán a la cola abierta para que puedas quitar las que sobren, agregar otras o corregirlas.');">
                 <input type="hidden" name="boxId" value="@box.Id" />
-                <button type="submit" class="btn-action-outline" style="color:#f59e0b; border:1px solid rgba(245,158,11,0.5); background:rgba(245,158,11,0.1); padding:8px 14px; font-weight:700; cursor:pointer; border-radius:6px; font-size:0.85rem;">
-                    🔓 Reabrir Caja (Deshacer Cierre)
+                <button type="submit" class="btn-action btn-action--sin-carpeta" title="Deshacer el cierre: las carpetas vuelven a la cola" aria-label="Reabrir caja">
+                    <partial name="_ActionIcon" model="@("revert")" /><span>Reabrir caja (deshacer cierre)</span>
                 </button>
             </form>
         </div>
@@ -287,8 +291,8 @@
                            style="width:70px; text-align:center; font-weight:700; font-size:1.05rem; border:none; outline:none; background:transparent; color:var(--color-text); padding:0;" />
                     <span style="padding:0 12px; font-weight:700; color:var(--color-text-muted); background:var(--color-card); border-left:1px solid var(--color-border); font-size:0.95rem; line-height:38px; user-select:none;">-CD</span>
                 </div>
-                <button type="submit" id="btnCerrarCaja" class="btn-primary" @(Model.Queue.Count == 0 ? "disabled" : "")>
-                    📦 Cerrar Caja <span id="cerrarBoxCodeLabel">A@(Model.NextBoxNumber)-CD</span> (@Model.Queue.Count carpetas)
+                <button type="submit" id="btnCerrarCaja" class="btn-action btn-action--caja" @(Model.Queue.Count == 0 ? "disabled" : "") aria-label="Cerrar caja">
+                    <partial name="_ActionIcon" model="@("caja")" /><span>Cerrar Caja <span id="cerrarBoxCodeLabel">A@(Model.NextBoxNumber)-CD</span> (@Model.Queue.Count carpetas)</span>
                 </button>
             </form>
         </div>
@@ -372,8 +376,8 @@
                                     <form method="post" asp-page-handler="ReopenBox" style="display:inline; margin-left:12px;"
                                           onsubmit="return confirm('¿Reabrir la Caja @closedBox.Code? Sus @count carpetas volverán a la cola abierta para que puedas corregirlas.');">
                                         <input type="hidden" name="boxId" value="@closedBox.Id" />
-                                        <button type="submit" class="btn-action-outline" style="color:#f59e0b; border:1px solid rgba(245,158,11,0.4); padding:2px 8px; font-size:0.75rem; border-radius:4px; background:rgba(245,158,11,0.06); cursor:pointer;">
-                                            🔓 Reabrir
+                                        <button type="submit" class="btn-action btn-action--sin-carpeta" title="Deshacer el cierre: las carpetas vuelven a la cola" aria-label="Reabrir caja">
+                                            <partial name="_ActionIcon" model="@("revert")" /><span>Reabrir</span>
                                         </button>
                                     </form>
                                 </td>

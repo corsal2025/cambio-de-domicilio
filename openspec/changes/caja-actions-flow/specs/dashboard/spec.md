@@ -61,3 +61,10 @@ Every table column in the dashboard (Casos, F8, Caja, sector documents) SHALL si
 #### Scenario: Traspaso a F8 only when F8 is ticked
 - **WHEN** a Pending case has its F8 checkbox unticked
 - **THEN** its action column shows "Marcar subida" and not "Traspaso a F8"
+
+### Requirement: Frozen identity columns
+In Casos and F8 only Nombre and RUT SHALL stay fixed while scrolling horizontally; the Marcado group (Marcar, F8, Pendiente Carpeta) SHALL come right after RUT and scroll with the rest.
+
+#### Scenario: Column order
+- **WHEN** the operator opens Casos
+- **THEN** the columns start with Nombre, RUT, Marcar, F8, Pendiente Carpeta

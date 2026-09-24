@@ -69,13 +69,9 @@ The Caja open queue and every closed box listing (screen and printed document) S
 - **WHEN** the queue with A then B is closed into a box
 - **THEN** the box listing shows A first and B second
 
-### Requirement: Unique box codes
-Closing a box SHALL be rejected when the chosen code (e.g. `A1-CD`) already belongs to a closed box. The queue SHALL stay open and the operator SHALL see an error naming the duplicated code.
+### Requirement: Box codes may repeat
+Closing the queue with a code already used by a closed box SHALL be allowed, because several closes can be packed into the same physical box (operator decision 2026-09-24).
 
-#### Scenario: Duplicate code rejected
+#### Scenario: Same physical box
 - **WHEN** box `A1-CD` exists and the operator closes the queue with number 1
-- **THEN** no box is created, the queue is unchanged, and an error mentions `A1-CD`
-
-#### Scenario: Next number accepted
-- **WHEN** box `A1-CD` exists and the operator closes the queue with number 2
-- **THEN** box `A2-CD` is created with the queued cases
+- **THEN** another closed box record with code `A1-CD` is created with the queued cases

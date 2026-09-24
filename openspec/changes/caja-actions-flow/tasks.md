@@ -35,9 +35,9 @@
 
 ## 4c. Caja: unique box codes (TDD)
 
-- [x] 4c.1 RED: CajaModel test showing that closing with an existing code is rejected and the queue is kept
-- [x] 4c.2 GREEN: validate in `OnPostCerrarCaja`; set `autocomplete="off"` on the number input
-- [ ] 4c.3 Fix the existing duplicated codes in production (after a backup): box Number N gets code `AN-CD`
+- [x] 4c.1 Operator decision: repeated codes are valid (several closes = same physical box). Test: `OnPostCerrarCaja_SameCodeAsExistingBox_IsAllowedForSamePhysicalBox`
+- [x] 4c.2 No duplicate guard; keep `autocomplete="off"` on the number input
+- [x] 4c.3 Existing A1-CD codes left unchanged (same physical box)
 
 ## 4d. Readable sector names (TDD)
 
@@ -54,6 +54,12 @@
 - [x] 6c.1 Remove the name-input width cap and the size ceiling (Casos, F8); let the fixed checkbox columns grow
 - [x] 6c.2 Add a global no-clip rule for `table.cases` cells
 - [x] 6c.3 Fix the CSS specificity bug that showed "Traspaso a F8" on unticked rows
+
+## 6d. UI: frozen columns, logo, back buttons
+
+- [x] 6d.1 Move the Marcado group after RUT; freeze only Nombre and RUT (Casos, F8)
+- [x] 6d.2 Bigger header logo
+- [x] 6d.3 "Volver a Caja" and every back link styled as an icon button
 
 ## 5. Pages: handlers
 

@@ -20,7 +20,7 @@ public class CajaModelTests : IDisposable
     }
 
     [Fact]
-    public void OnPostCerrarCaja_CodeAlreadyUsed_IsRejectedAndQueueKept()
+    public void OnPostCerrarCaja_SameCodeAsExistingBox_IsAllowedForSamePhysicalBox()
     {
         QueueCase("msg-1", "12.345.678-5");
         repository.CloseBox("A1-CD", DateTimeOffset.UtcNow);
@@ -28,9 +28,8 @@ public class CajaModelTests : IDisposable
 
         model.OnPostCerrarCaja(boxNumber: "1", boxCode: null);
 
-        Assert.Single(repository.GetBoxes());
-        Assert.Contains(repository.GetCajaQueue(), c => c.Id == queuedId);
-        Assert.Contains("A1-CD", model.Message);
+        Assert.Equal(2, repository.GetBoxes().Count(b => b.Code == "A1-CD"));
+        Assert.DoesNotContain(repository.GetCajaQueue(), c => c.Id == queuedId);
     }
 
     [Fact]

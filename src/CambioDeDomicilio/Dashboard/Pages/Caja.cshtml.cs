@@ -38,13 +38,8 @@ public class CajaModel(IPersonRequestRepository repository) : PageModel
         var raw = !string.IsNullOrWhiteSpace(boxNumber) ? boxNumber : boxCode;
         var normalizedCode = FormatBoxCode(raw, nextNum);
 
-        // A printed box label must identify one physical box — reusing a code (e.g. typing 1 again)
-        // would make two boxes indistinguishable on the shelf.
-        if (existingBoxes.Any(b => string.Equals(b.Code, normalizedCode, StringComparison.OrdinalIgnoreCase)))
-        {
-            Message = $"Ya existe una caja con el rótulo {normalizedCode}. Usa otro número (siguiente sugerido: A{nextNum}-CD).";
-            return RedirectToPage();
-        }
+        // Reusing an existing code is allowed on purpose: several closes can go into the same
+        // physical box (e.g. three batches all packed into box A1-CD).
 
         var box = repository.CloseBox(normalizedCode, DateTimeOffset.UtcNow);
         Message = $"Caja {box.Code} cerrada exitosamente.";
