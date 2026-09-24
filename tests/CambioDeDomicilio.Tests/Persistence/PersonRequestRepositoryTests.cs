@@ -896,6 +896,104 @@ public class PersonRequestRepositoryTests : IDisposable
         Assert.Contains(queue, c => c.Id == id);
     }
 
+    [Fact]
+    public void Insert_NewCase_ClosedWithoutFolderAtIsNull()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        Assert.Null(repository.FindById(id)!.ClosedWithoutFolderAt);
+    }
+
+    [Fact]
+    public void CloseWithoutFolder_F8Case_ClosesAndReturnsToCasos()
+    {
+        var id = repository.Insert(NewRequest("msg-f8"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        var closedAt = new DateTimeOffset(2026, 9, 24, 10, 0, 0, TimeSpan.Zero);
+
+        repository.CloseWithoutFolder(id, closedAt);
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(closedAt, stored.ClosedWithoutFolderAt);
+        Assert.Equal(CaseDestination.None, stored.Destination);
+        Assert.Null(stored.TransferredAt);
+    }
+
+    [Fact]
+    public void SendToCaja_F8Case_MovesToQueueAsConfirmed()
+    {
+        var id = repository.Insert(NewRequest("msg-f8"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.Caja, stored.Destination);
+        Assert.Equal(RequestStatus.Confirmed, stored.Status);
+        Assert.Null(stored.BoxId);
+        Assert.Contains(repository.GetCajaQueue(), c => c.Id == id);
+    }
+
+    [Fact]
+    public void SendToCaja_ClosedWithoutFolder_IsNotMoved()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
+
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+
+        Assert.Equal(CaseDestination.None, repository.FindById(id)!.Destination);
+    }
+
+    [Fact]
+    public void SendToCaja_PendingCaseWithoutSoloCaja_IsNotMoved()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+
+        Assert.Equal(CaseDestination.None, repository.FindById(id)!.Destination);
+    }
+
+    [Fact]
+    public void RevertF8AndReturnToCasos_UploadedF8_ClearsAllF8Data()
+    {
+        var id = repository.Insert(NewRequest("msg-f8"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.SetFolderNotFound(id, true);
+        repository.SetCodigoF8(id, "F8-123");
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
+
+        repository.RevertF8AndReturnToCasos(id);
+
+        var stored = repository.FindById(id)!;
+        Assert.Null(stored.CodigoF8);
+        Assert.Null(stored.ConfirmedAt);
+        Assert.Null(stored.UploadedAt);
+        Assert.Equal(RequestStatus.Pending, stored.Status);
+        Assert.True(stored.SoloCaja);
+        Assert.Equal(CaseDestination.None, stored.Destination);
+    }
+
+    [Fact]
+    public void RevertF8AndReturnToCasos_NotUploadedF8_ReachesSameState()
+    {
+        var id = repository.Insert(NewRequest("msg-f8"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.SetFolderNotFound(id, true);
+
+        repository.RevertF8AndReturnToCasos(id);
+
+        var stored = repository.FindById(id)!;
+        Assert.Null(stored.CodigoF8);
+        Assert.Equal(RequestStatus.Pending, stored.Status);
+        Assert.True(stored.SoloCaja);
+        Assert.False(stored.FolderNotFound);
+        Assert.Equal(CaseDestination.None, stored.Destination);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId, string rut = "18.785.387-7") => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",

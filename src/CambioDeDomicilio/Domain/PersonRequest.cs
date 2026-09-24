@@ -112,6 +112,12 @@ public sealed class PersonRequest
     /// <summary>Flag set when an F8 case whose physical folder was found is reincorporated into Casos.
     /// It must only be sent to Caja - never re-confirmed or emailed to the comuna again.</summary>
     public bool SoloCaja { get; set; }
+
+    /// <summary>When the operator pressed "Sin carpeta" on an F8 case: the process is closed without
+    /// a physical folder. Distinct from <see cref="SinCarpeta"/> (the "S/C" typed in place of a
+    /// date). The case shows in Casos as "Cerrado sin carpeta", with no actions, and can never
+    /// enter Caja. Null means not closed.</summary>
+    public DateTimeOffset? ClosedWithoutFolderAt { get; set; }
 }
 
 public enum CaseDestination
@@ -120,9 +126,8 @@ public enum CaseDestination
     None,
     /// <summary>Transferred to the /F8 screen.</summary>
     F8,
-    /// <summary>Automatically moved to the /Caja screen the moment the folder is marked uploaded
-    /// (see AddressChangeRoutingService.MarkUploadedAndConfirmAsync) — never set for F8 cases,
-    /// which keep their own Destination.F8 flow instead.</summary>
+    /// <summary>Moved to the /Caja screen by an explicit operator "Caja" click — from Casos (uploaded,
+    /// confirmed or SoloCaja cases) or from F8 (folder found). See IPersonRequestRepository.SendToCaja.</summary>
     Caja
 }
 

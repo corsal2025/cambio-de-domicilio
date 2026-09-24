@@ -31,9 +31,15 @@ public interface IPersonRequestRepository
     /// <summary>Undoes a transfer: the case goes back to Casos (Index).</summary>
     void ClearDestination(long id);
 
-    /// <summary>Undoes F8 status and reverts the case back to Casos as Pending, clearing Destination,
-    /// TransferredAt, ConfirmedAt, ConfirmationBouncedAt, and Marked/Pendiente flags, without sending any email.</summary>
+    /// <summary>Unified F8 revert: whether or not the F8 was already uploaded, clears every F8 datum
+    /// (CodigoF8, FolderNotFound, Destination, TransferredAt, UploadedAt, ConfirmedAt, bounce, marks)
+    /// and returns the case to Casos as Pending with SoloCaja set, so its only action is "Caja".
+    /// No email is sent.</summary>
     void RevertF8AndReturnToCasos(long id);
+
+    /// <summary>"Sin carpeta" on an F8 case: records ClosedWithoutFolderAt and returns the case to
+    /// Casos (Destination None, TransferredAt cleared). No email is sent.</summary>
+    void CloseWithoutFolder(long id, DateTimeOffset closedAt);
 
     void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long? confirmedByUserId = null);
 
@@ -77,7 +83,9 @@ public interface IPersonRequestRepository
     /// click always has a result to look at), just with zero cases in it.</summary>
     Box CloseBox(string code, DateTimeOffset closedAt);
 
-    /// <summary>Transfers uploaded/confirmed cases with physical folders to the Caja queue.</summary>
+    /// <summary>Transfers cases with a physical folder to the open Caja queue: Uploaded/Confirmed
+    /// cases, SoloCaja cases, and F8 cases whose folder was found (set to Confirmed). Never moves
+    /// SinCarpeta or closed-without-folder cases.</summary>
     void SendToCaja(IReadOnlyList<long> ids, DateTimeOffset transferredAt);
 
     /// <summary>Reopens a closed box: unpacks all its cases back into the open Caja queue and removes the closed box record.</summary>
@@ -173,6 +181,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         EnsureColumnExists(connection, "SinCarpeta", "SinCarpeta INTEGER NOT NULL DEFAULT 0");
         EnsureColumnExists(connection, "ConfirmationBouncedAt", "ConfirmationBouncedAt TEXT NULL");
         EnsureColumnExists(connection, "SoloCaja", "SoloCaja INTEGER NOT NULL DEFAULT 0");
+        EnsureColumnExists(connection, "ClosedWithoutFolderAt", "ClosedWithoutFolderAt TEXT NULL");
 
         using (var updateLegacy = connection.CreateCommand())
         {
@@ -675,6 +684,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 Status = 'Pending',
                 SoloCaja = 1,
                 FolderNotFound = 0,
+                CodigoF8 = NULL,
+                UploadedAt = NULL,
                 SinCarpeta = 0,
                 TransferredAt = NULL,
                 ConfirmedAt = NULL,
@@ -684,6 +695,20 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 PendienteCarpeta = 0
             WHERE Id = $id
             """;
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void CloseWithoutFolder(long id, DateTimeOffset closedAt)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE PersonRequest
+            SET ClosedWithoutFolderAt = $closedAt, Destination = 'None', TransferredAt = NULL
+            WHERE Id = $id
+            """;
+        command.Parameters.AddWithValue("$closedAt", closedAt.ToString("O"));
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
@@ -750,11 +775,14 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             command.CommandText = """
                 UPDATE PersonRequest
                 SET Destination = 'Caja',
-                    Status = CASE WHEN SoloCaja = 1 THEN 'Confirmed' ELSE Status END,
+                    Status = CASE WHEN SoloCaja = 1 OR Destination = 'F8' THEN 'Confirmed' ELSE Status END,
                     SoloCaja = 0,
                     TransferredAt = $transferredAt,
                     Marked = 0
-                WHERE Id = $id AND (Status = 'Uploaded' OR Status = 'Confirmed' OR SoloCaja = 1) AND SinCarpeta = 0;
+                WHERE Id = $id
+                  AND (Status = 'Uploaded' OR Status = 'Confirmed' OR SoloCaja = 1 OR Destination = 'F8')
+                  AND SinCarpeta = 0
+                  AND ClosedWithoutFolderAt IS NULL;
                 """;
             command.Parameters.AddWithValue("$transferredAt", transferredAt.ToString("O"));
             command.Parameters.AddWithValue("$id", id);
@@ -943,6 +971,19 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             }
         }
 
+        DateTimeOffset? GetNullableDateTimeOffset(string name)
+        {
+            try
+            {
+                var ord = reader.GetOrdinal(name);
+                return reader.IsDBNull(ord) ? null : DateTimeOffset.Parse(reader.GetString(ord));
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         bool GetBoolean(string name)
         {
             try
@@ -985,7 +1026,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             TransferredAt = reader.IsDBNull(reader.GetOrdinal("TransferredAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("TransferredAt"))),
             ConfirmationBouncedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmationBouncedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmationBouncedAt"))),
             BoxId = GetNullableInt64("BoxId"),
-            SoloCaja = GetBoolean("SoloCaja")
+            SoloCaja = GetBoolean("SoloCaja"),
+            ClosedWithoutFolderAt = GetNullableDateTimeOffset("ClosedWithoutFolderAt")
         };
     }
 }
