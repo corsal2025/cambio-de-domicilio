@@ -326,7 +326,14 @@
                                     _ => ("badge-pending", item.Status.ToString())
                                 };
                             }
-                            <span class="badge @badgeClass">@badgeText</span>
+                            @if (item.ClosedWithoutFolderAt is not null)
+                            {
+                                <span class="badge badge-closed" title="Proceso cerrado sin carpeta física">Cerrado sin carpeta</span>
+                            }
+                            else
+                            {
+                                <span class="badge @badgeClass">@badgeText</span>
+                            }
                             @if (item.ConfirmationBouncedAt is { } bouncedAt)
                             {
                                 <span class="badge badge-bounced"
@@ -345,48 +352,80 @@
                         </td>
                         <td class="text-cell">@(item.Sector?.ToString() ?? "—")</td>
                         <td>
-                            @if (item.Status == RequestStatus.Pending && !item.NeedsReview)
+                            <div class="action-group">
+                            @if (item.ClosedWithoutFolderAt is not null)
                             {
-                                <!-- Both blocks always render for Pending cases; CSS (tr:has(input[name="folderNotFoundValue"]:checked))
+                                @* Closed without folder: process finished, no actions except delete. *@
+                            }
+                            else if (item.SoloCaja)
+                            {
+                                @* Reincorporated from F8 (folder found): only Caja, never upload/confirm/email. *@
+                                <form method="post" asp-page-handler="SubirACaja">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--caja" title="Enviar la carpeta a la cola de Caja (sin enviar correo)" aria-label="Enviar a Caja">
+                                        <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
+                                    </button>
+                                </form>
+                            }
+                            else if (item.Status == RequestStatus.Pending && !item.NeedsReview)
+                            {
+                                <!-- Both forms always render for Pending cases; CSS (tr:has(input[name="folderNotFoundValue"]:checked))
                                      picks which one shows, live, the instant the F8 checkbox is toggled — ticking F8 goes through
-                                     fetch() now (see submitCheckboxToggle), not a full-page reload, so without this the button here
-                                     stayed frozen on whatever was true when the page last rendered until the operator refreshed. -->
-                                <div class="transfer-choice f8-only">
-                                    <form method="post" asp-page-handler="TransferToF8"
-                                          onsubmit="return confirm('Esto moverá el caso a la pantalla F8 y desaparecerá de Casos. ¿Confirmar?');">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="btn-primary" title="Trasladar caso a la pantalla F8">Traspaso a F8</button>
-                                    </form>
-                                </div>
+                                     fetch() (see submitCheckboxToggle), not a full-page reload. -->
+                                <form method="post" asp-page-handler="TransferToF8" class="f8-only"
+                                      onsubmit="return confirm('Esto moverá el caso a la pantalla F8 y desaparecerá de Casos. ¿Confirmar?');">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--f8" title="Trasladar caso a la pantalla F8" aria-label="Traspaso a F8">
+                                        <partial name="_ActionIcon" model="@("f8")" /><span>Traspaso a F8</span>
+                                    </button>
+                                </form>
                                 <form method="post" asp-page-handler="MarkUploadedAndConfirm" class="no-f8-only"
                                       onsubmit="return confirm('Esto moverá el correo a \'CARP. YA SUBIDAS\' y enviará la confirmación a la comuna de inmediato. ¿Confirmar?');">
                                     <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn-primary" title="Mover correo a 'CARP. YA SUBIDAS' y enviar confirmación">Marcar subida</button>
+                                    <button type="submit" class="btn-action btn-action--upload" title="Mover correo a 'CARP. YA SUBIDAS' y enviar confirmación" aria-label="Marcar subida">
+                                        <partial name="_ActionIcon" model="@("upload")" /><span>Marcar subida</span>
+                                    </button>
                                 </form>
                             }
                             else if (item.FolderNotFound)
                             {
-                                <div class="transfer-choice">
-                                    <form method="post" asp-page-handler="TransferToF8"
-                                          onsubmit="return confirm('Esto moverá el caso a la pantalla F8 y desaparecerá de Casos. ¿Confirmar?');">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="btn-primary" title="Trasladar caso a la pantalla F8">Traspaso a F8</button>
-                                    </form>
-                                </div>
+                                <form method="post" asp-page-handler="TransferToF8"
+                                      onsubmit="return confirm('Esto moverá el caso a la pantalla F8 y desaparecerá de Casos. ¿Confirmar?');">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--f8" title="Trasladar caso a la pantalla F8" aria-label="Traspaso a F8">
+                                        <partial name="_ActionIcon" model="@("f8")" /><span>Traspaso a F8</span>
+                                    </button>
+                                </form>
                             }
                             else if (item.Status == RequestStatus.Uploaded && !item.NeedsReview)
                             {
                                 <form method="post" asp-page-handler="Confirm">
                                     <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn-primary" title="Enviar confirmación">Confirmar</button>
+                                    <button type="submit" class="btn-action btn-action--confirm" title="Enviar confirmación a la comuna" aria-label="Confirmar">
+                                        <partial name="_ActionIcon" model="@("confirm")" /><span>Confirmar</span>
+                                    </button>
+                                </form>
+                                <form method="post" asp-page-handler="SubirACaja">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--caja" title="Enviar la carpeta a la cola de Caja (sin enviar correo)" aria-label="Enviar a Caja">
+                                        <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
+                                    </button>
                                 </form>
                             }
                             else if (item.Status == RequestStatus.Confirmed)
                             {
+                                <form method="post" asp-page-handler="SubirACaja">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--caja" title="Enviar la carpeta a la cola de Caja (sin enviar correo)" aria-label="Enviar a Caja">
+                                        <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
+                                    </button>
+                                </form>
                                 <form method="post" asp-page-handler="RectifyConfirmation"
                                       onsubmit="return confirm('Esto enviará un correo de RECTIFICACIÓN a la comuna indicando que la confirmación anterior fue un error, y revertirá el caso a Pendiente. ¿Continuar?') && confirm('¿Estás completamente seguro? Se enviará un correo real a la comuna ahora mismo.');">
                                     <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn-outline-danger" style="padding:4px 10px; font-size:0.72rem;" title="Enviar correo de rectificación y volver el caso a Pendiente">Deshacer y rectificar</button>
+                                    <button type="submit" class="btn-action btn-action--rectify" title="Enviar correo de rectificación y volver el caso a Pendiente" aria-label="Deshacer y rectificar">
+                                        <partial name="_ActionIcon" model="@("rectify")" /><span>Rectificar</span>
+                                    </button>
                                 </form>
                             }
                             @if (item.ConfirmationBouncedAt is not null)
@@ -394,22 +433,19 @@
                                 <form method="post" asp-page-handler="ResolveBounce"
                                       onsubmit="return confirm('Marca el rebote como resuelto (ya reenviaste la confirmación o lo gestionaste de otra forma). ¿Confirmar?');">
                                     <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn-outline-danger" style="padding:4px 10px; font-size:0.72rem;" title="Marcar el rebote de confirmación como resuelto">Marcar resuelto</button>
+                                    <button type="submit" class="btn-action btn-action--resolve" title="Marcar el rebote de confirmación como resuelto" aria-label="Marcar resuelto">
+                                        <partial name="_ActionIcon" model="@("resolve")" /><span>Resuelto</span>
+                                    </button>
                                 </form>
                             }
                             <form method="post" asp-page-handler="DeleteCase"
                                   onsubmit="return confirm('Esto elimina el caso de forma permanente, no se puede deshacer. ¿Confirmar?');">
                                 <input type="hidden" name="id" value="@item.Id" />
-                                <button type="submit" class="btn-danger" title="Eliminar caso permanentemente" aria-label="Eliminar caso">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M3 6h18" />
-                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                                        <line x1="10" y1="11" x2="10" y2="17" />
-                                        <line x1="14" y1="11" x2="14" y2="17" />
-                                    </svg>
+                                <button type="submit" class="btn-action btn-action--delete" title="Eliminar caso permanentemente" aria-label="Eliminar caso">
+                                    <partial name="_ActionIcon" model="@("delete")" />
                                 </button>
                             </form>
+                            </div>
                         </td>
                     </tr>
                 }

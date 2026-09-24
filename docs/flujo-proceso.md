@@ -55,6 +55,24 @@ Diagrama acordado con el operador (2026-07-03). Fuente de verdad del proceso de 
  RUT [X] a Conaset") y marca el caso CONFIRMADO.
  Nada se envía sin ese clic.
 
+ PASO 7b — CARPETA FÍSICA A CAJA                          [manual]
+ ─────────────────────────────────────────────
+ Con la carpeta ya subida (SUBIDA o CONFIRMADO), el operador
+ aprieta "Caja": el caso sale de Casos y queda en la cola de
+ la pantalla Caja, hasta que se cierra la caja física.
+ En Caja, "Devolver a casos" lo regresa a Casos (por error).
+
+ Casos en F8 (no se encontró la carpeta):
+   • "Caja"        → apareció la carpeta: va directo a la cola
+                     de Caja.
+   • "Sin carpeta" → se cierra el proceso sin carpeta: vuelve a
+                     Casos como "Cerrado sin carpeta", sin
+                     acciones, y nunca entra a Caja.
+   • "Revertir"    → el F8 se pidió por error: se borran TODOS
+                     los datos F8 (incluido el código F8), esté
+                     subido o no, y el caso vuelve a Casos solo
+                     con el botón "Caja". No se envía correo.
+
  ESTADOS DE UN CASO:
    PENDIENTE → SUBIDA → CONFIRMADO
    (+ marca "Requiere revisión" si faltan datos extraíbles)

@@ -739,6 +739,32 @@ public class IndexModelTests : IDisposable
         Assert.Equal(0, model.CajaMatchCount);
     }
 
+    [Fact]
+    public void OnPostSubirACaja_ConfirmedCaseWithoutFecha_MovesToCajaAndLeavesCasos()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
+
+        model.OnPostSubirACaja(id);
+
+        Assert.Equal(CaseDestination.Caja, repository.FindById(id)!.Destination);
+        model.OnGet(status: null);
+        Assert.DoesNotContain(model.Cases, c => c.Id == id);
+    }
+
+    [Fact]
+    public void OnGet_ClosedWithoutFolderCase_StaysVisibleInCasos()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null);
+
+        Assert.Contains(model.Cases, c => c.Id == id && c.ClosedWithoutFolderAt is not null);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId) => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",

@@ -1627,3 +1627,154 @@ table.cases-index tbody tr.row-highlight-target input.input-inline {
     background: #b45309;
     color: #ffffff;
 }
+/* ── Action-column icon buttons (Casos, F8, Caja) ─────────────────────────────
+   One color per action type so the operator reads the row at a glance:
+   upload/confirm blue, Caja green, Sin carpeta amber, revert/return neutral,
+   F8 violet, delete neutral turning red on hover. */
+.action-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+.action-group form {
+    margin: 0;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.btn-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.18);
+}
+
+.btn-action:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.btn-action:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.45);
+    outline-offset: 2px;
+}
+
+.btn-action-icon {
+    flex-shrink: 0;
+}
+
+.btn-action--upload,
+.btn-action--confirm {
+    background: #0284c7;
+    border-color: #0369a1;
+    color: #ffffff;
+}
+
+.btn-action--upload:hover,
+.btn-action--confirm:hover {
+    background: #0369a1;
+}
+
+.btn-action--caja {
+    background: #16a34a;
+    border-color: #15803d;
+    color: #ffffff;
+}
+
+.btn-action--caja:hover {
+    background: #15803d;
+}
+
+.btn-action--sin-carpeta {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #92400e;
+}
+
+.btn-action--sin-carpeta:hover {
+    background: #fde68a;
+}
+
+.btn-action--f8 {
+    background: #ede9fe;
+    border-color: #a78bfa;
+    color: #5b21b6;
+}
+
+.btn-action--f8:hover {
+    background: #ddd6fe;
+}
+
+.btn-action--revert,
+.btn-action--return {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+.btn-action--revert:hover,
+.btn-action--return:hover {
+    background: #e2e8f0;
+}
+
+.btn-action--rectify {
+    background: #ffffff;
+    border-color: #fca5a5;
+    color: #b91c1c;
+}
+
+.btn-action--rectify:hover {
+    background: #fef2f2;
+}
+
+.btn-action--resolve {
+    background: #ffffff;
+    border-color: #fdba74;
+    color: #c2410c;
+}
+
+.btn-action--resolve:hover {
+    background: #fff7ed;
+}
+
+/* Icon-only: no text label, so it relies on title/aria-label. */
+.btn-action--delete {
+    padding: 6px;
+    background: transparent;
+    border-color: transparent;
+    color: #64748b;
+}
+
+.btn-action--delete:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #dc2626;
+}
+
+.badge-closed {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px dashed #94a3b8;
+}
+
+.btn-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}

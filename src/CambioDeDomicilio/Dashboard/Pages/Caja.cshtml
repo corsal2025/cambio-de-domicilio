@@ -192,12 +192,11 @@
                                 <td style="text-align:center;">@(item.SinCarpeta ? "S/C" : item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")</td>
                                 <td class="no-print" style="text-align:center;">
                                     <form method="post" asp-page-handler="RemoveFromClosedBox" style="display:inline;"
-                                          onsubmit="return confirm('¿Quitar a @item.FullName de esta caja y devolverlo a Casos?');">
+                                          onsubmit="return confirm('¿Devolver a @item.FullName a Casos? Saldrá de esta caja.');">
                                         <input type="hidden" name="id" value="@item.Id" />
                                         <input type="hidden" name="boxId" value="@box.Id" />
-                                        <button type="submit" class="btn-action-outline" title="Quitar de esta caja y devolver a Casos"
-                                                style="color:#f87171; border:1px solid rgba(239,68,68,0.4); padding:3px 8px; font-size:0.75rem; border-radius:4px; background:rgba(239,68,68,0.06); cursor:pointer;">
-                                            🗑️ Quitar
+                                        <button type="submit" class="btn-action btn-action--return" title="Quitar de esta caja y devolver a Casos" aria-label="Devolver a casos">
+                                            <partial name="_ActionIcon" model="@("return")" /><span>Devolver a casos</span>
                                         </button>
                                     </form>
                                 </td>
@@ -218,9 +217,9 @@
                 @if (Model.Queue.Count > 0)
                 {
                     <form id="undoBatchForm" method="post" asp-page-handler="UndoBatch" style="display:inline;">
-                        <button type="button" id="btnUndoBatch" class="btn-action-outline" onclick="submitUndoBatch()" disabled
-                                style="color:#f87171; border-color:rgba(239,68,68,0.4); padding:4px 10px; font-size:0.78rem; border-radius:4px; background:rgba(239,68,0.06); cursor:pointer;">
-                            🗑️ Quitar seleccionados (<span id="undoCount">0</span>)
+                        <button type="button" id="btnUndoBatch" class="btn-action btn-action--return" onclick="submitUndoBatch()" disabled
+                                title="Devolver a Casos las carpetas seleccionadas" aria-label="Devolver seleccionados a casos">
+                            <partial name="_ActionIcon" model="@("return")" /><span>Devolver seleccionados a casos (<span id="undoCount">0</span>)</span>
                         </button>
                     </form>
                 }
@@ -229,7 +228,7 @@
             <div class="card table-card" style="height:auto; max-height:480px; overflow-y:auto;">
                 @if (Model.Queue.Count == 0)
                 {
-                    <p class="caja-empty">No hay carpetas en la cola. Ve a <strong>Casos</strong> y marca "Mandar a caja" en los casos confirmados.</p>
+                    <p class="caja-empty">No hay carpetas en la cola. Ve a <strong>Casos</strong> y presiona el botón <strong>Caja</strong> en un caso subido o confirmado, o en F8 cuando aparezca la carpeta.</p>
                 }
                 else
                 {
@@ -265,11 +264,10 @@
                                 <td style="text-align:center;"><span class="badge @(item.Status == RequestStatus.Confirmed ? "badge-confirmed" : "badge-uploaded")">@item.Status</span></td>
                                 <td style="text-align:center;">
                                     <form method="post" asp-page-handler="UndoSingle" style="display:inline;"
-                                          onsubmit="return confirm('¿Quitar a @item.FullName de la cola de caja y devolverlo a Casos?');">
+                                          onsubmit="return confirm('¿Devolver a @item.FullName a Casos? Saldrá de la cola de caja.');">
                                         <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="btn-action-outline" title="Quitar de la caja y devolver a Casos"
-                                                style="color:#f87171; border-color:rgba(239,68,68,0.4); padding:3px 8px; font-size:0.75rem; border-radius:4px; background:rgba(239,68,68,0.06); cursor:pointer;">
-                                            🗑️ Quitar
+                                        <button type="submit" class="btn-action btn-action--return" title="Quitar de la cola de caja y devolver a Casos" aria-label="Devolver a casos">
+                                            <partial name="_ActionIcon" model="@("return")" /><span>Devolver a casos</span>
                                         </button>
                                     </form>
                                 </td>

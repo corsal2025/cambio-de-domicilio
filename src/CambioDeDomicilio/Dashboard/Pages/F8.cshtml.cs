@@ -72,20 +72,29 @@ public class F8Model(
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
-    /// <summary>Undoes "Traspaso a F8" — clears <see cref="PersonRequest.Destination"/> so the case
-    /// leaves this F8 screen and reappears in Casos (still F8-ticked, ready to be re-transferred).</summary>
-    public IActionResult OnPostUndoTransfer(long id)
-    {
-        repository.ClearDestination(id);
-        Message = "Caso devuelto a Cambio de Domicilio.";
-        return RedirectToPage(new { search = Search, highlightId = HighlightId });
-    }
-
-    /// <summary>Reverts an F8 case back to Pending and returns it to Casos (Index) WITHOUT sending any email to the comuna.</summary>
+    /// <summary>The single F8 "Revertir": clears every F8 datum (whether or not the F8 was already
+    /// uploaded) and returns the case to Casos with only the "Caja" action. No email is sent.</summary>
     public IActionResult OnPostRevertToCasos(long id)
     {
         repository.RevertF8AndReturnToCasos(id);
-        Message = "Carpeta física reincorporada a Cambio de Domicilio para ser subida a Caja (sin enviar correo).";
+        Message = "Caso revertido a Cambio de Domicilio: datos F8 borrados, listo para enviar a Caja (sin enviar correo).";
+        return RedirectToPage(new { search = Search, highlightId = HighlightId });
+    }
+
+    /// <summary>"Caja": the physical folder was found, so the case goes straight to the Caja queue. No email is sent.</summary>
+    public IActionResult OnPostSendToCaja(long id)
+    {
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+        Message = "Carpeta enviada a la cola de Caja.";
+        return RedirectToPage(new { search = Search, highlightId = HighlightId });
+    }
+
+    /// <summary>"Sin carpeta": closes the process without a folder. The case returns to Casos as
+    /// "Cerrado sin carpeta", with no actions. No email is sent.</summary>
+    public IActionResult OnPostCloseWithoutFolder(long id)
+    {
+        repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
+        Message = "Caso cerrado sin carpeta.";
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 

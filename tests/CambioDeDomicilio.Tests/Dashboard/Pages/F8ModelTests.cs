@@ -116,17 +116,47 @@ public class F8ModelTests : IDisposable
     }
 
     [Fact]
-    public void OnPostUndoTransfer_ClearsMovedToF8At()
+    public void OnPostRevertToCasos_ClearsF8DataAndReturnsAsSoloCaja()
     {
         var id = repository.Insert(NewRequest("msg-1", "Persona F8 traspasada"));
         repository.SetFolderNotFound(id, true);
+        repository.SetCodigoF8(id, "F8-99");
         repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
 
-        model.OnPostUndoTransfer(id);
+        model.OnPostRevertToCasos(id);
 
         var stored = repository.FindById(id)!;
         Assert.Equal(CaseDestination.None, stored.Destination);
         Assert.Null(stored.TransferredAt);
+        Assert.Null(stored.CodigoF8);
+        Assert.True(stored.SoloCaja);
+    }
+
+    [Fact]
+    public void OnPostSendToCaja_MovesF8CaseToCajaQueue()
+    {
+        var id = repository.Insert(NewRequest("msg-1", "Persona F8"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+
+        model.OnPostSendToCaja(id);
+
+        Assert.Equal(CaseDestination.Caja, repository.FindById(id)!.Destination);
+        Assert.Contains(repository.GetCajaQueue(), c => c.Id == id);
+    }
+
+    [Fact]
+    public void OnPostCloseWithoutFolder_ClosesCaseAndRemovesItFromF8()
+    {
+        var id = repository.Insert(NewRequest("msg-1", "Persona F8"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+
+        model.OnPostCloseWithoutFolder(id);
+
+        var stored = repository.FindById(id)!;
+        Assert.NotNull(stored.ClosedWithoutFolderAt);
+        Assert.Equal(CaseDestination.None, stored.Destination);
+        model.OnGet();
+        Assert.DoesNotContain(model.Cases, c => c.Id == id);
     }
 
     [Fact]
