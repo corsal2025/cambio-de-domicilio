@@ -350,7 +350,7 @@
                                        onchange="this.form.submit()" />
                             </form>
                         </td>
-                        <td class="text-cell">@(item.Sector?.ToString() ?? "—")</td>
+                        <td class="text-cell">@item.Sector.ToDisplayName()</td>
                         <td>
                             <div class="action-group">
                             @if (item.ClosedWithoutFolderAt is not null)

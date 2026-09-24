@@ -30,3 +30,23 @@ The dashboard SHALL show tracked cases (`PersonRequest`) with their current stat
 #### Scenario: Action button presentation
 - **WHEN** any action button is rendered in Casos, F8 or Caja
 - **THEN** it shows an inline SVG icon, a color by action type (upload blue, Caja green, Sin carpeta amber, delete red on hover), and a `title` and `aria-label`
+
+## ADDED Requirements
+
+### Requirement: Readable sector names
+Every place that displays a folder sector (dashboard tables, filters, banners, and printed PDFs) SHALL show `Oficina 43` (with a space) and `Archivo`, never the raw enum name `Oficina43`.
+
+#### Scenario: Sector shown in Casos
+- **WHEN** a case has última carpeta from July 2023 onward
+- **THEN** its sector cell reads "Oficina 43"
+
+#### Scenario: Sector in printed document
+- **WHEN** the operator prints the Oficina 43 sector PDF
+- **THEN** the title and rows read "Oficina 43"
+
+### Requirement: Icon navigation buttons
+The header and sub-navigation buttons of every dashboard page (status filters, systems, documents, search, sync, back links) SHALL show an inline SVG icon next to their label, with a consistent pill style, hover state and focus ring.
+
+#### Scenario: Header buttons have icons
+- **WHEN** the operator opens Casos, F8, Caja, Estadísticas or Comunas
+- **THEN** every navigation button shows an icon and its label

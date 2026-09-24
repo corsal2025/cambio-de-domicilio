@@ -33,6 +33,22 @@
 - [x] 4b.2 GREEN: change both queries to `ORDER BY TransferredAt, Id`
 - [x] 4b.3 Update the tests that asserted the old FechaUltimaCarpeta order, and the XML docs
 
+## 4c. Caja: unique box codes (TDD)
+
+- [x] 4c.1 RED: CajaModel test showing that closing with an existing code is rejected and the queue is kept
+- [x] 4c.2 GREEN: validate in `OnPostCerrarCaja`; set `autocomplete="off"` on the number input
+- [ ] 4c.3 Fix the existing duplicated codes in production (after a backup): box Number N gets code `AN-CD`
+
+## 4d. Readable sector names (TDD)
+
+- [x] 4d.1 RED: test for a `FolderSector` display helper (`Oficina43` shown as "Oficina 43", `Archivo` as "Archivo")
+- [x] 4d.2 GREEN: helper, and replace every UI/PDF use of `Sector.ToString()` or raw text
+
+## 6b. UI: icon navigation buttons
+
+- [ ] 6b.1 Create a `_NavIcon` partial (SVG) plus `.nav-*` styles
+- [ ] 6b.2 Apply it to the header and sub-nav buttons on every page
+
 ## 5. Pages: handlers
 
 - [x] 5.1 F8: add `OnPostSendToCaja(id)` (calls `SendToCaja`) and `OnPostCloseWithoutFolder(id)`

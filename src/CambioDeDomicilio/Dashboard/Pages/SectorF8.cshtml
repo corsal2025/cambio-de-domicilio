@@ -237,7 +237,7 @@
                     <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="doc-seal" />
                     <div>
                         <p class="doc-org">Municipalidad de Valparaíso — Dirección de Tránsito</p>
-                        <h2>F8 — Listado de carpetas — Sector @(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Oficina43 ? "Oficina 43" : "Archivo")</h2>
+                        <h2>F8 — Listado de carpetas — Sector @Model.SelectedSector.ToDisplayName()</h2>
                     </div>
                 </div>
                 <div class="doc-meta">

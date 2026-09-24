@@ -6,8 +6,7 @@ using CambioDeDomicilio.Persistence;
 namespace CambioDeDomicilio.Dashboard.Pages;
 
 /// <summary>Tracks which physical box each uploaded folder ends up packed into. Cases land here
-/// automatically the moment they're marked uploaded (see
-/// AddressChangeRoutingService.MarkUploadedAndConfirmAsync) — no manual selection. "Cerrar Caja"
+/// when the operator presses "Caja" in Casos or F8. "Cerrar Caja"
 /// snapshots everything currently queued into a new, sequentially-numbered box; the next case to
 /// arrive starts filling the next one. F8 cases never appear here — see PersonRequest.BoxId.</summary>
 [IgnoreAntiforgeryToken]
@@ -34,9 +33,18 @@ public class CajaModel(IPersonRequestRepository repository) : PageModel
     /// then goes straight to that box's printable detail so the operator can print/save it right away.</summary>
     public IActionResult OnPostCerrarCaja([FromForm] string? boxNumber, [FromForm] string? boxCode)
     {
-        var nextNum = repository.GetBoxes().Count > 0 ? repository.GetBoxes().Max(b => b.Number) + 1 : 1;
+        var existingBoxes = repository.GetBoxes();
+        var nextNum = existingBoxes.Count > 0 ? existingBoxes.Max(b => b.Number) + 1 : 1;
         var raw = !string.IsNullOrWhiteSpace(boxNumber) ? boxNumber : boxCode;
         var normalizedCode = FormatBoxCode(raw, nextNum);
+
+        // A printed box label must identify one physical box — reusing a code (e.g. typing 1 again)
+        // would make two boxes indistinguishable on the shelf.
+        if (existingBoxes.Any(b => string.Equals(b.Code, normalizedCode, StringComparison.OrdinalIgnoreCase)))
+        {
+            Message = $"Ya existe una caja con el rótulo {normalizedCode}. Usa otro número (siguiente sugerido: A{nextNum}-CD).";
+            return RedirectToPage();
+        }
 
         var box = repository.CloseBox(normalizedCode, DateTimeOffset.UtcNow);
         Message = $"Caja {box.Code} cerrada exitosamente.";
