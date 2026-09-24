@@ -24,6 +24,16 @@
             <div class="nav-group nav-group-filters">
                 <a asp-page="/Index" class="nav-casos">← Volver a Cambio de Domicilio</a>
             </div>
+            <div class="nav-group nav-group-end">
+                <form method="get" class="nav-search">
+                    <input type="text" name="search" id="search-input" placeholder="Buscar por RUT o nombre..." value="@Model.Search" data-had-value="@(!string.IsNullOrEmpty(Model.Search) ? "true" : "false")" oninput="formatSearchRut(this); clearSearchIfEmpty(this)" />
+                    <button type="submit" class="nav-pill">Buscar</button>
+                    @if (!string.IsNullOrEmpty(Model.Search))
+                    {
+                        <a asp-page="/F8" class="nav-search-clear">Limpiar</a>
+                    }
+                </form>
+            </div>
         </nav>
     </header>
     <div class="app-subnav">
@@ -61,6 +71,19 @@
                     <span>Filtrando por <strong>"@Model.Search"</strong>: @(Model.Cases.Count == 0 ? "No se encontraron casos" : $"Se encontró {Model.Cases.Count} caso(s)")</span>
                 </div>
                 <a asp-page="/F8" class="btn-clear-f8-filter">✕ Mostrar todos los casos F8 (@Model.TotalF8Count)</a>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.Search) && Model.CasosMatchCount > 0)
+        {
+            <div class="cross-search-banner cross-search-banner-info">
+                <span class="cross-search-icon">ℹ️</span>
+                <div class="cross-search-text">
+                    Esta persona tiene <strong>@Model.CasosMatchCount caso(s)</strong> registrado(s) en <strong>Cambio de Domicilio</strong>.
+                </div>
+                <a asp-page="/Index" asp-route-search="@Model.Search" class="btn-cross-search">
+                    Ver en Cambio de Domicilio &rarr;
+                </a>
             </div>
         }
 
@@ -267,6 +290,32 @@
     </main>
 
     <script>
+        // Same RUT auto-format and clear-on-empty behavior as the Casos search box.
+        function formatSearchRut(input) {
+            var raw = input.value;
+            if (!/^\d+[kK]?$/.test(raw.replace(/[.\-]/g, ''))) {
+                return;
+            }
+
+            var clean = raw.replace(/[.\-]/g, '');
+            if (clean.length < 2) {
+                return;
+            }
+
+            var body = clean.slice(0, -1);
+            var dv = clean.slice(-1).toUpperCase();
+            var formattedBody = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+            input.value = formattedBody + '-' + dv;
+        }
+
+        function clearSearchIfEmpty(input) {
+            if (input.value === '' && input.dataset.hadValue === 'true') {
+                input.form.submit();
+            }
+            input.dataset.hadValue = input.value !== '' ? 'true' : 'false';
+        }
+
         function toggleMutuallyExclusive(checkbox, thisName, otherName) {
             if (checkbox.checked) {
                 var row = checkbox.closest('tr');

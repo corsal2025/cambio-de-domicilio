@@ -28,6 +28,9 @@ public class F8Model(
 
     public int TotalF8Count { get; private set; }
 
+    /// <summary>Number of cases still in Casos (not transferred) matching the search query.</summary>
+    public int CasosMatchCount { get; private set; }
+
     public int PlazoDiasHabiles => options.PlazoDiasHabiles;
 
     public void OnGet(string? search = null, long? highlightId = null)
@@ -194,6 +197,7 @@ public class F8Model(
             var query = Search.Trim().ToUpperInvariant();
             var matches = f8Cases.Where(c => MatchesQuery(c, query)).ToList();
             Cases = matches;
+            CasosMatchCount = all.Count(c => c.TransferredAt is null && MatchesQuery(c, query));
             if (!HighlightId.HasValue && matches.Count > 0)
             {
                 HighlightId = matches[0].Id;

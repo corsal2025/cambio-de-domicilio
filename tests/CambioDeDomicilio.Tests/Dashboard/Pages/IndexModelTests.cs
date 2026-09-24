@@ -699,6 +699,46 @@ public class IndexModelTests : IDisposable
         Assert.Equal(1, model.BouncedCount);
     }
 
+    [Fact]
+    public void OnGet_SearchMatchesCaseInClosedBox_ReportsCajaMatchWithBoxCode()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+        repository.CloseBox("A7-CD", DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null, search: "18.785.387-7");
+
+        Assert.Empty(model.Cases);
+        Assert.Equal(1, model.CajaMatchCount);
+        Assert.Equal("A7-CD", model.CajaMatchBoxCode);
+    }
+
+    [Fact]
+    public void OnGet_SearchMatchesCaseInOpenCajaQueue_ReportsQueueAsLocation()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null, search: "PEÑA");
+
+        Assert.Equal(1, model.CajaMatchCount);
+        Assert.Equal("cola de Caja", model.CajaMatchBoxCode);
+    }
+
+    [Fact]
+    public void OnGet_NoSearch_CajaMatchCountIsZero()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null);
+
+        Assert.Equal(0, model.CajaMatchCount);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId) => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",

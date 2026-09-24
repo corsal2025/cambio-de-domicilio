@@ -445,8 +445,17 @@ public class IndexModel(
             var query = SearchQuery.Trim().ToUpperInvariant();
             all = all.Where(c => MatchesQuery(c, query));
 
-            // Conteo de coincidencias cruzadas en F8
-            F8MatchCount = everything.Count(c => c.Destination == CaseDestination.F8 && MatchesQuery(c, query));
+            // Cross-screen matches: transferred cases are hidden from Casos, so the banners
+            // tell the operator where the person actually is.
+            var f8Matches = everything.Where(c => c.Destination == CaseDestination.F8 && MatchesQuery(c, query)).ToList();
+            F8MatchCount = f8Matches.Count;
+            F8FirstMatchId = f8Matches.FirstOrDefault()?.Id;
+
+            var cajaMatches = everything.Where(c => c.Destination == CaseDestination.Caja && MatchesQuery(c, query)).ToList();
+            CajaMatchCount = cajaMatches.Count;
+            CajaMatchBoxCode = cajaMatches.FirstOrDefault()?.BoxId is { } boxId
+                ? repository.FindBoxById(boxId)?.Code
+                : cajaMatches.Count > 0 ? "cola de Caja" : null;
         }
 
         // Marked cases (checkbox "Marcar") float to the very top, ordered by MarkedAt ascending —

@@ -168,6 +168,17 @@ public class F8ModelTests : IDisposable
         Assert.Null(repository.FindById(id)!.ConfirmationBouncedAt);
     }
 
+    [Fact]
+    public void OnGet_SearchMatchesCaseStillInCasos_ReportsCasosMatchCount()
+    {
+        repository.Insert(NewRequest("msg-1", "PERSONA EN CASOS"));
+
+        model.OnGet(search: "PERSONA EN CASOS");
+
+        Assert.Empty(model.Cases);
+        Assert.Equal(1, model.CasosMatchCount);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId, string fullName) => new()
     {
         FullName = fullName,
