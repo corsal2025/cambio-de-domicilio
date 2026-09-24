@@ -424,26 +424,43 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void GetCajaQueue_OnlyReturnsUnboxedCajaDestinationCases_OrderedByFechaUltimaCarpeta()
+    public void GetCajaQueue_OnlyReturnsUnboxedCajaDestinationCases_InInsertionOrder()
     {
-        var later = repository.Insert(NewRequest("msg-later", rut: "12.345.678-5"));
-        repository.SetFechaUltimaCarpeta(later, new DateOnly(2024, 5, 1));
-        repository.SetDestination(later, CaseDestination.Caja, DateTimeOffset.UtcNow);
+        var sentAt = new DateTimeOffset(2026, 9, 24, 10, 0, 0, TimeSpan.Zero);
 
-        var earlier = repository.Insert(NewRequest("msg-earlier", rut: "9.868.019-K"));
-        repository.SetFechaUltimaCarpeta(earlier, new DateOnly(2024, 1, 1));
-        repository.SetDestination(earlier, CaseDestination.Caja, DateTimeOffset.UtcNow);
+        // Sent first, even though its última carpeta is the newest one.
+        var first = repository.Insert(NewRequest("msg-first", rut: "12.345.678-5"));
+        repository.SetFechaUltimaCarpeta(first, new DateOnly(2024, 5, 1));
+        repository.SetDestination(first, CaseDestination.Caja, sentAt);
+
+        var second = repository.Insert(NewRequest("msg-second", rut: "9.868.019-K"));
+        repository.SetFechaUltimaCarpeta(second, new DateOnly(2018, 1, 1));
+        repository.SetDestination(second, CaseDestination.Caja, sentAt.AddMinutes(1));
 
         // Not in the queue: still in Casos (Destination.None) and transferred to F8.
         repository.Insert(NewRequest("msg-none", rut: "5.126.663-2"));
         var f8Case = repository.Insert(NewRequest("msg-f8", rut: "7.036.145-6"));
-        repository.SetDestination(f8Case, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.SetDestination(f8Case, CaseDestination.F8, sentAt);
 
         var queue = repository.GetCajaQueue();
 
-        Assert.Equal(2, queue.Count);
-        Assert.Equal(earlier, queue[0].Id);
-        Assert.Equal(later, queue[1].Id);
+        Assert.Equal([first, second], queue.Select(c => c.Id));
+    }
+
+    [Fact]
+    public void GetCasesByBoxId_KeepsInsertionOrderAfterClosing()
+    {
+        var sentAt = new DateTimeOffset(2026, 9, 24, 10, 0, 0, TimeSpan.Zero);
+        var first = repository.Insert(NewRequest("msg-first", rut: "12.345.678-5"));
+        repository.SetFechaUltimaCarpeta(first, new DateOnly(2024, 5, 1));
+        repository.SetDestination(first, CaseDestination.Caja, sentAt);
+        var second = repository.Insert(NewRequest("msg-second", rut: "9.868.019-K"));
+        repository.SetFechaUltimaCarpeta(second, new DateOnly(2018, 1, 1));
+        repository.SetDestination(second, CaseDestination.Caja, sentAt.AddMinutes(1));
+
+        var box = repository.CloseBox("A1-CD", sentAt.AddHours(1));
+
+        Assert.Equal([first, second], repository.GetCasesByBoxId(box.Id).Select(c => c.Id));
     }
 
     [Fact]

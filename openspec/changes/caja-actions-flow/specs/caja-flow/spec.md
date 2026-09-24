@@ -57,3 +57,14 @@ The Caja screen SHALL offer a "Devolver a casos" action on every case in the ope
 - **WHEN** the operator presses "Devolver a casos" on a queued Caja case
 - **THEN** the case has `Destination = None`, `TransferredAt = null`
 - **AND** it appears in Casos with the "Caja" action
+
+### Requirement: Caja lists keep insertion order
+The Caja open queue and every closed box listing (screen and printed document) SHALL list cases in the order they were sent to Caja (`TransferredAt` ascending, then `Id`), never alphabetically nor by Fecha última Carpeta.
+
+#### Scenario: Queue in insertion order
+- **WHEN** case B (older última carpeta) is sent to Caja after case A
+- **THEN** the queue lists A first and B second
+
+#### Scenario: Closed box keeps insertion order
+- **WHEN** the queue with A then B is closed into a box
+- **THEN** the box listing shows A first and B second

@@ -27,6 +27,12 @@
 - [x] 4.2 RED: test that a revert on a not-uploaded F8 yields the same end state
 - [x] 4.3 GREEN: extend `RevertF8AndReturnToCasos` to clear `CodigoF8` and `UploadedAt`
 
+## 4b. Repository: Caja insertion order (TDD)
+
+- [x] 4b.1 RED: test that `GetCajaQueue` and `GetCasesByBoxId` return cases in `TransferredAt` order, not by FechaUltimaCarpeta
+- [x] 4b.2 GREEN: change both queries to `ORDER BY TransferredAt, Id`
+- [x] 4b.3 Update the tests that asserted the old FechaUltimaCarpeta order, and the XML docs
+
 ## 5. Pages: handlers
 
 - [x] 5.1 F8: add `OnPostSendToCaja(id)` (calls `SendToCaja`) and `OnPostCloseWithoutFolder(id)`

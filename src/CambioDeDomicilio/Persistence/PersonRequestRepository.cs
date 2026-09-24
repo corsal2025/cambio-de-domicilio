@@ -74,7 +74,8 @@ public interface IPersonRequestRepository
     void SetSectorPdfGenerated(long id, DateTimeOffset generatedAt);
 
     /// <summary>Cases waiting to be packed — Destination == Caja and not yet assigned to a closed
-    /// box — ordered by Fecha última Carpeta (cases without a date, i.e. Sin Carpeta, sort last).</summary>
+    /// box — in the order they were sent to Caja (TransferredAt, then Id), which is the physical
+    /// order the operator stacks the folders in.</summary>
     IReadOnlyList<PersonRequest> GetCajaQueue();
 
     /// <summary>Closes the current Caja queue: assigns every currently-queued case to a new,
@@ -99,8 +100,8 @@ public interface IPersonRequestRepository
 
     Box? FindBoxById(long id);
 
-    /// <summary>Cases packed into a given closed box, ordered by Fecha última Carpeta (the same
-    /// order they were queued in before the box was closed).</summary>
+    /// <summary>Cases packed into a given closed box, in the same insertion order they had in the
+    /// queue (TransferredAt, then Id) — this is the order the printed box listing uses.</summary>
     IReadOnlyList<PersonRequest> GetCasesByBoxId(long boxId);
 
     /// <summary>Permanently removes a case — operator-triggered, for entries that shouldn't have
@@ -747,12 +748,12 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
-        // Cases with physical folders (SinCarpeta == 0) waiting to be packed into a box.
-        // Cases with no Fecha última Carpeta sort last, instead of floating to the top.
+        // Cases with physical folders (SinCarpeta == 0) waiting to be packed into a box, in the
+        // order the operator sent them to Caja (TransferredAt is ISO-8601 UTC, so text order is time order).
         command.CommandText = """
             SELECT * FROM PersonRequest
             WHERE Destination = 'Caja' AND BoxId IS NULL AND SinCarpeta = 0
-            ORDER BY FechaUltimaCarpeta IS NULL, FechaUltimaCarpeta, UploadedAt
+            ORDER BY TransferredAt, Id
             """;
         using var reader = command.ExecuteReader();
         var results = new List<PersonRequest>();
@@ -920,7 +921,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.CommandText = """
             SELECT * FROM PersonRequest
             WHERE BoxId = $boxId
-            ORDER BY FechaUltimaCarpeta IS NULL, FechaUltimaCarpeta, UploadedAt
+            ORDER BY TransferredAt, Id
             """;
         command.Parameters.AddWithValue("$boxId", boxId);
         using var reader = command.ExecuteReader();
