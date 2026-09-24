@@ -34,6 +34,14 @@ if (-not (Test-Path $exePath)) {
 $launcherPath = Join-Path $PublishPath "abrir-dashboard.ps1"
 $launcherContent = @"
 `$running = Get-Process -Name "CambioDeDomicilio" -ErrorAction SilentlyContinue
+# A newer build was published while an old one is still running: restart so the operator
+# always gets the latest version from the shortcut (never a stale build).
+`$dll = Join-Path "$PublishPath" "CambioDeDomicilio.dll"
+if (`$running -and (Test-Path `$dll) -and (Get-Item `$dll).LastWriteTime -gt (`$running | Sort-Object StartTime | Select-Object -First 1).StartTime) {
+    `$running | Stop-Process -Force
+    Start-Sleep -Milliseconds 1500
+    `$running = `$null
+}
 if (-not `$running) {
     # The app opens its own browser tab ~2s after it starts binding (see Program.cs).
     # Only open a tab here when it was already running, otherwise the user gets 2 tabs.
