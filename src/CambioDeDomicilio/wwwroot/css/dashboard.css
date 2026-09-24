@@ -1850,3 +1850,11 @@ table.cases th {
 table.cases td {
     white-space: nowrap;
 }
+
+/* Inline inputs size to their actual text (not to a character count, which underestimates the
+   bold uppercase font). `size` stays as the fallback for browsers without field-sizing. */
+table.cases-index td.name-cell .name-input,
+table.cases-index td.rut-cell .rut-input,
+table.cases-index .codigo-f8-input {
+    field-sizing: content;
+}
