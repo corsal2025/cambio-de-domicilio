@@ -872,25 +872,22 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover 
 /* Anchos explícitos para columnas fijas de selección para evitar solapamiento entre Marcar, F8 y Pendiente */
 table.cases-index thead tr.header-cols > th:nth-child(1),
 table.cases-index tbody tr > td:nth-child(1) {
-    width: 58px;
+    width: auto;
     min-width: 58px;
-    max-width: 58px;
     text-align: center;
 }
 table.cases-index:not(.cases-f8) thead tr.header-cols > th:nth-child(2),
 table.cases-index:not(.cases-f8) tbody tr > td:nth-child(2) {
-    width: 54px;
+    width: auto;
     min-width: 54px;
-    max-width: 54px;
     text-align: center;
     position: sticky;
     z-index: 2;
 }
 table.cases-index:not(.cases-f8) thead tr.header-cols > th:nth-child(3),
 table.cases-index:not(.cases-f8) tbody tr > td:nth-child(3) {
-    width: 88px;
+    width: auto;
     min-width: 88px;
-    max-width: 88px;
     text-align: center;
 }
 
@@ -1047,14 +1044,10 @@ table.cases-index td.name-cell .name-with-alert {
 table.cases-index td.name-cell .name-input {
     width: auto;
     min-width: 10ch;
-    /* When the 5 frozen columns combined are wider than the visible table viewport (a long name
-       plus a narrow/split browser window), position: sticky has nowhere to put this column but
-       overlapping the ones before it — confirmed by direct measurement. This cap keeps that
-       combined width in check for realistically long names. A long name still edits fine — the
-       input scrolls its own text under the cursor — and the full value is in `title`. */
-    max-width: 260px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* No width cap: the column auto-fits to the longest full name (operator requirement — no
+       half-written names). Trade-off: on a very narrow window the frozen columns can exceed the
+       viewport; the table then scrolls horizontally inside its card. */
+    max-width: none;
 }
 
 table.cases-index td.rut-cell .rut-input {
@@ -1828,4 +1821,32 @@ nav.app-nav a:focus-visible,
 
 .app-subnav a:hover {
     transform: translateY(-1px);
+}
+
+
+/* The generic "td:last-child form { display: inline-flex }" rule would otherwise out-rank the
+   plain ".f8-only" hide rule and show "Traspaso a F8" on rows whose F8 box is unticked. */
+table.cases-index td:last-child form.f8-only {
+    display: none;
+}
+
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td:last-child form.f8-only {
+    display: inline-flex !important;
+}
+
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td:last-child form.no-f8-only {
+    display: none !important;
+}
+
+
+/* Auto-fit (operator requirement): no table cell may clip its text. Cells grow to their content;
+   wide tables scroll horizontally inside their card instead of cutting words. */
+table.cases td,
+table.cases th {
+    overflow: visible;
+    text-overflow: clip;
+}
+
+table.cases td {
+    white-space: nowrap;
 }

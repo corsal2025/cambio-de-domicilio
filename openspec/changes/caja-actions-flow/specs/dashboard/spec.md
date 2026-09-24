@@ -50,3 +50,14 @@ The header and sub-navigation buttons of every dashboard page (status filters, s
 #### Scenario: Header buttons have icons
 - **WHEN** the operator opens Casos, F8, Caja, Estadísticas or Comunas
 - **THEN** every navigation button shows an icon and its label
+
+### Requirement: Auto-fit table columns
+Every table column in the dashboard (Casos, F8, Caja, sector documents) SHALL size to its content so no text is clipped or ellipsized; wide tables SHALL scroll horizontally inside their card.
+
+#### Scenario: Long name fully visible
+- **WHEN** a case has a 40-character full name
+- **THEN** the Nombre column shows the whole name without "…"
+
+#### Scenario: Traspaso a F8 only when F8 is ticked
+- **WHEN** a Pending case has its F8 checkbox unticked
+- **THEN** its action column shows "Marcar subida" and not "Traspaso a F8"

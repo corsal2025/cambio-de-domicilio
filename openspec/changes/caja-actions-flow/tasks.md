@@ -49,6 +49,12 @@
 - [x] 6b.1 Create a `_NavIcon` partial (SVG) plus `.nav-*` styles
 - [x] 6b.2 Apply it to the header and sub-nav buttons on every page
 
+## 6c. UI: auto-fit columns
+
+- [x] 6c.1 Remove the name-input width cap and the size ceiling (Casos, F8); let the fixed checkbox columns grow
+- [x] 6c.2 Add a global no-clip rule for `table.cases` cells
+- [x] 6c.3 Fix the CSS specificity bug that showed "Traspaso a F8" on unticked rows
+
 ## 5. Pages: handlers
 
 - [x] 5.1 F8: add `OnPostSendToCaja(id)` (calls `SendToCaja`) and `OnPostCloseWithoutFolder(id)`
