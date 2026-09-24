@@ -91,8 +91,16 @@ Write-Host "[3/5] Copiando datos de runtime..." -ForegroundColor Yellow
 $TargetData = Join-Path $PublishPath "data"
 if (Test-Path (Join-Path $RepoRoot "data")) {
     New-Item -ItemType Directory -Path $TargetData -Force | Out-Null
-    Copy-Item -Recurse -Force (Join-Path $RepoRoot "data\*") $TargetData -ErrorAction SilentlyContinue
-    Write-Host "  ✅ data/ copiado a: $TargetData" -ForegroundColor Green
+    # NEVER copy SQLite databases: publish\data\router.db is the production database and the
+    # repo's data\router.db is a dev copy — overwriting it would wipe real cases. Other runtime
+    # files (comunas.csv, certificate) are only copied when missing, so operator edits survive.
+    Get-ChildItem (Join-Path $RepoRoot "data") -File |
+        Where-Object { $_.Name -notlike 'router.db*' -and $_.Extension -ne '.db' } |
+        ForEach-Object {
+            $destination = Join-Path $TargetData $_.Name
+            if (-not (Test-Path $destination)) { Copy-Item $_.FullName $destination }
+        }
+    Write-Host "  ✅ data/ completado en: $TargetData (base de datos existente intacta)" -ForegroundColor Green
 } else {
     Write-Host "  ⚠️  No hay data/ en la raíz. Crea data/comunas.csv manualmente." -ForegroundColor Yellow
 }
