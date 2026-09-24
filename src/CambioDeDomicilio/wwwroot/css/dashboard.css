@@ -860,14 +860,37 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover 
     background: #ffedd5 !important;
 }
 
-/* Indicador F8 en checkbox: sustituye animación tosca por indicador ámbar sobrio */
-table.cases-index tbody tr td.marked-cell:nth-child(2) {
-    position: relative;
-    overflow: visible;
-    padding-right: 18px;
+/* Anchos explícitos para columnas fijas de selección para evitar solapamiento entre Marcar, F8 y Pendiente */
+table.cases-index thead tr.header-cols > th:nth-child(1),
+table.cases-index tbody tr > td:nth-child(1) {
+    width: 58px;
+    min-width: 58px;
+    max-width: 58px;
+    text-align: center;
+}
+table.cases-index:not(.cases-f8) thead tr.header-cols > th:nth-child(2),
+table.cases-index:not(.cases-f8) tbody tr > td:nth-child(2) {
+    width: 54px;
+    min-width: 54px;
+    max-width: 54px;
+    text-align: center;
+    position: sticky;
+    z-index: 2;
+}
+table.cases-index:not(.cases-f8) thead tr.header-cols > th:nth-child(3),
+table.cases-index:not(.cases-f8) tbody tr > td:nth-child(3) {
+    width: 88px;
+    min-width: 88px;
+    max-width: 88px;
+    text-align: center;
 }
 
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td.marked-cell:nth-child(2)::after {
+/* Indicador F8 en checkbox */
+table.cases-index:not(.cases-f8) tbody tr td.marked-cell:nth-child(2) {
+    overflow: visible;
+}
+
+table.cases-index:not(.cases-f8) tbody tr:has(input[name="folderNotFoundValue"]:checked) td.marked-cell:nth-child(2)::after {
     content: "!";
     position: absolute;
     top: 50%;
@@ -938,6 +961,35 @@ table.cases-f8 thead tr.header-cols > :nth-child(4) {
     box-shadow: 3px 0 5px -2px rgba(15, 23, 42, 0.18);
     border-right: 2px solid var(--color-border);
 }
+
+/* Fondos sólidos explícitos para celdas fijas, evitando transparencias o sangrado al scrollear */
+table.cases-index:not(.cases-f8) tbody tr td:nth-child(-n+5) { background-color: #ffffff; }
+table.cases-index:not(.cases-f8) tbody tr.row-alt td:nth-child(-n+5) { background-color: #f8fafc; }
+table.cases-index:not(.cases-f8) tbody tr:hover td:nth-child(-n+5) { background-color: #f1f5f9; }
+table.cases-index:not(.cases-f8) tbody tr.row-confirmed td:nth-child(-n+5) { background-color: var(--row-confirmed-bg) !important; }
+table.cases-index:not(.cases-f8) tbody tr.row-confirmed:hover td:nth-child(-n+5) { background-color: #dcfce7 !important; }
+table.cases-index:not(.cases-f8) tbody tr.row-needs-review td:nth-child(-n+5) { background-color: var(--row-review-bg) !important; }
+table.cases-index:not(.cases-f8) tbody tr.row-needs-review:hover td:nth-child(-n+5) { background-color: #ffe4e6 !important; }
+table.cases-index:not(.cases-f8) tbody tr.row-bounced td:nth-child(-n+5) { background-color: var(--row-bounced-bg) !important; }
+table.cases-index:not(.cases-f8) tbody tr.row-bounced:hover td:nth-child(-n+5) { background-color: #fecdd3 !important; }
+table.cases-index:not(.cases-f8) tbody tr:has(input[name="markedValue"]:checked) td:nth-child(-n+5) { background-color: var(--row-marked-bg) !important; }
+table.cases-index:not(.cases-f8) tbody tr:has(input[name="markedValue"]:checked):hover td:nth-child(-n+5) { background-color: #bbf7d0 !important; }
+table.cases-index:not(.cases-f8) tbody tr:has(input[name="pendienteCarpetaValue"]:checked) td:nth-child(-n+5) { background-color: #fefce8 !important; }
+table.cases-index:not(.cases-f8) tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover td:nth-child(-n+5) { background-color: #fef9c3 !important; }
+table.cases-index:not(.cases-f8) tbody tr:has(input[name="folderNotFoundValue"]:checked) td:nth-child(-n+5) { background-color: #fff7ed !important; }
+table.cases-index:not(.cases-f8) tbody tr:has(input[name="folderNotFoundValue"]:checked):hover td:nth-child(-n+5) { background-color: #ffedd5 !important; }
+
+table.cases-f8 tbody tr td:nth-child(-n+4) { background-color: #ffffff; }
+table.cases-f8 tbody tr.row-alt td:nth-child(-n+4) { background-color: #f8fafc; }
+table.cases-f8 tbody tr:hover td:nth-child(-n+4) { background-color: #f1f5f9; }
+table.cases-f8 tbody tr.row-confirmed td:nth-child(-n+4) { background-color: var(--row-confirmed-bg) !important; }
+table.cases-f8 tbody tr.row-confirmed:hover td:nth-child(-n+4) { background-color: #dcfce7 !important; }
+table.cases-f8 tbody tr.row-needs-review td:nth-child(-n+4) { background-color: var(--row-review-bg) !important; }
+table.cases-f8 tbody tr.row-needs-review:hover td:nth-child(-n+4) { background-color: #ffe4e6 !important; }
+table.cases-f8 tbody tr:has(input[name="markedValue"]:checked) td:nth-child(-n+4) { background-color: var(--row-marked-bg) !important; }
+table.cases-f8 tbody tr:has(input[name="markedValue"]:checked):hover td:nth-child(-n+4) { background-color: #bbf7d0 !important; }
+table.cases-f8 tbody tr:has(input[name="pendienteCarpetaValue"]:checked) td:nth-child(-n+4) { background-color: #fefce8 !important; }
+table.cases-f8 tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover td:nth-child(-n+4) { background-color: #fef9c3 !important; }
 
 /* Checkboxes modernos */
 .marked-checkbox {
@@ -1498,4 +1550,80 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no
         padding: 4px 8px;
         gap: 4px;
     }
+}
+
+/* ==========================================================================
+   RESALTADO ULTRA POTENTE PARA CASO BUSCADO EN F8
+   ========================================================================== */
+table.cases tbody tr.row-highlight-target,
+table.cases tbody tr.row-highlight-target td,
+table.cases-f8 tbody tr.row-highlight-target td,
+table.cases-index tbody tr.row-highlight-target td {
+    background-color: #fef08a !important;
+    color: #0f172a !important;
+    font-weight: 800 !important;
+    border-top: 3px solid #d97706 !important;
+    border-bottom: 3px solid #d97706 !important;
+}
+table.cases tbody tr.row-highlight-target td:first-child,
+table.cases-f8 tbody tr.row-highlight-target td:first-child,
+table.cases-index tbody tr.row-highlight-target td:first-child {
+    border-left: 6px solid #b45309 !important;
+}
+table.cases tbody tr.row-highlight-target td:last-child,
+table.cases-f8 tbody tr.row-highlight-target td:last-child,
+table.cases-index tbody tr.row-highlight-target td:last-child {
+    border-right: 6px solid #b45309 !important;
+}
+table.cases tbody tr.row-highlight-target input.input-inline,
+table.cases-f8 tbody tr.row-highlight-target input.input-inline,
+table.cases-index tbody tr.row-highlight-target input.input-inline {
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+.badge-f8-target {
+    display: inline-flex;
+    align-items: center;
+    background: #dc2626;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.74rem;
+    padding: 2px 8px;
+    border-radius: var(--radius-xs);
+    margin-right: 6px;
+    letter-spacing: 0.03em;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
+    animation: pulse-target 1.5s infinite;
+}
+@keyframes pulse-target {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+.f8-search-active-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-left: 5px solid #d97706;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #92400e;
+}
+.btn-clear-f8-filter {
+    background: #d97706;
+    color: #ffffff;
+    padding: 5px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+.btn-clear-f8-filter:hover {
+    background: #b45309;
+    color: #ffffff;
 }

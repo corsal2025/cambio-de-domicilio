@@ -452,41 +452,153 @@ public class PersonRequestRepositoryTests : IDisposable
         var id = repository.Insert(NewRequest("msg-1"));
         repository.SetDestination(id, CaseDestination.Caja, DateTimeOffset.UtcNow);
 
-        var firstBox = repository.CloseBox(DateTimeOffset.UtcNow);
+        var firstBox = repository.CloseBox("A1-CD", DateTimeOffset.UtcNow);
         Assert.Equal(1, firstBox.Number);
+        Assert.Equal("A1-CD", firstBox.Code);
         Assert.Empty(repository.GetCajaQueue());
         Assert.Equal(id, Assert.Single(repository.GetCasesByBoxId(firstBox.Id)).Id);
 
         var idTwo = repository.Insert(NewRequest("msg-2", rut: "12.345.678-5"));
         repository.SetDestination(idTwo, CaseDestination.Caja, DateTimeOffset.UtcNow);
-        var secondBox = repository.CloseBox(DateTimeOffset.UtcNow);
+        var secondBox = repository.CloseBox("A2-CD", DateTimeOffset.UtcNow);
 
         Assert.Equal(2, secondBox.Number);
+        Assert.Equal("A2-CD", secondBox.Code);
         Assert.Equal(idTwo, Assert.Single(repository.GetCasesByBoxId(secondBox.Id)).Id);
         // Closing a second box must not reassign what's already settled in the first one.
         Assert.Equal(id, Assert.Single(repository.GetCasesByBoxId(firstBox.Id)).Id);
     }
 
     [Fact]
-    public void CloseBox_EmptyQueue_StillCreatesABox()
+    public void CloseBox_EmptyQueue_StillCreatesABoxWithDefaultCode()
     {
-        var box = repository.CloseBox(DateTimeOffset.UtcNow);
+        var box = repository.CloseBox("", DateTimeOffset.UtcNow);
 
         Assert.Equal(1, box.Number);
+        Assert.Equal("A1-CD", box.Code);
         Assert.Empty(repository.GetCasesByBoxId(box.Id));
     }
 
     [Fact]
     public void GetBoxes_ReturnsMostRecentlyClosedFirst()
     {
-        repository.CloseBox(DateTimeOffset.UtcNow);
-        repository.CloseBox(DateTimeOffset.UtcNow);
+        repository.CloseBox("A1-CD", DateTimeOffset.UtcNow);
+        repository.CloseBox("A2-CD", DateTimeOffset.UtcNow);
 
         var boxes = repository.GetBoxes();
 
         Assert.Equal(2, boxes.Count);
         Assert.Equal(2, boxes[0].Number);
+        Assert.Equal("A2-CD", boxes[0].Code);
         Assert.Equal(1, boxes[1].Number);
+        Assert.Equal("A1-CD", boxes[1].Code);
+    }
+
+    [Fact]
+    public void GetCajaQueue_ExcludesSinCarpeta()
+    {
+        var regular = repository.Insert(NewRequest("msg-1"));
+        repository.SetDestination(regular, CaseDestination.Caja, DateTimeOffset.UtcNow);
+
+        var sc = repository.Insert(NewRequest("msg-2", rut: "11.111.111-1"));
+        repository.SetSinCarpeta(sc);
+        repository.SetDestination(sc, CaseDestination.Caja, DateTimeOffset.UtcNow);
+
+        var queue = repository.GetCajaQueue();
+        Assert.Single(queue);
+        Assert.Equal(regular, queue[0].Id);
+    }
+
+    [Fact]
+    public void SendToCaja_SetsDestinationAndTransferredAt_OnlyForPhysicalCases()
+    {
+        var uploaded = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(uploaded, DateTimeOffset.UtcNow);
+        repository.SetMarked(uploaded, true);
+
+        var confirmed = repository.Insert(NewRequest("msg-2", rut: "12.345.678-5"));
+        repository.MarkUploaded(confirmed, DateTimeOffset.UtcNow);
+        repository.UpdateStatusToConfirmed(confirmed, DateTimeOffset.UtcNow);
+        repository.SetMarked(confirmed, true);
+
+        var sc = repository.Insert(NewRequest("msg-3", rut: "13.456.789-2"));
+        repository.MarkUploaded(sc, DateTimeOffset.UtcNow);
+        repository.SetSinCarpeta(sc);
+
+        repository.SendToCaja([uploaded, confirmed, sc], DateTimeOffset.UtcNow);
+
+        var storedUploaded = repository.FindById(uploaded)!;
+        Assert.Equal(CaseDestination.Caja, storedUploaded.Destination);
+        Assert.False(storedUploaded.Marked);
+        Assert.NotNull(storedUploaded.TransferredAt);
+
+        var storedConfirmed = repository.FindById(confirmed)!;
+        Assert.Equal(CaseDestination.Caja, storedConfirmed.Destination);
+        Assert.False(storedConfirmed.Marked);
+
+        var storedSc = repository.FindById(sc)!;
+        Assert.Equal(CaseDestination.None, storedSc.Destination);
+    }
+
+    [Fact]
+    public void ClearDestination_RemovesFromCajaQueue_AndReturnsToCasos()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+
+        Assert.Single(repository.GetCajaQueue());
+
+        repository.ClearDestination(id);
+
+        Assert.Empty(repository.GetCajaQueue());
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.None, stored.Destination);
+        Assert.Null(stored.TransferredAt);
+    }
+
+    [Fact]
+    public void ReopenBox_UnpacksCasesToQueueAndDeletesBox()
+    {
+        var id1 = repository.Insert(NewRequest("msg-1"));
+        var id2 = repository.Insert(NewRequest("msg-2"));
+        repository.MarkUploaded(id1, DateTimeOffset.UtcNow);
+        repository.MarkUploaded(id2, DateTimeOffset.UtcNow);
+        repository.SendToCaja([id1, id2], DateTimeOffset.UtcNow);
+
+        var box = repository.CloseBox("A3-CD", DateTimeOffset.UtcNow);
+        Assert.Empty(repository.GetCajaQueue());
+        Assert.Equal(2, repository.GetCasesByBoxId(box.Id).Count);
+
+        repository.ReopenBox(box.Id);
+
+        var queue = repository.GetCajaQueue();
+        Assert.Equal(2, queue.Count);
+        Assert.Null(repository.FindBoxById(box.Id));
+        Assert.Null(repository.FindById(id1)!.BoxId);
+        Assert.Equal(CaseDestination.Caja, repository.FindById(id1)!.Destination);
+    }
+
+    [Fact]
+    public void RemoveCaseFromClosedBox_ReturnsCaseToCasos()
+    {
+        var id1 = repository.Insert(NewRequest("msg-1"));
+        var id2 = repository.Insert(NewRequest("msg-2"));
+        repository.MarkUploaded(id1, DateTimeOffset.UtcNow);
+        repository.MarkUploaded(id2, DateTimeOffset.UtcNow);
+        repository.SendToCaja([id1, id2], DateTimeOffset.UtcNow);
+
+        var box = repository.CloseBox("A3-CD", DateTimeOffset.UtcNow);
+        repository.RemoveCaseFromClosedBox(id1);
+
+        var remainingInBox = repository.GetCasesByBoxId(box.Id);
+        Assert.Single(remainingInBox);
+        Assert.Equal(id2, remainingInBox[0].Id);
+
+        var removed = repository.FindById(id1)!;
+        Assert.Equal(CaseDestination.None, removed.Destination);
+        Assert.Null(removed.BoxId);
+        Assert.Null(removed.TransferredAt);
     }
 
     [Fact]
@@ -512,7 +624,7 @@ public class PersonRequestRepositoryTests : IDisposable
         repository.SetDestination(id, CaseDestination.Caja, DateTimeOffset.UtcNow);
         repository.MarkUploaded(id, DateTimeOffset.UtcNow);
         repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
-        var box = repository.CloseBox(DateTimeOffset.UtcNow);
+        var box = repository.CloseBox("A1-CD", DateTimeOffset.UtcNow);
 
         repository.RevertConfirmedToPending(id);
 
@@ -527,7 +639,7 @@ public class PersonRequestRepositoryTests : IDisposable
         var id = repository.Insert(NewRequest("msg-1"));
         repository.SetDestination(id, CaseDestination.Caja, DateTimeOffset.UtcNow);
         repository.MarkUploaded(id, DateTimeOffset.UtcNow);
-        var box = repository.CloseBox(DateTimeOffset.UtcNow);
+        var box = repository.CloseBox("A1-CD", DateTimeOffset.UtcNow);
 
         repository.RevertUploadedBySourceMessageId("msg-1");
 
@@ -751,6 +863,37 @@ public class PersonRequestRepositoryTests : IDisposable
 
         repository.RecordProcessedBounce("ndr-1"); // duplicate must not throw
         Assert.True(repository.IsBounceProcessed("ndr-1"));
+    }
+
+    [Fact]
+    public void RevertF8AndReturnToCasos_ReincorporatesCaseAsSoloCaja()
+    {
+        var id = repository.Insert(NewRequest("msg-f8"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.SetFolderNotFound(id, true);
+        repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
+
+        repository.RevertF8AndReturnToCasos(id);
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.None, stored.Destination);
+        Assert.Equal(RequestStatus.Pending, stored.Status);
+        Assert.True(stored.SoloCaja);
+        Assert.False(stored.FolderNotFound);
+        Assert.False(stored.SinCarpeta);
+        Assert.Null(stored.TransferredAt);
+
+        // When subsequently sent to Caja
+        repository.SetFechaUltimaCarpeta(id, new DateOnly(2024, 3, 15));
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+
+        var inCaja = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.Caja, inCaja.Destination);
+        Assert.Equal(RequestStatus.Confirmed, inCaja.Status);
+        Assert.False(inCaja.SoloCaja);
+
+        var queue = repository.GetCajaQueue();
+        Assert.Contains(queue, c => c.Id == id);
     }
 
     private static PersonRequest NewRequest(string sourceMessageId, string rut = "18.785.387-7") => new()

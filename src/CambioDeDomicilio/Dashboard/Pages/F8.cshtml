@@ -2,7 +2,7 @@
 @model CambioDeDomicilio.Dashboard.Pages.F8Model
 @using CambioDeDomicilio.Domain
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="cases-page-html">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -21,20 +21,8 @@
             </span>
         </div>
         <nav class="app-nav">
-            <div class="nav-group">
-                <a asp-page="/Index">Volver a Casos</a>
-                <a asp-page="/Comunas">Comunas</a>
-                <a asp-page="/Discarded">Descartados</a>
-            </div>
-            <div class="nav-group nav-group-end">
-                <form method="get" class="nav-search">
-                    <input type="text" name="search" id="search-input" placeholder="Buscar por RUT o nombre..." value="@Model.SearchQuery" data-had-value="@(!string.IsNullOrEmpty(Model.SearchQuery) ? "true" : "false")" oninput="formatSearchRut(this); clearSearchIfEmpty(this)" />
-                    <button type="submit" class="nav-pill">Buscar</button>
-                    @if (!string.IsNullOrEmpty(Model.SearchQuery))
-                    {
-                        <a asp-page="/F8" class="nav-search-clear">Limpiar</a>
-                    }
-                </form>
+            <div class="nav-group nav-group-filters">
+                <a asp-page="/Index" class="nav-casos">← Volver a Cambio de Domicilio</a>
             </div>
         </nav>
     </header>
@@ -44,7 +32,7 @@
             <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
             <a asp-page="/F8" class="nav-f8 active">F8</a>
             <a asp-page="/Caja" class="nav-f8" style="background: rgba(34,197,94,0.14); color:#bbf7d0; border-color: rgba(34,197,94,0.32);">Caja</a>
-            <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
+            <a asp-page="/Estadísticas" class="nav-estadisticas">Estadísticas</a>
         </div>
         <div class="app-subnav-docs">
             <span class="app-subnav-label">Documentos F8</span>
@@ -65,32 +53,15 @@
             <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
         }
 
-        @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+                @if (!string.IsNullOrWhiteSpace(Model.Search))
         {
-            if (Model.Cases.Count == 0 && Model.CasosMatchCount > 0)
-            {
-                <div class="cross-search-banner">
-                    <span class="cross-search-icon">🔍</span>
-                    <div class="cross-search-text">
-                        No se encontraron casos en F8 para <strong>"@Model.SearchQuery"</strong>, pero existe(n) <strong>@Model.CasosMatchCount caso(s)</strong> en <strong>Cambio de Domicilio</strong>.
-                    </div>
-                    <a asp-page="/Index" asp-route-search="@Model.SearchQuery" class="btn-cross-search">
-                        Ver en Cambio de Domicilio &rarr;
-                    </a>
+            <div class="f8-search-active-banner">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.3rem;">🎯</span>
+                    <span>Filtrando por <strong>"@Model.Search"</strong>: @(Model.Cases.Count == 0 ? "No se encontraron casos" : $"Se encontró {Model.Cases.Count} caso(s)")</span>
                 </div>
-            }
-            else if (Model.Cases.Count > 0 && Model.CasosMatchCount > 0)
-            {
-                <div class="cross-search-banner cross-search-banner-info">
-                    <span class="cross-search-icon">ℹ️</span>
-                    <div class="cross-search-text">
-                        Esta persona también tiene <strong>@Model.CasosMatchCount caso(s)</strong> registrado(s) en <strong>Cambio de Domicilio</strong>.
-                    </div>
-                    <a asp-page="/Index" asp-route-search="@Model.SearchQuery" class="btn-cross-search">
-                        Ver en Cambio de Domicilio &rarr;
-                    </a>
-                </div>
-            }
+                <a asp-page="/F8" class="btn-clear-f8-filter">✕ Mostrar todos los casos F8 (@Model.TotalF8Count)</a>
+            </div>
         }
 
         <div class="card table-card">
@@ -129,8 +100,11 @@
                         : (item.NeedsReview ? "row-needs-review" : "");
                     var pendienteCarpetaClass = item.PendienteCarpeta ? "row-pendiente-carpeta" : "";
                     var bouncedClass = item.ConfirmationBouncedAt is not null ? "row-bounced" : "";
+                    var isTarget = (Model.HighlightId.HasValue && item.Id == Model.HighlightId.Value) ||
+                                   (!string.IsNullOrWhiteSpace(Model.Search) && Model.Cases.Count == 1);
+                    var targetClass = isTarget ? "row-highlight-target" : "";
                     rowIndex++;
-                    <tr class="@rowClass @statusRowClass @pendienteCarpetaClass @bouncedClass">
+                    <tr class="@rowClass @statusRowClass @pendienteCarpetaClass @bouncedClass @targetClass" id="case-row-@item.Id">
                         <td class="marked-cell">
                             <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
                                 <input type="hidden" name="id" value="@item.Id" />
@@ -152,10 +126,14 @@
                                 <input type="hidden" name="id" value="@item.Id" />
                             </form>
                             <span class="name-with-alert">
+                            @if (isTarget)
+                            {
+                                <span class="badge-f8-target" title="Caso seleccionado desde la búsqueda">📍 CASO BUSCADO</span>
+                            }
                             @if (item.NeedsReview)
                             {
                                 <span class="review-alert" aria-label="Requiere revisión"
-                                      title="Requiere revisión — datos no extraíbles del correo (asunto: @item.SourceSubject)">⚠</span>
+                                      title="Requiere revisión — datos no extraíbles del correo (asunto: @item.SourceSubject)">⚠️</span>
                             }
                             <input type="text" name="nombre" value="@item.FullName" placeholder="Nombre completo" required
                                    size="@Math.Clamp((item.FullName?.Length ?? 0) + 2, 12, 34)"
@@ -223,6 +201,7 @@
                         </td>
                         <td class="text-cell">@(item.Sector?.ToString() ?? "—")</td>
                         <td>
+                            <div style="display:inline-flex; align-items:center; gap:4px; justify-content:center;">
                             @if (item.Status == RequestStatus.Pending && !item.NeedsReview)
                             {
                                 <form method="post" asp-page-handler="MarkUploadedAndConfirm"
@@ -240,10 +219,12 @@
                             }
                             else if (item.Status == RequestStatus.Confirmed)
                             {
-                                <form method="post" asp-page-handler="RectifyConfirmation"
-                                      onsubmit="return confirm('Esto enviará un correo de RECTIFICACIÓN a la comuna indicando que la confirmación anterior fue un error, y revertirá el caso a Pendiente. ¿Continuar?') && confirm('¿Estás completamente seguro? Se enviará un correo real a la comuna ahora mismo.');">
+                                <form method="post" asp-page-handler="RevertToCasos"
+                                      onsubmit="return confirm('¿Carpeta física encontrada? Se reincorporará a Cambio de Domicilio exclusivamente para ser subida a Caja (NO se enviará ningún correo a la comuna).');">
                                     <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn-outline-danger" style="padding:4px 10px; font-size:0.72rem;" title="Enviar correo de rectificación y volver el caso a Pendiente">Deshacer y rectificar</button>
+                                    <input type="hidden" name="search" value="@Model.Search" />
+                                    <input type="hidden" name="highlightId" value="@Model.HighlightId" />
+                                    <button type="submit" class="btn-primary" style="background:#16a34a; border-color:#15803d; padding:4px 10px; font-size:0.72rem;" title="Carpeta encontrada: reincorporar a Casos para subir a Caja sin enviar correo">Carpeta encontrada (A Casos)</button>
                                 </form>
                             }
                             @if (item.ConfirmationBouncedAt is not null)
@@ -267,12 +248,16 @@
                                     </svg>
                                 </button>
                             </form>
-                            <form method="post" asp-page-handler="UndoTransfer"
-                                  onsubmit="return confirm('Esto deshace el traspaso a F8: el caso vuelve a aparecer en Casos. ¿Confirmar?');">
-                                <input type="hidden" name="id" value="@item.Id" />
-                                <button type="submit" class="btn-outline-danger" style="padding:4px 10px; font-size:0.72rem;"
-                                        title="Deshacer traspaso a F8 y volver el caso a Casos">Deshacer traspaso</button>
-                            </form>
+                            @if (item.Status != RequestStatus.Confirmed)
+                            {
+                                <form method="post" asp-page-handler="UndoTransfer"
+                                      onsubmit="return confirm('Esto deshace el traspaso a F8: el caso vuelve a aparecer en Casos. ¿Confirmar?');">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-outline-danger" style="padding:4px 10px; font-size:0.72rem;"
+                                            title="Deshacer traspaso a F8 y volver el caso a Casos">Deshacer traspaso</button>
+                                </form>
+                            }
+                            </div>
                         </td>
                     </tr>
                 }
@@ -280,77 +265,52 @@
             </table>
         </div>
     </main>
+
     <script>
-        // Same fix as Index.cshtml's Casos table: nombre/rut share one form, each with its own
-        // onchange — tabbing from nombre into rut fired nombre's submit before rut was filled in.
-        function savePersonFieldIfDoneEditing(input) {
-            var form = input.form;
-            setTimeout(function () {
-                if (document.activeElement && document.activeElement.form === form) {
-                    return;
-                }
-                form.submit();
-            }, 0);
-        }
-
-        // Same fix as Index.cshtml's Marcar/F8 checkboxes: this.form.submit() is a full-page
-        // navigation, so ticking several rows quickly cancelled all but one mid-flight and only
-        // that one ever reached the server. fetch() makes each toggle independent.
-        function submitCheckboxToggle(checkbox, fieldName) {
-            var form = checkbox.form;
-            var id = form.querySelector('input[name="id"]').value;
-            var token = form.querySelector('input[name="__RequestVerificationToken"]').value;
-            var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&id=' + encodeURIComponent(id);
-            if (checkbox.checked) {
-                body += '&' + fieldName + '=on';
-            }
-            fetch(form.action, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: body
-            });
-        }
-
-        // Marcar and Pendiente Carpeta are mutually exclusive (a row is either green or yellow,
-        // never both) but not locked — checking one clears the other automatically, and the
-        // cleared one can still be re-checked manually afterward at any time.
-        function toggleMutuallyExclusive(checkbox, fieldName, otherFieldName) {
-            submitCheckboxToggle(checkbox, fieldName);
+        function toggleMutuallyExclusive(checkbox, thisName, otherName) {
             if (checkbox.checked) {
                 var row = checkbox.closest('tr');
-                var other = row ? row.querySelector('input[name="' + otherFieldName + '"]') : null;
-                if (other && other.checked) {
-                    other.checked = false;
-                    submitCheckboxToggle(other, otherFieldName);
+                var otherCheckbox = row.querySelector('input[name="' + otherName + '"]');
+                if (otherCheckbox && otherCheckbox.checked) {
+                    otherCheckbox.checked = false;
+                    var otherForm = otherCheckbox.closest('form');
+                    if (otherForm) otherForm.submit();
                 }
             }
-        }
-    </script>
-    <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
-    <script>
-        function formatSearchRut(input) {
-            var raw = input.value;
-            if (!/^\d+[kK]?$/.test(raw.replace(/[.\-]/g, ''))) {
-                return;
-            }
-
-            var clean = raw.replace(/[.\-]/g, '');
-            if (clean.length < 2) {
-                return;
-            }
-
-            var body = clean.slice(0, -1);
-            var dv = clean.slice(-1).toUpperCase();
-            var formattedBody = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-            input.value = formattedBody + '-' + dv;
+            var form = checkbox.closest('form');
+            if (form) form.submit();
         }
 
-        function clearSearchIfEmpty(input) {
-            if (input.value === '' && input.dataset.hadValue === 'true') {
-                input.form.submit();
+        function savePersonFieldIfDoneEditing(input) {
+            var form = input.form;
+            if (!form) return;
+            var tr = input.closest('tr');
+            if (!tr) return;
+            var nombreInput = tr.querySelector('input[name="nombre"]');
+            var rutInput = tr.querySelector('input[name="rut"]');
+            var nombreVal = (nombreInput ? nombreInput.value : '').trim();
+            var rutVal = (rutInput ? rutInput.value : '').trim();
+            if (nombreVal !== '' && rutVal !== '') {
+                var hiddenNombre = form.querySelector('input[name="nombre"]');
+                if (!hiddenNombre) {
+                    hiddenNombre = document.createElement('input');
+                    hiddenNombre.type = 'hidden';
+                    hiddenNombre.name = 'nombre';
+                    form.appendChild(hiddenNombre);
+                }
+                hiddenNombre.value = nombreVal;
+
+                var hiddenRut = form.querySelector('input[name="rut"]');
+                if (!hiddenRut) {
+                    hiddenRut = document.createElement('input');
+                    hiddenRut.type = 'hidden';
+                    hiddenRut.name = 'rut';
+                    form.appendChild(hiddenRut);
+                }
+                hiddenRut.value = rutVal;
+
+                form.submit();
             }
-            input.dataset.hadValue = input.value !== '' ? 'true' : 'false';
         }
     </script>
     <script>

@@ -108,6 +108,10 @@ public sealed class PersonRequest
     /// Null means it's still in the Caja screen's open queue, waiting for the operator to press
     /// "Cerrar Caja". Only meaningful for cases with Destination == Caja.</summary>
     public long? BoxId { get; set; }
+
+    /// <summary>Flag set when an F8 case whose physical folder was found is reincorporated into Casos.
+    /// It must only be sent to Caja - never re-confirmed or emailed to the comuna again.</summary>
+    public bool SoloCaja { get; set; }
 }
 
 public enum CaseDestination
@@ -129,5 +133,6 @@ public sealed class Box
 {
     public long Id { get; set; }
     public int Number { get; set; }
+    public string Code { get; set; } = string.Empty;
     public DateTimeOffset ClosedAt { get; set; }
 }

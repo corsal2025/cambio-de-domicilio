@@ -105,8 +105,8 @@
                     <div class="cross-search-text">
                         No se encontraron casos en Cambio de Domicilio para <strong>"@Model.SearchQuery"</strong>, pero existe(n) <strong>@Model.F8MatchCount caso(s)</strong> en <strong>Casos F8</strong>.
                     </div>
-                    <a asp-page="/F8" asp-route-search="@Model.SearchQuery" class="btn-cross-search">
-                        Ver en Casos F8 &rarr;
+                    <a asp-page="/F8" asp-route-search="@Model.SearchQuery" asp-route-highlightId="@Model.F8FirstMatchId" class="btn-cross-search">
+                        Ver y seleccionar en F8 &rarr;
                     </a>
                 </div>
             }
@@ -117,8 +117,21 @@
                     <div class="cross-search-text">
                         Esta persona también tiene <strong>@Model.F8MatchCount caso(s)</strong> registrado(s) en <strong>Casos F8</strong>.
                     </div>
-                    <a asp-page="/F8" asp-route-search="@Model.SearchQuery" class="btn-cross-search">
-                        Ver en Casos F8 &rarr;
+                    <a asp-page="/F8" asp-route-search="@Model.SearchQuery" asp-route-highlightId="@Model.F8FirstMatchId" class="btn-cross-search">
+                        Ver y seleccionar en F8 &rarr;
+                    </a>
+                </div>
+            }
+
+            if (Model.CajaMatchCount > 0)
+            {
+                <div class="cross-search-banner" style="background: #f0fdf4; border-color: #86efac; color: #166534;">
+                    <span class="cross-search-icon">📦</span>
+                    <div class="cross-search-text">
+                        Carpeta física ubicada en <strong>@Model.CajaMatchBoxCode</strong> (@Model.CajaMatchCount caso(s)).
+                    </div>
+                    <a asp-page="/Caja" class="btn-cross-search" style="background: #16a34a; border-color: #15803d;">
+                        Ver en Caja &rarr;
                     </a>
                 </div>
             }

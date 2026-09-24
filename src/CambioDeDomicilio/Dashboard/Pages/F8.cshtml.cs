@@ -20,17 +20,20 @@ public class F8Model(
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
     public string? Message { get; set; }
     public bool MessageIsError { get; set; }
-    public int PlazoDiasHabiles => options.PlazoDiasHabiles;
+        [BindProperty(SupportsGet = true)]
+    public string? Search { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public string? SearchQuery { get; set; }
+    public long? HighlightId { get; set; }
 
-    /// <summary>Number of matching cases found in Casos (Cambio de Domicilio) for this search query.</summary>
-    public int CasosMatchCount { get; private set; }
+    public int TotalF8Count { get; private set; }
 
-    public void OnGet(string? search = null)
+    public int PlazoDiasHabiles => options.PlazoDiasHabiles;
+
+    public void OnGet(string? search = null, long? highlightId = null)
     {
-        SearchQuery = search;
+        Search = search;
+        HighlightId = highlightId;
         Load();
     }
 
@@ -39,13 +42,13 @@ public class F8Model(
         if (string.IsNullOrWhiteSpace(fecha))
         {
             repository.ClearFechaUltimaCarpeta(id);
-            return RedirectToPage();
+            return RedirectToPage(new { search = Search, highlightId = HighlightId });
         }
 
         if (fecha.Trim().Equals("S/C", StringComparison.OrdinalIgnoreCase))
         {
             repository.SetSinCarpeta(id);
-            return RedirectToPage();
+            return RedirectToPage(new { search = Search, highlightId = HighlightId });
         }
 
         if (!SpanishDate.TryParse(fecha, out var parsed))
@@ -57,13 +60,13 @@ public class F8Model(
         }
 
         repository.SetFechaUltimaCarpeta(id, parsed);
-        return RedirectToPage();
+        return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
     public IActionResult OnPostSetCodigoF8(long id, string? codigoF8)
     {
         repository.SetCodigoF8(id, string.IsNullOrWhiteSpace(codigoF8) ? null : codigoF8.Trim());
-        return RedirectToPage();
+        return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
     /// <summary>Undoes "Traspaso a F8" — clears <see cref="PersonRequest.Destination"/> so the case
@@ -71,7 +74,16 @@ public class F8Model(
     public IActionResult OnPostUndoTransfer(long id)
     {
         repository.ClearDestination(id);
-        return RedirectToPage();
+        Message = "Caso devuelto a Cambio de Domicilio.";
+        return RedirectToPage(new { search = Search, highlightId = HighlightId });
+    }
+
+    /// <summary>Reverts an F8 case back to Pending and returns it to Casos (Index) WITHOUT sending any email to the comuna.</summary>
+    public IActionResult OnPostRevertToCasos(long id)
+    {
+        repository.RevertF8AndReturnToCasos(id);
+        Message = "Carpeta física reincorporada a Cambio de Domicilio para ser subida a Caja (sin enviar correo).";
+        return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
     public IActionResult OnPostSetPersonData(long id, string nombre, string rut)
@@ -99,14 +111,14 @@ public class F8Model(
     {
         var marked = markedValue == "on";
         repository.SetMarked(id, marked);
-        return RedirectToPage();
+        return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
     public IActionResult OnPostTogglePendienteCarpeta(long id, string? pendienteCarpetaValue)
     {
         var pendienteCarpeta = pendienteCarpetaValue == "on";
         repository.SetPendienteCarpeta(id, pendienteCarpeta);
-        return RedirectToPage();
+        return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
     public IActionResult OnPostDeleteCase(long id)
@@ -119,7 +131,7 @@ public class F8Model(
         }
 
         Message = "Caso eliminado.";
-        return RedirectToPage();
+        return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
     public async Task<IActionResult> OnPostConfirmAsync(long id)
@@ -138,9 +150,6 @@ public class F8Model(
         var contacts = routingService.LoadDirectory();
         var result = await routingService.MarkUploadedAndConfirmAsync(id, contacts, HttpContext.RequestAborted, viaF8: true);
 
-        // Once confirmed, the row goes fully blue (row-confirmed) — any leftover Marcar/Pendiente
-        // Carpeta tick would otherwise still highlight it yellow (row-pendiente-carpeta) or keep it
-        // selected for the next PDF run, both of which no longer make sense for a closed case.
         if (result.Sent)
         {
             repository.SetMarked(id, false);
@@ -153,22 +162,11 @@ public class F8Model(
         return Page();
     }
 
-    public async Task<IActionResult> OnPostRectifyConfirmationAsync(long id)
-    {
-        var contacts = routingService.LoadDirectory();
-        var result = await routingService.RectifyConfirmationAsync(id, contacts, HttpContext.RequestAborted);
-
-        Message = result.Reason;
-        MessageIsError = !result.Sent;
-        Load();
-        return Page();
-    }
-
     /// <summary>Operator "Marcar resuelto" on a bounced F8 confirmation — clears the bounce flag.</summary>
     public IActionResult OnPostResolveBounce(long id)
     {
         repository.ClearConfirmationBounced(id);
-        return RedirectToPage();
+        return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
     /// <summary>Business days remaining until the legal upload deadline for this case, from today.</summary>
@@ -182,22 +180,29 @@ public class F8Model(
     private void Load()
     {
         var all = repository.GetAll();
-        var f8Cases = all.Where(c => c.Destination == CaseDestination.F8);
-
-        if (!string.IsNullOrWhiteSpace(SearchQuery))
-        {
-            var query = SearchQuery.Trim().ToUpperInvariant();
-            f8Cases = f8Cases.Where(c => MatchesQuery(c, query));
-
-            // Conteo de coincidencias cruzadas en Cambio de Domicilio
-            CasosMatchCount = all.Count(c => c.TransferredAt is null && MatchesQuery(c, query));
-        }
-
-        Cases = f8Cases
+        var f8Cases = all
+            .Where(c => c.Destination == CaseDestination.F8)
             .OrderBy(c => c.Status == RequestStatus.Confirmed)
             .ThenBy(c => c.ConfirmedAt)
             .ThenByDescending(c => c.ReceivedAt)
             .ToList();
+
+        TotalF8Count = f8Cases.Count;
+
+        if (!string.IsNullOrWhiteSpace(Search))
+        {
+            var query = Search.Trim().ToUpperInvariant();
+            var matches = f8Cases.Where(c => MatchesQuery(c, query)).ToList();
+            Cases = matches;
+            if (!HighlightId.HasValue && matches.Count > 0)
+            {
+                HighlightId = matches[0].Id;
+            }
+        }
+        else
+        {
+            Cases = f8Cases;
+        }
     }
 
     private static bool MatchesQuery(PersonRequest c, string query)
@@ -205,6 +210,8 @@ public class F8Model(
         var queryClean = query.Replace(".", string.Empty).Replace("-", string.Empty);
         var rutClean = (c.Rut ?? string.Empty).Replace(".", string.Empty).Replace("-", string.Empty);
         return (c.FullName ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase) ||
-               rutClean.Contains(queryClean, StringComparison.OrdinalIgnoreCase);
+               rutClean.Contains(queryClean, StringComparison.OrdinalIgnoreCase) ||
+               (c.CodigoF8 ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase) ||
+               (c.Comuna ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 }

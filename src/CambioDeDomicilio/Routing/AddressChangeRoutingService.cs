@@ -332,14 +332,6 @@ public sealed class AddressChangeRoutingService(
 
         repository.MarkUploaded(request.Id, DateTimeOffset.UtcNow);
 
-        // Auto-moves to the Caja screen's queue the moment the folder is uploaded — F8 cases keep
-        // their own Destination.F8 flow instead (never redirected here), and a case somehow already
-        // sitting elsewhere is left untouched rather than silently reassigned.
-        if (!viaF8 && request.Destination == CaseDestination.None)
-        {
-            repository.SetDestination(request.Id, CaseDestination.Caja, DateTimeOffset.UtcNow);
-        }
-
         return await SendConfirmationAsync(requestId, contacts, cancellationToken, viaF8);
     }
 
@@ -382,13 +374,6 @@ public sealed class AddressChangeRoutingService(
             : EmailTemplates.UploadConfirmation(request.FullName, request.Rut);
         await mailSender.SendAsync(comunaContact.ContactEmail, subject, body, cancellationToken);
         repository.UpdateStatusToConfirmed(request.Id, DateTimeOffset.UtcNow);
-        if (viaF8)
-        {
-            // The F8 code is only useful while the case is in progress — once confirmed (row turns
-            // blue, same as a normal Casos confirmation) it's done its job and gets cleared automatically
-            // instead of lingering as stale data on a closed case.
-            repository.SetCodigoF8(request.Id, null);
-        }
         logger.LogInformation("Confirmación de subida enviada a la comuna correspondiente");
 
         foreach (var channel in notificationChannels)

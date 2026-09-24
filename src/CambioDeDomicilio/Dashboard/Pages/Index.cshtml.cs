@@ -31,6 +31,9 @@ public class IndexModel(
 
     /// <summary>Number of matching cases found in F8 for this search query.</summary>
     public int F8MatchCount { get; private set; }
+    public long? F8FirstMatchId { get; private set; }
+    public int CajaMatchCount { get; private set; }
+    public string? CajaMatchBoxCode { get; private set; }
     public string? Message { get; set; }
     public bool MessageIsError { get; set; }
     public int PlazoDiasHabiles => options.PlazoDiasHabiles;
@@ -272,6 +275,31 @@ public class IndexModel(
     /// <summary>Operator-confirmed move to F8: the case disappears from Casos and starts showing
     /// in the F8 page. Ticking the F8 checkbox alone (<see cref="OnPostToggleFolderNotFound"/>)
     /// does not do this by itself — it only marks the case as an F8 candidate.</summary>
+        /// <summary>Transfers an F8-reverted case directly to Caja without sending any confirmation email.</summary>
+    public IActionResult OnPostSubirACaja(long id)
+    {
+        var request = repository.FindById(id);
+        if (request is null)
+        {
+            Message = "El caso no existe.";
+            MessageIsError = true;
+            Load();
+            return Page();
+        }
+
+        if (request.FechaUltimaCarpeta is null && !request.SinCarpeta)
+        {
+            Message = "Debe ingresar la fecha de última carpeta antes de subir la carpeta a Caja.";
+            MessageIsError = true;
+            Load();
+            return Page();
+        }
+
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+        Message = $"Carpeta de {request.FullName} enviada exitosamente a la cola de Caja (sin enviar correo).";
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
+    }
+
     public IActionResult OnPostTransferToF8(long id)
     {
         // F8's "Fecha penúltima carpeta" is a distinct date from Casos' última carpeta — carrying

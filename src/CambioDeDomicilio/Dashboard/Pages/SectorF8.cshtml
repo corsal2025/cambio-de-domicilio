@@ -1,4 +1,4 @@
-@page "{sector?}"
+﻿@page "{sector?}"
 @model CambioDeDomicilio.Dashboard.Pages.SectorF8Model
 <!DOCTYPE html>
 <html lang="es">
@@ -19,7 +19,7 @@
             justify-content: space-between;
             gap: 20px;
             border-bottom: 3px solid var(--color-primary);
-            padding-bottom: 12px;
+            padding-bottom: 14px;
             margin-bottom: 0;
             position: relative;
         }
@@ -35,7 +35,7 @@
         }
 
         .doc-header .doc-seal {
-            height: 52px;
+            height: 68px;
             width: auto;
             flex: none;
             object-fit: contain;
@@ -43,40 +43,41 @@
 
         .doc-header .doc-title-block {
             display: flex;
-            gap: 12px;
+            gap: 16px;
             align-items: center;
         }
 
         .doc-header .doc-org {
             margin: 0;
-            font-size: 0.64rem;
+            font-size: 0.82rem;
             color: var(--color-text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.7px;
-            font-weight: 600;
+            letter-spacing: 0.8px;
+            font-weight: 700;
         }
 
         .doc-header h2 {
-            margin: 2px 0 0;
+            margin: 4px 0 0;
             color: var(--color-primary);
-            font-size: 1.05rem;
+            font-size: 1.45rem;
             font-weight: 700;
         }
 
         .doc-header .doc-meta {
             text-align: right;
-            font-size: 0.68rem;
+            font-size: 0.92rem;
             color: var(--color-text-muted);
             white-space: nowrap;
             background: var(--color-bg);
             border: 1px solid var(--color-border);
             border-radius: var(--radius);
-            padding: 6px 12px;
+            padding: 8px 16px;
             line-height: 1.5;
         }
 
         .doc-header .doc-meta strong {
             color: var(--color-primary);
+            font-size: 1.05rem;
         }
 
         .doc-subheader {
@@ -88,7 +89,7 @@
             background: var(--color-bg);
             border-left: 3px solid var(--color-accent);
             border-radius: 0 4px 4px 0;
-            font-size: 0.72rem;
+            font-size: 0.78rem;
             color: var(--color-text-muted);
         }
 
@@ -98,7 +99,7 @@
         }
 
         table.cases.doc-table {
-            font-size: 0.78rem;
+            font-size: 0.88rem;
         }
 
         table.cases.doc-table th,
@@ -127,7 +128,7 @@
 
         .doc-count {
             margin: 10px 2px 0;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             color: var(--color-text-muted);
         }
 
@@ -140,7 +141,7 @@
 
         .doc-signoff div {
             text-align: center;
-            font-size: 0.72rem;
+            font-size: 0.78rem;
             color: var(--color-text-muted);
             width: 220px;
         }
@@ -152,12 +153,34 @@
         }
 
         @@media print {
-            header.app-header, .no-print { display: none; }
-            body { background: #fff; }
-            main { padding: 0; max-width: none; }
-            .card { border: none; box-shadow: none; }
-            table.cases th { background: #eef2f6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            table.cases td, table.cases th { border: 1px solid #999; }
+            header.app-header, .app-header, .app-subnav, .no-print, form, .feedback-banner {
+                display: none !important;
+            }
+            body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; }
+            main { padding: 0 !important; margin: 0 !important; max-width: none !important; width: 100% !important; }
+            .card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; margin: 0 !important; }
+            .doc-sheet { background: #fff !important; padding: 0 !important; }
+            .doc-header { border-bottom: 3px solid #000 !important; padding-bottom: 14px !important; }
+            .doc-header .doc-seal { height: 72px !important; }
+            .doc-header .doc-org { font-size: 0.85rem !important; color: #444 !important; }
+            .doc-header h2 { font-size: 1.5rem !important; color: #000 !important; }
+            .doc-header .doc-meta { font-size: 0.95rem !important; border: 1px solid #777 !important; background: #fff !important; color: #333 !important; }
+            .doc-header .doc-meta strong { font-size: 1.1rem !important; color: #000 !important; }
+            table.cases { width: 100% !important; font-size: 0.88rem !important; }
+            table.cases th {
+                background: #eef2f6 !important;
+                color: #000 !important;
+                font-size: 0.88rem !important;
+                padding: 6px 8px !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            table.cases td {
+                border: 1px solid #888 !important;
+                color: #000 !important;
+                font-size: 0.88rem !important;
+                padding: 6px 8px !important;
+            }
             .doc-signoff { break-inside: avoid; }
             tbody tr { break-inside: avoid; }
         }
@@ -170,7 +193,7 @@
     </style>
 </head>
 <body>
-    <header class="app-header">
+    <header class="app-header no-print">
         <div class="brand">
             CambioDeDomicilio
             <small>Municipalidad de Valparaíso — Documento F8 por sector</small>
@@ -180,7 +203,7 @@
             <a asp-page="/SectorF8" asp-route-sector="Oficina43" class="@(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Oficina43 ? "active" : "")">PDF Oficina 43</a>
         </nav>
     </header>
-    <div class="app-subnav">
+    <div class="app-subnav no-print">
         <span class="app-subnav-label">Otros sistemas</span>
         <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
         <a asp-page="/F8" class="nav-f8">F8</a>

@@ -31,6 +31,10 @@ public interface IPersonRequestRepository
     /// <summary>Undoes a transfer: the case goes back to Casos (Index).</summary>
     void ClearDestination(long id);
 
+    /// <summary>Undoes F8 status and reverts the case back to Casos as Pending, clearing Destination,
+    /// TransferredAt, ConfirmedAt, ConfirmationBouncedAt, and Marked/Pendiente flags, without sending any email.</summary>
+    void RevertF8AndReturnToCasos(long id);
+
     void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long? confirmedByUserId = null);
 
     /// <summary>Every Confirmed case with this RUT — usually one, but the same person can have a
@@ -68,10 +72,19 @@ public interface IPersonRequestRepository
     IReadOnlyList<PersonRequest> GetCajaQueue();
 
     /// <summary>Closes the current Caja queue: assigns every currently-queued case to a new,
-    /// sequentially-numbered box and returns it. A queue that reads empty at the moment this runs
-    /// still gets a box record (so the operator's "Cerrar Caja" click always has a result to look
-    /// at), just with zero cases in it.</summary>
-    Box CloseBox(DateTimeOffset closedAt);
+    /// sequentially-numbered box with a manual or default code (e.g. A1-CD) and returns it. A queue
+    /// that reads empty at the moment this runs still gets a box record (so the operator's "Cerrar Caja"
+    /// click always has a result to look at), just with zero cases in it.</summary>
+    Box CloseBox(string code, DateTimeOffset closedAt);
+
+    /// <summary>Transfers uploaded/confirmed cases with physical folders to the Caja queue.</summary>
+    void SendToCaja(IReadOnlyList<long> ids, DateTimeOffset transferredAt);
+
+    /// <summary>Reopens a closed box: unpacks all its cases back into the open Caja queue and removes the closed box record.</summary>
+    void ReopenBox(long boxId);
+
+    /// <summary>Removes an individual case from a closed box and returns it back to Casos (Destination = None).</summary>
+    void RemoveCaseFromClosedBox(long personRequestId);
 
     /// <summary>Every closed box, most recently closed first.</summary>
     IReadOnlyList<Box> GetBoxes();
@@ -139,6 +152,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             CREATE TABLE IF NOT EXISTS Box (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Number INTEGER NOT NULL,
+                Code TEXT NOT NULL DEFAULT '',
                 ClosedAt TEXT NOT NULL
             );
             """;
@@ -158,6 +172,14 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         EnsureColumnExists(connection, "MarkedAt", "MarkedAt TEXT NULL");
         EnsureColumnExists(connection, "SinCarpeta", "SinCarpeta INTEGER NOT NULL DEFAULT 0");
         EnsureColumnExists(connection, "ConfirmationBouncedAt", "ConfirmationBouncedAt TEXT NULL");
+        EnsureColumnExists(connection, "SoloCaja", "SoloCaja INTEGER NOT NULL DEFAULT 0");
+
+        using (var updateLegacy = connection.CreateCommand())
+        {
+            updateLegacy.CommandText = "UPDATE PersonRequest SET SoloCaja = 1 WHERE CodigoF8 IS NOT NULL AND Destination = 'None' AND FolderNotFound = 0;";
+            updateLegacy.ExecuteNonQuery();
+        }
+        EnsureColumnExists(connection, "Code", "Code TEXT NOT NULL DEFAULT ''", "Box");
         RemoveSourceMessageIdUniqueConstraintIfPresent(connection);
 
         // Backfill migration: cases transferred under the old single-destination mechanism
@@ -259,11 +281,11 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
 
     /// <summary>Additive migration for columns added after the table was first created — SQLite has
     /// no "ADD COLUMN IF NOT EXISTS", so check PRAGMA table_info first.</summary>
-    private static void EnsureColumnExists(SqliteConnection connection, string columnName, string columnDefinitionSql)
+    private static void EnsureColumnExists(SqliteConnection connection, string columnName, string columnDefinitionSql, string tableName = "PersonRequest")
     {
         using (var pragmaCommand = connection.CreateCommand())
         {
-            pragmaCommand.CommandText = "PRAGMA table_info(PersonRequest)";
+            pragmaCommand.CommandText = $"PRAGMA table_info({tableName})";
             using var reader = pragmaCommand.ExecuteReader();
             var nameOrdinal = reader.GetOrdinal("name");
             while (reader.Read())
@@ -276,7 +298,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         }
 
         using var alterCommand = connection.CreateCommand();
-        alterCommand.CommandText = $"ALTER TABLE PersonRequest ADD COLUMN {columnDefinitionSql}";
+        alterCommand.CommandText = $"ALTER TABLE {tableName} ADD COLUMN {columnDefinitionSql}";
         alterCommand.ExecuteNonQuery();
     }
 
@@ -643,6 +665,29 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.ExecuteNonQuery();
     }
 
+    public void RevertF8AndReturnToCasos(long id)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE PersonRequest
+            SET Destination = 'None',
+                Status = 'Pending',
+                SoloCaja = 1,
+                FolderNotFound = 0,
+                SinCarpeta = 0,
+                TransferredAt = NULL,
+                ConfirmedAt = NULL,
+                ConfirmationBouncedAt = NULL,
+                Marked = 0,
+                MarkedAt = NULL,
+                PendienteCarpeta = 0
+            WHERE Id = $id
+            """;
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
     public void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long? confirmedByUserId = null)
     {
         using var connection = Open();
@@ -677,11 +722,11 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
-        // Cases with no Fecha última Carpeta (Sin Carpeta ticked) sort after every dated case,
-        // instead of floating to the top the way NULL normally would in SQLite's ASC ordering.
+        // Cases with physical folders (SinCarpeta == 0) waiting to be packed into a box.
+        // Cases with no Fecha última Carpeta sort last, instead of floating to the top.
         command.CommandText = """
             SELECT * FROM PersonRequest
-            WHERE Destination = 'Caja' AND BoxId IS NULL
+            WHERE Destination = 'Caja' AND BoxId IS NULL AND SinCarpeta = 0
             ORDER BY FechaUltimaCarpeta IS NULL, FechaUltimaCarpeta, UploadedAt
             """;
         using var reader = command.ExecuteReader();
@@ -693,21 +738,49 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         return results;
     }
 
-    public Box CloseBox(DateTimeOffset closedAt)
+    public void SendToCaja(IReadOnlyList<long> ids, DateTimeOffset transferredAt)
+    {
+        if (ids.Count == 0) return;
+        using var connection = Open();
+        using var transaction = connection.BeginTransaction();
+        foreach (var id in ids)
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = """
+                UPDATE PersonRequest
+                SET Destination = 'Caja',
+                    Status = CASE WHEN SoloCaja = 1 THEN 'Confirmed' ELSE Status END,
+                    SoloCaja = 0,
+                    TransferredAt = $transferredAt,
+                    Marked = 0
+                WHERE Id = $id AND (Status = 'Uploaded' OR Status = 'Confirmed' OR SoloCaja = 1) AND SinCarpeta = 0;
+                """;
+            command.Parameters.AddWithValue("$transferredAt", transferredAt.ToString("O"));
+            command.Parameters.AddWithValue("$id", id);
+            command.ExecuteNonQuery();
+        }
+        transaction.Commit();
+    }
+
+    public Box CloseBox(string code, DateTimeOffset closedAt)
     {
         using var connection = Open();
         using var transaction = connection.BeginTransaction();
 
         long boxId;
         int number;
+        var manualCode = string.IsNullOrWhiteSpace(code) ? null : code.Trim();
+
         using (var insertCommand = connection.CreateCommand())
         {
             insertCommand.Transaction = transaction;
             insertCommand.CommandText = """
-                INSERT INTO Box (Number, ClosedAt)
-                VALUES ((SELECT COALESCE(MAX(Number), 0) + 1 FROM Box), $closedAt);
+                INSERT INTO Box (Number, Code, ClosedAt)
+                VALUES ((SELECT COALESCE(MAX(Number), 0) + 1 FROM Box), $code, $closedAt);
                 SELECT last_insert_rowid();
                 """;
+            insertCommand.Parameters.AddWithValue("$code", (object?)manualCode ?? string.Empty);
             insertCommand.Parameters.AddWithValue("$closedAt", closedAt.ToString("O"));
             boxId = (long)insertCommand.ExecuteScalar()!;
         }
@@ -715,21 +788,77 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         using (var numberCommand = connection.CreateCommand())
         {
             numberCommand.Transaction = transaction;
-            numberCommand.CommandText = "SELECT Number FROM Box WHERE Id = $id";
+            numberCommand.CommandText = "SELECT Number, Code FROM Box WHERE Id = $id";
             numberCommand.Parameters.AddWithValue("$id", boxId);
-            number = Convert.ToInt32(numberCommand.ExecuteScalar());
+            using var r = numberCommand.ExecuteReader();
+            r.Read();
+            number = r.GetInt32(0);
+            var storedCode = r.GetString(1);
+            if (string.IsNullOrWhiteSpace(storedCode))
+            {
+                manualCode = $"A{number}-CD";
+                using var updateCodeCmd = connection.CreateCommand();
+                updateCodeCmd.Transaction = transaction;
+                updateCodeCmd.CommandText = "UPDATE Box SET Code = $code WHERE Id = $id";
+                updateCodeCmd.Parameters.AddWithValue("$code", manualCode);
+                updateCodeCmd.Parameters.AddWithValue("$id", boxId);
+                updateCodeCmd.ExecuteNonQuery();
+            }
+            else
+            {
+                manualCode = storedCode;
+            }
         }
 
         using (var assignCommand = connection.CreateCommand())
         {
             assignCommand.Transaction = transaction;
-            assignCommand.CommandText = "UPDATE PersonRequest SET BoxId = $boxId WHERE Destination = 'Caja' AND BoxId IS NULL";
+            assignCommand.CommandText = "UPDATE PersonRequest SET BoxId = $boxId WHERE Destination = 'Caja' AND BoxId IS NULL AND SinCarpeta = 0";
             assignCommand.Parameters.AddWithValue("$boxId", boxId);
             assignCommand.ExecuteNonQuery();
         }
 
         transaction.Commit();
-        return new Box { Id = boxId, Number = number, ClosedAt = closedAt };
+        return new Box { Id = boxId, Number = number, Code = manualCode, ClosedAt = closedAt };
+    }
+
+    public void ReopenBox(long boxId)
+    {
+        using var connection = Open();
+        using var transaction = connection.BeginTransaction();
+
+        // 1. Unpack all cases from this box back to the open queue (BoxId = NULL, Destination remains 'Caja')
+        using (var unpackCommand = connection.CreateCommand())
+        {
+            unpackCommand.Transaction = transaction;
+            unpackCommand.CommandText = "UPDATE PersonRequest SET BoxId = NULL WHERE BoxId = $boxId";
+            unpackCommand.Parameters.AddWithValue("$boxId", boxId);
+            unpackCommand.ExecuteNonQuery();
+        }
+
+        // 2. Delete the closed box record
+        using (var deleteCommand = connection.CreateCommand())
+        {
+            deleteCommand.Transaction = transaction;
+            deleteCommand.CommandText = "DELETE FROM Box WHERE Id = $boxId";
+            deleteCommand.Parameters.AddWithValue("$boxId", boxId);
+            deleteCommand.ExecuteNonQuery();
+        }
+
+        transaction.Commit();
+    }
+
+    public void RemoveCaseFromClosedBox(long personRequestId)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE PersonRequest
+            SET Destination = 'None', BoxId = NULL, TransferredAt = NULL
+            WHERE Id = $id
+            """;
+        command.Parameters.AddWithValue("$id", personRequestId);
+        command.ExecuteNonQuery();
     }
 
     public IReadOnlyList<Box> GetBoxes()
@@ -775,12 +904,22 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         return results;
     }
 
-    private static Box MapBox(SqliteDataReader reader) => new()
+    private static Box MapBox(SqliteDataReader reader)
     {
-        Id = reader.GetInt64(reader.GetOrdinal("Id")),
-        Number = reader.GetInt32(reader.GetOrdinal("Number")),
-        ClosedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ClosedAt")))
-    };
+        var codeOrdinal = reader.GetOrdinal("Code");
+        var number = reader.GetInt32(reader.GetOrdinal("Number"));
+        var code = !reader.IsDBNull(codeOrdinal) && !string.IsNullOrWhiteSpace(reader.GetString(codeOrdinal))
+            ? reader.GetString(codeOrdinal)
+            : $"A{number}-CD";
+
+        return new Box
+        {
+            Id = reader.GetInt64(reader.GetOrdinal("Id")),
+            Number = number,
+            Code = code,
+            ClosedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ClosedAt")))
+        };
+    }
 
     private SqliteConnection Open()
     {
@@ -789,34 +928,64 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         return connection;
     }
 
-    private static PersonRequest Map(SqliteDataReader reader) => new()
+        private static PersonRequest Map(SqliteDataReader reader)
     {
-        Id = reader.GetInt64(reader.GetOrdinal("Id")),
-        FullName = reader.IsDBNull(reader.GetOrdinal("FullName")) ? null : reader.GetString(reader.GetOrdinal("FullName")),
-        Rut = reader.IsDBNull(reader.GetOrdinal("Rut")) ? null : reader.GetString(reader.GetOrdinal("Rut")),
-        Comuna = reader.IsDBNull(reader.GetOrdinal("Comuna")) ? null : reader.GetString(reader.GetOrdinal("Comuna")),
-        SourceMessageId = reader.GetString(reader.GetOrdinal("SourceMessageId")),
-        SourceConversationId = reader.IsDBNull(reader.GetOrdinal("SourceConversationId")) ? null : reader.GetString(reader.GetOrdinal("SourceConversationId")),
-        SourceSubject = reader.GetString(reader.GetOrdinal("SourceSubject")),
-        SourceSender = reader.GetString(reader.GetOrdinal("SourceSender")),
-        NeedsReview = reader.GetInt32(reader.GetOrdinal("NeedsReview")) == 1,
-        Status = Enum.Parse<RequestStatus>(reader.GetString(reader.GetOrdinal("Status"))),
-        ReceivedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ReceivedAt"))),
-        FechaUltimaCarpeta = reader.IsDBNull(reader.GetOrdinal("FechaUltimaCarpeta")) ? null : DateOnly.Parse(reader.GetString(reader.GetOrdinal("FechaUltimaCarpeta"))),
-        UploadedAt = reader.IsDBNull(reader.GetOrdinal("UploadedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("UploadedAt"))),
-        ConfirmedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmedAt"))),
-        ConfirmedByUserId = reader.IsDBNull(reader.GetOrdinal("ConfirmedByUserId")) ? null : reader.GetInt64(reader.GetOrdinal("ConfirmedByUserId")),
-        CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
-        Marked = reader.GetInt32(reader.GetOrdinal("Marked")) == 1,
-        MarkedAt = reader.IsDBNull(reader.GetOrdinal("MarkedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("MarkedAt"))),
-        SinCarpeta = reader.GetInt32(reader.GetOrdinal("SinCarpeta")) == 1,
-        SectorPdfGeneratedAt = reader.IsDBNull(reader.GetOrdinal("SectorPdfGeneratedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("SectorPdfGeneratedAt"))),
-        FolderNotFound = reader.GetInt32(reader.GetOrdinal("FolderNotFound")) == 1,
-        PendienteCarpeta = reader.GetInt32(reader.GetOrdinal("PendienteCarpeta")) == 1,
-        CodigoF8 = reader.IsDBNull(reader.GetOrdinal("CodigoF8")) ? null : reader.GetString(reader.GetOrdinal("CodigoF8")),
-        Destination = Enum.Parse<CaseDestination>(reader.GetString(reader.GetOrdinal("Destination"))),
-        TransferredAt = reader.IsDBNull(reader.GetOrdinal("TransferredAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("TransferredAt"))),
-        ConfirmationBouncedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmationBouncedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmationBouncedAt"))),
-        BoxId = reader.IsDBNull(reader.GetOrdinal("BoxId")) ? null : reader.GetInt64(reader.GetOrdinal("BoxId"))
-    };
+        long? GetNullableInt64(string name)
+        {
+            try
+            {
+                var ord = reader.GetOrdinal(name);
+                return reader.IsDBNull(ord) ? null : reader.GetInt64(ord);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        bool GetBoolean(string name)
+        {
+            try
+            {
+                var ord = reader.GetOrdinal(name);
+                return !reader.IsDBNull(ord) && reader.GetInt32(ord) == 1;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        return new PersonRequest
+        {
+            Id = reader.GetInt64(reader.GetOrdinal("Id")),
+            FullName = reader.IsDBNull(reader.GetOrdinal("FullName")) ? null : reader.GetString(reader.GetOrdinal("FullName")),
+            Rut = reader.IsDBNull(reader.GetOrdinal("Rut")) ? null : reader.GetString(reader.GetOrdinal("Rut")),
+            Comuna = reader.IsDBNull(reader.GetOrdinal("Comuna")) ? null : reader.GetString(reader.GetOrdinal("Comuna")),
+            SourceMessageId = reader.GetString(reader.GetOrdinal("SourceMessageId")),
+            SourceConversationId = reader.IsDBNull(reader.GetOrdinal("SourceConversationId")) ? null : reader.GetString(reader.GetOrdinal("SourceConversationId")),
+            SourceSubject = reader.GetString(reader.GetOrdinal("SourceSubject")),
+            SourceSender = reader.GetString(reader.GetOrdinal("SourceSender")),
+            NeedsReview = reader.GetInt32(reader.GetOrdinal("NeedsReview")) == 1,
+            Status = Enum.Parse<RequestStatus>(reader.GetString(reader.GetOrdinal("Status"))),
+            ReceivedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ReceivedAt"))),
+            FechaUltimaCarpeta = reader.IsDBNull(reader.GetOrdinal("FechaUltimaCarpeta")) ? null : DateOnly.Parse(reader.GetString(reader.GetOrdinal("FechaUltimaCarpeta"))),
+            UploadedAt = reader.IsDBNull(reader.GetOrdinal("UploadedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("UploadedAt"))),
+            ConfirmedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmedAt"))),
+            ConfirmedByUserId = reader.IsDBNull(reader.GetOrdinal("ConfirmedByUserId")) ? null : reader.GetInt64(reader.GetOrdinal("ConfirmedByUserId")),
+            CreatedAt = DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("CreatedAt"))),
+            Marked = reader.GetInt32(reader.GetOrdinal("Marked")) == 1,
+            MarkedAt = reader.IsDBNull(reader.GetOrdinal("MarkedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("MarkedAt"))),
+            SinCarpeta = reader.GetInt32(reader.GetOrdinal("SinCarpeta")) == 1,
+            SectorPdfGeneratedAt = reader.IsDBNull(reader.GetOrdinal("SectorPdfGeneratedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("SectorPdfGeneratedAt"))),
+            FolderNotFound = reader.GetInt32(reader.GetOrdinal("FolderNotFound")) == 1,
+            PendienteCarpeta = reader.GetInt32(reader.GetOrdinal("PendienteCarpeta")) == 1,
+            CodigoF8 = reader.IsDBNull(reader.GetOrdinal("CodigoF8")) ? null : reader.GetString(reader.GetOrdinal("CodigoF8")),
+            Destination = Enum.Parse<CaseDestination>(reader.GetString(reader.GetOrdinal("Destination"))),
+            TransferredAt = reader.IsDBNull(reader.GetOrdinal("TransferredAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("TransferredAt"))),
+            ConfirmationBouncedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmationBouncedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmationBouncedAt"))),
+            BoxId = GetNullableInt64("BoxId"),
+            SoloCaja = GetBoolean("SoloCaja")
+        };
+    }
 }
