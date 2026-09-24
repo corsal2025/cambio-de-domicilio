@@ -366,6 +366,7 @@ div.app-subnav span.app-subnav-label {
 
 a.nav-casos,
 a.nav-f8,
+a.nav-caja,
 a.nav-estadisticas,
 a.nav-pdf-archivo,
 a.nav-pdf-oficina43 {
@@ -398,6 +399,14 @@ a.nav-f8 {
 }
 a.nav-f8:hover { background: rgba(251, 191, 36, 0.22); color: #ffffff; }
 a.nav-f8.active { background: #d97706; color: #ffffff; border-color: #fbbf24; font-weight: 700; }
+
+a.nav-caja {
+    background: rgba(34, 197, 94, 0.14);
+    color: #bbf7d0;
+    border-color: rgba(34, 197, 94, 0.32);
+}
+a.nav-caja:hover { background: rgba(34, 197, 94, 0.24); color: #ffffff; }
+a.nav-caja.active { background: #16a34a; color: #ffffff; border-color: #4ade80; font-weight: 700; }
 
 a.nav-estadisticas {
     background: rgba(168, 85, 247, 0.12);
@@ -1777,4 +1786,46 @@ table.cases-index tbody tr.row-highlight-target input.input-inline {
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+}
+
+
+/* ── Navigation icons (header + sub-nav) ─────────────────────────────────────
+   Every nav button carries an inline SVG (Shared/_NavIcon.cshtml) left of its label. */
+.nav-icon {
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+
+nav.app-nav a:hover .nav-icon,
+.app-subnav a:hover .nav-icon,
+nav.app-nav a.active .nav-icon,
+.app-subnav a.active .nav-icon {
+    opacity: 1;
+}
+
+.nav-search button,
+.nav-search .nav-search-clear,
+#sync-form button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+nav.app-nav a,
+.app-subnav a,
+.nav-search button,
+#sync-form button {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+nav.app-nav a:focus-visible,
+.app-subnav a:focus-visible,
+.nav-search button:focus-visible,
+#sync-form button:focus-visible {
+    outline: 2px solid #7dd3fc;
+    outline-offset: 2px;
+}
+
+.app-subnav a:hover {
+    transform: translateY(-1px);
 }

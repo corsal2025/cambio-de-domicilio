@@ -199,14 +199,14 @@
             <small>Municipalidad de Valparaíso — Documento F8 por sector</small>
         </div>
         <nav class="app-nav">
-            <a asp-page="/SectorF8" asp-route-sector="Archivo" class="@(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Archivo ? "active" : "")">PDF Archivo</a>
-            <a asp-page="/SectorF8" asp-route-sector="Oficina43" class="@(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Oficina43 ? "active" : "")">PDF Oficina 43</a>
+            <a asp-page="/SectorF8" asp-route-sector="Archivo" class="@(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Archivo ? "active" : "")"><partial name="_NavIcon" model="@("pdf")" /><span>PDF Archivo</span></a>
+            <a asp-page="/SectorF8" asp-route-sector="Oficina43" class="@(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Oficina43 ? "active" : "")"><partial name="_NavIcon" model="@("pdf")" /><span>PDF Oficina 43</span></a>
         </nav>
     </header>
     <div class="app-subnav no-print">
         <span class="app-subnav-label">Otros sistemas</span>
-        <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
-        <a asp-page="/F8" class="nav-f8">F8</a>
+        <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+        <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
     </div>
 
     <main>

@@ -109,18 +109,18 @@
         </div>
         <nav class="app-nav">
             <div class="nav-group">
-                <a asp-page="/Index">Volver a Casos</a>
-                <a asp-page="/F8">F8</a>
+                <a asp-page="/Index"><partial name="_NavIcon" model="@("back")" /><span>Volver a Casos</span></a>
+                <a asp-page="/F8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
             </div>
         </nav>
     </header>
     <div class="app-subnav no-print">
         <div class="app-subnav-main">
             <span class="app-subnav-label">Sistemas</span>
-            <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
-            <a asp-page="/F8" class="nav-f8">F8</a>
-            <a asp-page="/Caja" class="nav-f8" style="background: rgba(34,197,94,0.14); color:#bbf7d0; border-color: rgba(34,197,94,0.32);">Caja</a>
-            <a asp-page="/Estadísticas" class="nav-estadisticas">Estadísticas</a>
+            <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/Caja" class="nav-caja active"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
         </div>
     </div>
 

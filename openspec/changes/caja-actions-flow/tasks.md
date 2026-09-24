@@ -46,8 +46,8 @@
 
 ## 6b. UI: icon navigation buttons
 
-- [ ] 6b.1 Create a `_NavIcon` partial (SVG) plus `.nav-*` styles
-- [ ] 6b.2 Apply it to the header and sub-nav buttons on every page
+- [x] 6b.1 Create a `_NavIcon` partial (SVG) plus `.nav-*` styles
+- [x] 6b.2 Apply it to the header and sub-nav buttons on every page
 
 ## 5. Pages: handlers
 

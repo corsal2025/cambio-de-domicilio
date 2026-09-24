@@ -22,12 +22,12 @@
         </div>
         <nav class="app-nav">
             <div class="nav-group nav-group-filters">
-                <a asp-page="/Index" class="@(Model.StatusFilter is null && !Model.OnlyNeedsReview && string.IsNullOrEmpty(Model.SearchQuery) ? "active" : "")">Todos</a>
-                <a asp-page="/Index" asp-route-status="Pending" class="@(Model.StatusFilter == "Pending" ? "active" : "")">Pendientes</a>
-                <a asp-page="/Index" asp-route-status="Uploaded" class="@(Model.StatusFilter == "Uploaded" ? "active" : "")">Subidos</a>
-                <a asp-page="/Index" asp-route-status="Confirmed" class="@(Model.StatusFilter == "Confirmed" ? "active" : "")">Confirmados</a>
+                <a asp-page="/Index" class="@(Model.StatusFilter is null && !Model.OnlyNeedsReview && string.IsNullOrEmpty(Model.SearchQuery) ? "active" : "")"><partial name="_NavIcon" model="@("list")" /><span>Todos</span></a>
+                <a asp-page="/Index" asp-route-status="Pending" class="@(Model.StatusFilter == "Pending" ? "active" : "")"><partial name="_NavIcon" model="@("clock")" /><span>Pendientes</span></a>
+                <a asp-page="/Index" asp-route-status="Uploaded" class="@(Model.StatusFilter == "Uploaded" ? "active" : "")"><partial name="_NavIcon" model="@("upload")" /><span>Subidos</span></a>
+                <a asp-page="/Index" asp-route-status="Confirmed" class="@(Model.StatusFilter == "Confirmed" ? "active" : "")"><partial name="_NavIcon" model="@("check")" /><span>Confirmados</span></a>
                 <a asp-page="/Index" asp-route-needsReview="true" class="@(Model.OnlyNeedsReview ? "active" : "")">
-                    Requiere revisión
+                    <partial name="_NavIcon" model="@("alert")" /><span>Requiere revisión</span>
                     @if (Model.NeedsReviewCount > 0)
                     {
                         <span class="badge badge-review">@Model.NeedsReviewCount</span>
@@ -36,16 +36,16 @@
                 @if (Model.BouncedCount > 0)
                 {
                     <a asp-page="/Index" asp-route-bounced="true" class="@(Model.OnlyBounced ? "active" : "")">
-                        Rebotados
+                        <partial name="_NavIcon" model="@("bounce")" /><span>Rebotados</span>
                         <span class="badge badge-bounced">@Model.BouncedCount</span>
                     </a>
                 }
             </div>
 
             <div class="nav-group nav-group-tools">
-                <a asp-page="/Comunas">Comunas</a>
+                <a asp-page="/Comunas"><partial name="_NavIcon" model="@("map")" /><span>Comunas</span></a>
                 <a asp-page="/Discarded">
-                    Descartados
+                    <partial name="_NavIcon" model="@("discarded")" /><span>Descartados</span>
                     @if (Model.DiscardedCount > 0)
                     {
                         <span class="badge badge-review">@Model.DiscardedCount</span>
@@ -59,33 +59,31 @@
                     <input type="hidden" name="needsReview" value="@Model.OnlyNeedsReview" />
                     <input type="hidden" name="bounced" value="@Model.OnlyBounced" />
                     <input type="text" name="search" id="search-input" placeholder="Buscar por RUT o nombre..." value="@Model.SearchQuery" data-had-value="@(!string.IsNullOrEmpty(Model.SearchQuery) ? "true" : "false")" oninput="formatSearchRut(this); clearSearchIfEmpty(this)" />
-                    <button type="submit" class="nav-pill">Buscar</button>
+                    <button type="submit" class="nav-pill"><partial name="_NavIcon" model="@("search")" /><span>Buscar</span></button>
                     @if (!string.IsNullOrEmpty(Model.SearchQuery))
                     {
-                        <a asp-page="/Index" asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" asp-route-bounced="@Model.OnlyBounced" class="nav-search-clear">Limpiar</a>
+                        <a asp-page="/Index" asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" asp-route-bounced="@Model.OnlyBounced" class="nav-search-clear"><partial name="_NavIcon" model="@("clear")" /><span>Limpiar</span></a>
                     }
                 </form>
-                <form method="post" asp-page-handler="SyncNow" id="sync-form" onsubmit="return handleSyncSubmit(this);"><button type="submit" class="nav-pill nav-sync">Sincronizar ahora</button></form>
+                <form method="post" asp-page-handler="SyncNow" id="sync-form" onsubmit="return handleSyncSubmit(this);"><button type="submit" class="nav-pill nav-sync"><partial name="_NavIcon" model="@("sync")" /><span>Sincronizar ahora</span></button></form>
             </div>
         </nav>
     </header>
     <div class="app-subnav">
         <div class="app-subnav-main">
             <span class="app-subnav-label">Sistemas</span>
-            <a asp-page="/Index" class="nav-casos active">Cambio de Domicilio</a>
-            <a asp-page="/F8" class="nav-f8">F8</a>
-            <a asp-page="/Caja" class="nav-f8" style="background: rgba(34,197,94,0.14); color:#bbf7d0; border-color: rgba(34,197,94,0.32);">Caja</a>
-            <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
+            <a asp-page="/Index" class="nav-casos active"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
         </div>
         <div class="app-subnav-docs">
             <span class="app-subnav-label">Documentos</span>
             <a asp-page="/Sector" asp-route-sector="Archivo" class="nav-pdf-archivo" title="Generar listado para Archivo">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-                PDF Archivo
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Archivo</span>
             </a>
             <a asp-page="/Sector" asp-route-sector="Oficina43" class="nav-pdf-oficina43" title="Generar listado para Oficina 43">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-                PDF Oficina 43
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Oficina 43</span>
             </a>
         </div>
     </div>

@@ -21,28 +21,27 @@
         </div>
         <nav class="app-nav">
             <div class="nav-group">
-                <a asp-page="/Index">Volver a Casos</a>
-                <a asp-page="/Comunas">Comunas</a>
-                <a asp-page="/Discarded" class="active">Descartados</a>
+                <a asp-page="/Index"><partial name="_NavIcon" model="@("back")" /><span>Volver a Casos</span></a>
+                <a asp-page="/Comunas"><partial name="_NavIcon" model="@("map")" /><span>Comunas</span></a>
+                <a asp-page="/Discarded" class="active"><partial name="_NavIcon" model="@("discarded")" /><span>Descartados</span></a>
             </div>
         </nav>
     </header>
     <div class="app-subnav">
         <div class="app-subnav-main">
             <span class="app-subnav-label">Sistemas</span>
-            <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
-            <a asp-page="/F8" class="nav-f8">F8</a>
-            <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
+            <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
         </div>
         <div class="app-subnav-docs">
             <span class="app-subnav-label">Documentos</span>
             <a asp-page="/Sector" asp-route-sector="Archivo" class="nav-pdf-archivo" title="Generar listado para Archivo">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-                PDF Archivo
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Archivo</span>
             </a>
             <a asp-page="/Sector" asp-route-sector="Oficina43" class="nav-pdf-oficina43" title="Generar listado para Oficina 43">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-                PDF Oficina 43
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Oficina 43</span>
             </a>
         </div>
     </div>
