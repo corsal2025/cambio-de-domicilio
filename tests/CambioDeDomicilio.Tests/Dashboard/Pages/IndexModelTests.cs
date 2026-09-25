@@ -847,6 +847,58 @@ public class IndexModelTests : IDisposable
         Assert.Equal("Uploaded", result.RouteValues["status"]);
     }
 
+    [Fact]
+    public void OnGet_SearchMatchesCaseInSecondListingWithSameCode_ReportsExactListingAndPosition()
+    {
+        var sentAt = new DateTimeOffset(2026, 9, 24, 10, 0, 0, TimeSpan.Zero);
+        var firstBoxCase = repository.Insert(OtherPerson("msg-a", "12.345.678-5"));
+        repository.SetDestination(firstBoxCase, CaseDestination.Caja, sentAt);
+        repository.CloseBox("A1-CD", sentAt.AddMinutes(1));
+
+        var before = repository.Insert(OtherPerson("msg-b", "9.868.019-K"));
+        repository.SetDestination(before, CaseDestination.Caja, sentAt.AddMinutes(2));
+        var target = repository.Insert(NewRequest("msg-target"));
+        repository.SetDestination(target, CaseDestination.Caja, sentAt.AddMinutes(3));
+        var secondClosedAt = sentAt.AddMinutes(4);
+        var secondBox = repository.CloseBox("A1-CD", secondClosedAt);
+
+        model.OnGet(status: null, search: "18.785.387-7");
+
+        var location = Assert.Single(model.CajaMatches);
+        Assert.Equal(target, location.CaseId);
+        Assert.Equal(secondBox.Id, location.BoxId);
+        Assert.Equal("A1-CD", location.BoxCode);
+        Assert.Equal(secondClosedAt, location.ClosedAt);
+        Assert.Equal(2, location.Position);
+    }
+
+    [Fact]
+    public void OnGet_SearchMatchesCaseInQueue_ReportsQueuePosition()
+    {
+        var sentAt = new DateTimeOffset(2026, 9, 24, 10, 0, 0, TimeSpan.Zero);
+        var first = repository.Insert(OtherPerson("msg-a", "12.345.678-5"));
+        repository.SetDestination(first, CaseDestination.Caja, sentAt);
+        var second = repository.Insert(OtherPerson("msg-b", "9.868.019-K"));
+        repository.SetDestination(second, CaseDestination.Caja, sentAt.AddMinutes(1));
+        var target = repository.Insert(NewRequest("msg-target"));
+        repository.SetDestination(target, CaseDestination.Caja, sentAt.AddMinutes(2));
+
+        model.OnGet(status: null, search: "18.785.387-7");
+
+        var location = Assert.Single(model.CajaMatches);
+        Assert.Null(location.BoxId);
+        Assert.Equal("cola de Caja", location.BoxCode);
+        Assert.Equal(3, location.Position);
+    }
+
+    private static PersonRequest OtherPerson(string sourceMessageId, string rut)
+    {
+        var request = NewRequest(sourceMessageId);
+        request.FullName = "OTRA PERSONA DISTINTA";
+        request.Rut = rut;
+        return request;
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId) => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",

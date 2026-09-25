@@ -121,16 +121,44 @@
                 </div>
             }
 
-            if (Model.CajaMatchCount > 0)
+            if (Model.CajaMatches.Count > 0)
             {
-                <div class="cross-search-banner" style="background: #f0fdf4; border-color: #86efac; color: #166534;">
-                    <span class="cross-search-icon">📦</span>
-                    <div class="cross-search-text">
-                        Carpeta física ubicada en <strong>@Model.CajaMatchBoxCode</strong> (@Model.CajaMatchCount caso(s)).
+                <div class="caja-location-banner">
+                    <div class="caja-location-title">
+                        <partial name="_NavIcon" model="@("caja")" />
+                        <span>Carpeta física en Caja — ubicación exacta</span>
                     </div>
-                    <a asp-page="/Caja" class="btn-cross-search" style="background: #16a34a; border-color: #15803d;">
-                        Ver en Caja &rarr;
-                    </a>
+                    <ul class="caja-location-list">
+                    @foreach (var location in Model.CajaMatches)
+                    {
+                        <li class="caja-location-item">
+                            <span class="caja-location-name">@location.FullName</span>
+                            @if (location.BoxId is { } locationBoxId)
+                            {
+                                <span class="caja-location-where">
+                                    Caja <strong>@location.BoxCode</strong>
+                                    · listado cerrado el <strong>@(location.ClosedAt?.LocalDateTime.ToString("dd-MM-yyyy HH:mm"))</strong>
+                                    · <span class="caja-location-position">N° @location.Position</span>
+                                </span>
+                                <a asp-page="/Caja" asp-route-boxId="@locationBoxId" asp-route-highlightId="@location.CaseId" asp-fragment="case-@location.CaseId"
+                                   class="btn-action btn-action--caja" title="Abrir ese listado con la carpeta resaltada">
+                                    <partial name="_ActionIcon" model="@("caja")" /><span>Ir al listado</span>
+                                </a>
+                            }
+                            else
+                            {
+                                <span class="caja-location-where">
+                                    <strong>Cola de Caja</strong> (aún sin cerrar)
+                                    · <span class="caja-location-position">N° @location.Position</span>
+                                </span>
+                                <a asp-page="/Caja" asp-route-highlightId="@location.CaseId" asp-fragment="case-@location.CaseId"
+                                   class="btn-action btn-action--caja" title="Abrir la cola con la carpeta resaltada">
+                                    <partial name="_ActionIcon" model="@("caja")" /><span>Ir a la cola</span>
+                                </a>
+                            }
+                        </li>
+                    }
+                    </ul>
                 </div>
             }
         }

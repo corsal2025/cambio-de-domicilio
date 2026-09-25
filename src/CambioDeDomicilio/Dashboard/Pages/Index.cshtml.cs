@@ -43,6 +43,10 @@ public class IndexModel(
     public long? F8FirstMatchId { get; private set; }
     public int CajaMatchCount { get; private set; }
     public string? CajaMatchBoxCode { get; private set; }
+
+    /// <summary>Exact physical location of every searched case that is in Caja: which listing
+    /// (box Id — codes can repeat), its close date, and the N° it has in that printed listing.</summary>
+    public IReadOnlyList<CajaLocation> CajaMatches { get; private set; } = [];
     /// <summary>Result of the last action. Carried across a redirect through TempData (see
     /// <see cref="PersistMessageForRedirect"/>) and read once in OnGet.</summary>
     public string? Message { get; set; }
@@ -483,10 +487,9 @@ public class IndexModel(
             F8FirstMatchId = f8Matches.FirstOrDefault()?.Id;
 
             var cajaMatches = everything.Where(c => c.Destination == CaseDestination.Caja && MatchesQuery(c, query)).ToList();
-            CajaMatchCount = cajaMatches.Count;
-            CajaMatchBoxCode = cajaMatches.FirstOrDefault()?.BoxId is { } boxId
-                ? repository.FindBoxById(boxId)?.Code
-                : cajaMatches.Count > 0 ? "cola de Caja" : null;
+            CajaMatches = cajaMatches.Select(LocateInCaja).ToList();
+            CajaMatchCount = CajaMatches.Count;
+            CajaMatchBoxCode = CajaMatches.FirstOrDefault()?.BoxCode;
         }
 
         // Marked cases (checkbox "Marcar") float to the very top, ordered by MarkedAt ascending —
@@ -510,6 +513,29 @@ public class IndexModel(
             .ToList();
     }
 
+    /// <summary>Position is the 1-based index in the same ordered list the Caja page prints
+    /// (GetCasesByBoxId / GetCajaQueue), so the N° shown here matches the paper listing.</summary>
+    private CajaLocation LocateInCaja(PersonRequest match)
+    {
+        if (match.BoxId is { } boxId)
+        {
+            var box = repository.FindBoxById(boxId);
+            var position = IndexOf(repository.GetCasesByBoxId(boxId), match.Id);
+            return new CajaLocation(match.Id, match.FullName, boxId, box?.Code ?? $"#{boxId}", box?.ClosedAt, position);
+        }
+
+        return new CajaLocation(match.Id, match.FullName, null, "cola de Caja", null, IndexOf(repository.GetCajaQueue(), match.Id));
+    }
+
+    private static int IndexOf(IReadOnlyList<PersonRequest> cases, long id)
+    {
+        for (var i = 0; i < cases.Count; i++)
+        {
+            if (cases[i].Id == id) return i + 1;
+        }
+        return 0;
+    }
+
     private static bool MatchesQuery(PersonRequest c, string query)
     {
         var queryClean = query.Replace(".", string.Empty).Replace("-", string.Empty);
@@ -518,3 +544,6 @@ public class IndexModel(
                rutClean.Contains(queryClean, StringComparison.OrdinalIgnoreCase);
     }
 }
+
+/// <summary>Where a searched case physically is inside Caja. BoxId null means the open queue.</summary>
+public sealed record CajaLocation(long CaseId, string? FullName, long? BoxId, string BoxCode, DateTimeOffset? ClosedAt, int Position);

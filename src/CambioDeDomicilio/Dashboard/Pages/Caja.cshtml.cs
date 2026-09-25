@@ -24,8 +24,12 @@ public class CajaModel(IPersonRequestRepository repository) : PageModel
     [TempData]
     public string? Message { get; set; }
 
-    public void OnGet(long? boxId)
+    /// <summary>Case to highlight and scroll to (from the Casos search banner).</summary>
+    public long? HighlightId { get; private set; }
+
+    public void OnGet(long? boxId, long? highlightId = null)
     {
+        HighlightId = highlightId;
         Load(boxId);
     }
 

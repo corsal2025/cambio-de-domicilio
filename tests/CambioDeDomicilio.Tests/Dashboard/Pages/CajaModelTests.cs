@@ -45,6 +45,16 @@ public class CajaModelTests : IDisposable
         Assert.Equal(queuedId, Assert.Single(repository.GetCasesByBoxId(newBox.Id)).Id);
     }
 
+    [Fact]
+    public void OnGet_WithHighlightId_ExposesItForTheTargetRow()
+    {
+        var id = QueueCase("msg-1", "12.345.678-5");
+
+        model.OnGet(boxId: null, highlightId: id);
+
+        Assert.Equal(id, model.HighlightId);
+    }
+
     private long QueueCase(string sourceMessageId, string rut)
     {
         var id = repository.Insert(new PersonRequest
