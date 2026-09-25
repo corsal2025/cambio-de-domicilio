@@ -16,5 +16,5 @@
 ## 3. Verification (MANDATORY - AGENT MUST EXECUTE)
 
 - [x] 3.1 Full `dotnet test`
-- [ ] 3.2 Browser check in the live app (read-only): search is kept after a harmless POST (toggle Marcar on/off on one row, then restore it)
-- [ ] 3.3 Deploy with DB backup; commit, push, PR, merge
+- [x] 3.2 Browser check in the live app (read-only): search is kept after a harmless POST (toggle Marcar on/off on one row, then restore it)
+- [x] 3.3 Deploy with DB backup; commit, push, PR, merge
