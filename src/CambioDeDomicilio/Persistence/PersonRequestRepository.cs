@@ -37,8 +37,8 @@ public interface IPersonRequestRepository
     /// No email is sent.</summary>
     void RevertF8AndReturnToCasos(long id);
 
-    /// <summary>"Sin carpeta" on an F8 case: records ClosedWithoutFolderAt and returns the case to
-    /// Casos (Destination None, TransferredAt cleared). No email is sent.</summary>
+    /// <summary>"Sin carpeta" on an F8 case: records ClosedWithoutFolderAt, clears the F8 flag and
+    /// returns the case to Casos (Destination None, TransferredAt cleared). No email is sent.</summary>
     void CloseWithoutFolder(long id, DateTimeOffset closedAt);
 
     void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long? confirmedByUserId = null);
@@ -706,7 +706,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         using var command = connection.CreateCommand();
         command.CommandText = """
             UPDATE PersonRequest
-            SET ClosedWithoutFolderAt = $closedAt, Destination = 'None', TransferredAt = NULL
+            SET ClosedWithoutFolderAt = $closedAt, FolderNotFound = 0, Destination = 'None', TransferredAt = NULL
             WHERE Id = $id
             """;
         command.Parameters.AddWithValue("$closedAt", closedAt.ToString("O"));

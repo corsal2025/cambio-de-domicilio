@@ -24,9 +24,18 @@ public class IndexModel(
 
     /// <summary>Confirmed cases whose confirmation email bounced (see <see cref="PersonRequest.ConfirmationBouncedAt"/>).</summary>
     public int BouncedCount { get; private set; }
+    // List state (filter + search) is bound on GET and on every POST, so each action's redirect
+    // returns the operator to the same filtered list (the page injects these as hidden fields).
+    [BindProperty(SupportsGet = true, Name = "status")]
     public string? StatusFilter { get; set; }
+
+    [BindProperty(SupportsGet = true, Name = "needsReview")]
     public bool OnlyNeedsReview { get; set; }
+
+    [BindProperty(SupportsGet = true, Name = "bounced")]
     public bool OnlyBounced { get; set; }
+
+    [BindProperty(SupportsGet = true, Name = "search")]
     public string? SearchQuery { get; set; }
 
     /// <summary>Number of matching cases found in F8 for this search query.</summary>
@@ -34,7 +43,11 @@ public class IndexModel(
     public long? F8FirstMatchId { get; private set; }
     public int CajaMatchCount { get; private set; }
     public string? CajaMatchBoxCode { get; private set; }
+    /// <summary>Result of the last action; TempData so it survives the post-redirect-get.</summary>
+    [TempData]
     public string? Message { get; set; }
+
+    [TempData]
     public bool MessageIsError { get; set; }
     public int PlazoDiasHabiles => options.PlazoDiasHabiles;
     public bool AllVisibleMarked => Cases.Count > 0 && Cases.All(c => c.Marked);

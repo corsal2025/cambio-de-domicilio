@@ -765,6 +765,45 @@ public class IndexModelTests : IDisposable
         Assert.Contains(model.Cases, c => c.Id == id && c.ClosedWithoutFolderAt is not null);
     }
 
+    [Theory]
+    [InlineData(nameof(IndexModel.StatusFilter), "status")]
+    [InlineData(nameof(IndexModel.OnlyNeedsReview), "needsReview")]
+    [InlineData(nameof(IndexModel.OnlyBounced), "bounced")]
+    [InlineData(nameof(IndexModel.SearchQuery), "search")]
+    public void ListStateProperties_AreBoundOnGetAndPost(string propertyName, string fieldName)
+    {
+        var bind = typeof(IndexModel).GetProperty(propertyName)!
+            .GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.BindPropertyAttribute), false)
+            .Cast<Microsoft.AspNetCore.Mvc.BindPropertyAttribute>()
+            .SingleOrDefault();
+
+        Assert.NotNull(bind);
+        Assert.True(bind!.SupportsGet);
+        Assert.Equal(fieldName, bind.Name);
+    }
+
+    [Fact]
+    public void Message_SurvivesRedirectViaTempData()
+    {
+        Assert.NotNull(typeof(IndexModel).GetProperty(nameof(IndexModel.Message))!
+            .GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.TempDataAttribute), false)
+            .SingleOrDefault());
+    }
+
+    [Fact]
+    public void OnPostSubirACaja_RedirectsWithCurrentListState()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        model.SearchQuery = "18.785.387-7";
+        model.StatusFilter = "Uploaded";
+
+        var result = Assert.IsType<Microsoft.AspNetCore.Mvc.RedirectToPageResult>(model.OnPostSubirACaja(id));
+
+        Assert.Equal("18.785.387-7", result.RouteValues!["search"]);
+        Assert.Equal("Uploaded", result.RouteValues["status"]);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId) => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",
