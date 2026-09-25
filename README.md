@@ -47,15 +47,11 @@ dotnet run --project src/CambioDeDomicilio -- --smoke-test
 
 ## Dashboard web
 
-El mismo proceso sirve un dashboard en `https://localhost:5001` (el puerto HTTP 5000 solo redirige, nunca entrega datos). Requiere login por usuario:
+El mismo proceso sirve un dashboard en `https://localhost:5001` (el puerto HTTP 5000 solo redirige, nunca entrega datos). No tiene login: corre en la red municipal y el acceso se controla a nivel de red, no de la aplicación.
 
-```powershell
-dotnet run --project src/CambioDeDomicilio -- --add-user operador
-```
+Desde el dashboard (`/Index`) el operador puede: ver los casos con su estado (Pendiente/Subido/Confirmado), filtrar por estado o por "Requiere revisión", marcar casos con un checkbox propio (organización personal, sin efecto en el flujo), editar el nombre/RUT de cualquier caso, editar la fecha de última carpeta (recalcula el sector al instante, se guarda solo al salir del campo), y confirmar con "Enviar confirmación" (casos Subidos) o "Marcar subida" (mueve el correo y confirma en un solo clic, con diálogo de confirmación porque es irreversible). Los casos Confirmados se resaltan en la tabla. Desde `/Sector/Archivo` o `/Sector/Oficina43` se genera el documento imprimible (imprimir del navegador → PDF) con los casos de ese sector.
 
-Desde el dashboard (`/Index`) el operador puede: ver los casos con su estado (Pendiente/Subido/Confirmado), filtrar por estado o por "Requiere revisión", marcar casos con un checkbox propio (organización personal, sin efecto en el flujo), editar el nombre/RUT de cualquier caso, editar la fecha de última carpeta (recalcula el sector al instante, se guarda solo al salir del campo), y confirmar con "Enviar confirmación" (casos Subidos) o "Marcar subida" (mueve el correo y confirma en un solo clic, con diálogo de confirmación porque es irreversible). Los casos Confirmados se resaltan en la tabla. Desde `/Sector/Archivo` o `/Sector/Oficina43` se genera el documento imprimible (imprimir del navegador → PDF) con los casos de ese sector. Desde `/ChangePassword` el operador cambia su contraseña y configura un correo de recuperación opcional; `/ForgotPassword` envía un enlace de un solo uso (30 min) si el correo está configurado.
-
-Ver `deploy/README.md` para el detalle de certificado HTTPS y creación de usuarios en producción.
+Ver `deploy/README.md` para el detalle del certificado HTTPS en producción.
 
 ## Pruebas
 
@@ -87,11 +83,11 @@ y checklist paso a paso en [`deploy/README.md`](deploy/README.md).
 
 **Publicación unificada** (un solo comando):
 ```powershell
-.\deploy\publish.ps1 -DevCert -InstallTask -Shortcut -AddUser operador
+.\deploy\publish.ps1 -DevCert -InstallTask -Shortcut
 ```
 
-Publica, copia datos, instala tarea, crea acceso directo y usuario del dashboard
-en un solo paso. Ver `deploy/README.md` para parámetros detallados.
+Publica, copia datos, instala tarea y crea acceso directo en un solo paso.
+Ver `deploy/README.md` para parámetros detallados.
 
 ### VPS (futuro)
 
@@ -110,7 +106,6 @@ src/CambioDeDomicilio/
   Directories/         # Import de directorio de comunas (CSV) + resolución por dominio/dirección exacta
   Ews/                 # Cliente EWS (SOAP crudo): lectura, envío, mover ítem, marcar no leído
   Mail/                # Interfaces de transporte de correo (IEmailReader, IEmailMover, IMailSender)
-  Dashboard/Auth/      # Login, PBKDF2, recuperación de contraseña por token de un solo uso
   Notifications/       # Plantillas de correo, canal de toast (Windows) y canal de correo
   Persistence/         # Repositorio SQLite (sin ORM)
   Reporting/           # Escritor del reporte CSV (incluye sector derivado)

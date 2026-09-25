@@ -1,554 +1,1178 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ==========================================================================
+   DESIGN TOKENS — MUNICIPALIDAD DE VALPARAÍSO
+   ========================================================================== */
 :root {
-    --color-primary: #0b3d68;
-    --color-primary-dark: #082a49;
-    --color-accent: #1a73b0;
-    --color-bg: #f4f6f8;
+    /* Paleta Institucional */
+    --color-primary: #0a3356;
+    --color-primary-dark: #062038;
+    --color-primary-light: #114b7d;
+    --color-accent: #0284c7;
+    --color-accent-hover: #0369a1;
+    --color-accent-subtle: #e0f2fe;
+
+    /* Superficies y Neutros */
+    --color-bg: #f8fafc;
     --color-surface: #ffffff;
-    --color-border: #d7dde3;
-    --color-text: #1f2933;
-    --color-text-muted: #5c6b7a;
-    --color-pending: #6b7280;
-    --color-pending-bg: #eceff1;
-    --color-uploaded: #926100;
-    --color-uploaded-bg: #fff3d6;
-    --color-confirmed: #1e7a3d;
-    --color-confirmed-bg: #e3f6e9;
-    --color-review: #a11d33;
-    --color-review-bg: #fbe4e8;
-    --radius: 6px;
-    --shadow-sm: 0 1px 2px rgba(15, 30, 45, 0.08);
+    --color-surface-subtle: #f1f5f9;
+    --color-surface-hover: #f8fafc;
+    --color-border: #e2e8f0;
+    --color-border-subtle: #f1f5f9;
+    --color-border-strong: #cbd5e1;
+
+    /* Tipografía */
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --color-text: #0f172a;
+    --color-text-secondary: #334155;
+    --color-text-muted: #64748b;
+    --color-text-inverse: #ffffff;
+
+    /* Semántica de Estados (Soft badging & accesible contrast) */
+    --color-pending: #475569;
+    --color-pending-bg: #f1f5f9;
+    --color-pending-border: #cbd5e1;
+
+    --color-uploaded: #92400e;
+    --color-uploaded-bg: #fef3c7;
+    --color-uploaded-border: #fde68a;
+
+    --color-confirmed: #065f46;
+    --color-confirmed-bg: #ecfdf5;
+    --color-confirmed-border: #a7f3d0;
+
+    --color-review: #991b1b;
+    --color-review-bg: #fef2f2;
+    --color-review-border: #fecaca;
+
+    --color-bounced: #9f1239;
+    --color-bounced-bg: #fff1f2;
+    --color-bounced-border: #fecdd3;
+
+    --color-f8: #374151;
+    --color-f8-bg: #f3f4f6;
+    --color-f8-border: #d1d5db;
+
+    /* Resaltados de fila en tabla (Suaves y armónicos) */
+    --row-marked-bg: #ecfdf5;
+    --row-marked-border: #a7f3d0;
+    --row-pendiente-bg: #fefce8;
+    --row-pendiente-border: #fde047;
+    --row-confirmed-bg: #f0fdf4;
+    --row-review-bg: #fff1f2;
+    --row-bounced-bg: #ffe4e6;
+    --row-f8-bg: #f3f4f6;
+
+    /* Radios */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-full: 9999px;
+    --radius: var(--radius-md);
+
+    /* Elevación / Sombras */
+    --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+    --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+    --shadow-header: 0 4px 20px -2px rgba(10, 51, 86, 0.15);
+
+    /* Transiciones */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* { box-sizing: border-box; }
+/* ==========================================================================
+   RESET Y BASE
+   ========================================================================== */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
 
-/* Nothing on any page is meant to need page-level horizontal scroll — the cases table has its
-   own internal overflow-x:auto (.table-card) precisely so its scrollbar stays reachable without
-   scrolling the whole page first. Without this, a wide table with nothing else constraining it
-   makes <html> itself grow past the viewport width instead of clipping inside .table-card, so
-   the *page* scrolls right instead of the table, and scroll-preserve.js (which only restores the
-   table's own scrollLeft, not window.scrollX) can't bring it back — read by the operator as the
-   whole screen "jumping to the left" on every reload. */
 html {
-    overflow-x: hidden;
+    font-size: 14px;
+    overflow-y: scroll;
+}
+
+html.cases-page-html,
+html:has(body.cases-page) {
+    /* auto, not hidden: this is a safety net, not the normal path. A correctly-sized window
+       never triggers it (content fits exactly in 100%, auto shows nothing). If any browser
+       quirk ever makes the flex chain a few px taller than the viewport, this gives the operator
+       a real, native scrollbar to reach it instead of silently clipping it away with no way to
+       get it back short of resizing the window. */
+    overflow: auto !important;
+    height: 100% !important;
+    max-height: 100% !important;
 }
 
 body {
     margin: 0;
-    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
     background: var(--color-bg);
     color: var(--color-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.45;
 }
 
+/* ==========================================================================
+   CABECERA INSTITUCIONAL
+   ========================================================================== */
 header.app-header {
-    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-    color: #fff;
-    padding: 14px 24px;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: var(--color-text-inverse);
+    padding: 10px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 10px;
-    box-shadow: var(--shadow-sm);
+    gap: 12px;
+    box-shadow: var(--shadow-header);
+    position: relative;
+    z-index: 20;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
 }
 
 header.app-header .brand {
     display: flex;
     align-items: center;
     gap: 14px;
-    font-weight: 600;
-    font-size: 1.35rem;
-    letter-spacing: 0.2px;
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
 }
 
 header.app-header .brand-logo {
-    height: 76px;
+    height: 72px;
     width: auto;
-    border-radius: 6px;
-    background: #fff;
-    padding: 3px;
+    border-radius: var(--radius-sm);
+    background: #ffffff;
+    padding: 3px 6px;
+    box-shadow: var(--shadow-sm);
+    object-fit: contain;
+}
+
+header.app-header .brand span {
+    display: flex;
+    flex-direction: column;
 }
 
 header.app-header .brand small {
     display: block;
-    font-weight: 400;
-    font-size: 0.9rem;
-    opacity: 0.85;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-}
-
-/* F8 and Certificado are their own separate systems (own screens, own data, own emails) — pulled
-   out of the main nav into a distinct strip so they read as "somewhere else", not mixed in with
-   the Cambio de Domicilio view filters and tools. */
-div.app-subnav {
-    background: #12212f;
-    padding: 8px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-div.app-subnav span.app-subnav-label {
-    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
     font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-right: 4px;
+    margin-top: 1px;
 }
 
+header.app-header .brand small:last-child {
+    font-weight: 600;
+    color: #38bdf8;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+}
+
+/* ==========================================================================
+   BARRA DE NAVEGACIÓN Y FILTROS
+   ========================================================================== */
 nav.app-nav {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 4px;
+    justify-content: flex-end;
+    gap: 8px;
     flex-wrap: wrap;
     flex: 1;
 }
 
-nav.app-nav a {
-    color: #eaf2fa;
-    text-decoration: none;
-    padding: 4px 9px;
-    border-radius: var(--radius);
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-    white-space: nowrap;
-    transition: background 0.15s ease;
-}
-
-nav.app-nav a:hover { background: rgba(255, 255, 255, 0.15); }
-nav.app-nav a.active { background: rgba(255, 255, 255, 0.22); font-weight: 600; }
-
-/* Every nav link/button is colored by what it does, reusing the same status colors already used
-   on the case-list badges (Pendiente/Subido/Confirmado/Requiere revisión) so a filter pill and the
-   rows it filters to visually agree — plus three more groups (documents, reference views, and
-   sync) that don't otherwise have an established color of their own. Pill shape + uppercase
-   matches the Casos/F8/Certificado subnav strip so the whole header reads as one system. */
-nav.app-nav a.nav-pill,
-nav.app-nav form button.nav-pill {
-    border-radius: 999px;
-    font-weight: 600;
-    border: 1px solid transparent;
-}
-
-nav.app-nav a.nav-filter-pending { background: rgba(107, 114, 128, 0.2); border-color: rgba(107, 114, 128, 0.7); color: #d7dbe0; }
-nav.app-nav a.nav-filter-pending:hover { background: rgba(107, 114, 128, 0.32); }
-nav.app-nav a.nav-filter-pending.active { background: rgba(107, 114, 128, 0.45); }
-
-nav.app-nav a.nav-filter-uploaded { background: rgba(255, 178, 29, 0.2); border-color: rgba(255, 178, 29, 0.7); color: #ffd479; }
-nav.app-nav a.nav-filter-uploaded:hover { background: rgba(255, 178, 29, 0.32); }
-nav.app-nav a.nav-filter-uploaded.active { background: rgba(255, 178, 29, 0.45); }
-
-nav.app-nav a.nav-filter-confirmed { background: rgba(30, 122, 61, 0.25); border-color: rgba(52, 199, 107, 0.7); color: #86efac; }
-nav.app-nav a.nav-filter-confirmed:hover { background: rgba(30, 122, 61, 0.38); }
-nav.app-nav a.nav-filter-confirmed.active { background: rgba(30, 122, 61, 0.5); }
-
-nav.app-nav a.nav-filter-review { background: rgba(161, 29, 51, 0.25); border-color: rgba(239, 68, 68, 0.7); color: #fca5a5; }
-nav.app-nav a.nav-filter-review:hover { background: rgba(161, 29, 51, 0.38); }
-nav.app-nav a.nav-filter-review.active { background: rgba(161, 29, 51, 0.5); }
-
-/* Documents: PDF generation and the bulk "select for this sector" actions that feed it — same
-   amber family as the F8 subnav pill, since both are ultimately about the printed folder list. */
-nav.app-nav a.nav-doc,
-nav.app-nav form button.nav-doc {
-    background: rgba(255, 196, 0, 0.18);
-    border-color: rgba(255, 196, 0, 0.6);
-    color: #ffe28a;
-}
-nav.app-nav a.nav-doc:hover, nav.app-nav form button.nav-doc:hover { background: rgba(255, 196, 0, 0.3); }
-
-/* Reference views: read-only lookups, not actions — kept neutral/muted on purpose. */
-nav.app-nav a.nav-reference {
-    background: rgba(148, 163, 184, 0.16);
-    border-color: rgba(148, 163, 184, 0.55);
-    color: #cbd5e1;
-}
-nav.app-nav a.nav-reference:hover { background: rgba(148, 163, 184, 0.28); }
-
-/* Sync/search: teal, same family as the Certificado subnav pill — an active, positive action. */
-nav.app-nav form.nav-search,
-nav.app-nav form button.nav-sync {
-    background: transparent;
-}
-nav.app-nav .nav-search button.nav-pill,
-nav.app-nav form button.nav-sync {
-    background: rgba(84, 199, 165, 0.18);
-    border-color: rgba(84, 199, 165, 0.6);
-    color: #a7ecd8;
-}
-nav.app-nav .nav-search button.nav-pill:hover,
-nav.app-nav form button.nav-sync:hover {
-    background: rgba(84, 199, 165, 0.3);
-}
-
-/* Account: neutral, same muted family as the reference-view pills. */
-nav.app-nav a.nav-account {
-    background: rgba(148, 163, 184, 0.16);
-    border-color: rgba(148, 163, 184, 0.55);
-    color: #cbd5e1;
-}
-nav.app-nav a.nav-account:hover { background: rgba(148, 163, 184, 0.28); }
-
-/* Logout: same red as Requiere revisión / btn-danger elsewhere in the app — an exit action. */
-nav.app-nav form button.nav-logout {
-    background: rgba(161, 29, 51, 0.25);
-    border-color: rgba(239, 68, 68, 0.7);
-    color: #fca5a5;
-}
-nav.app-nav form button.nav-logout:hover { background: rgba(161, 29, 51, 0.4); }
-
-/* Casos (Cambio de Domicilio), F8 and Certificado are the three separate tracks (their own
-   screens, own data, own emails) — a distinct pill per track marks each as "a different system".
-   Not scoped to nav.app-nav since they now live in their own div.app-subnav strip, always shown
-   together (including on each track's own page) so switching between them is one click from
-   anywhere. */
-a.nav-casos,
-a.nav-f8,
-a.nav-certificado,
-a.nav-estadisticas,
-a.nav-pdf-archivo,
-a.nav-pdf-oficina43 {
-    font-weight: 600;
-    border-radius: 999px;
-    padding: 6px 14px;
-    text-decoration: none;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    font-size: 0.82rem;
-    transition: background 0.15s ease;
-}
-
-/* Sky blue — distinct from F8's amber and Certificado's teal. */
-a.nav-casos {
-    background: rgba(56, 189, 248, 0.18);
-    border: 1px solid rgba(56, 189, 248, 0.6);
-    color: #a8e2fb;
-}
-a.nav-casos:hover { background: rgba(56, 189, 248, 0.3); }
-a.nav-casos.active { background: rgba(56, 189, 248, 0.4); }
-
-a.nav-f8 {
-    background: rgba(255, 196, 0, 0.18);
-    border: 1px solid rgba(255, 196, 0, 0.6);
-    color: #ffe28a;
-}
-a.nav-f8:hover { background: rgba(255, 196, 0, 0.3); }
-a.nav-f8.active { background: rgba(255, 196, 0, 0.4); }
-
-a.nav-certificado {
-    background: rgba(84, 199, 165, 0.18);
-    border: 1px solid rgba(84, 199, 165, 0.6);
-    color: #a7ecd8;
-}
-a.nav-certificado:hover { background: rgba(84, 199, 165, 0.3); }
-a.nav-certificado.active { background: rgba(84, 199, 165, 0.4); }
-
-/* Violet — statistics is a read-only reporting layer over the other three tracks, not a fourth
-   workflow, so it gets its own distinct color rather than reusing one of theirs. */
-a.nav-estadisticas {
-    background: rgba(167, 139, 250, 0.18);
-    border: 1px solid rgba(167, 139, 250, 0.6);
-    color: #d6c9fc;
-}
-a.nav-estadisticas:hover { background: rgba(167, 139, 250, 0.3); }
-a.nav-estadisticas.active { background: rgba(167, 139, 250, 0.4); }
-
-/* Archivo vs Oficina 43 get their own distinct colors (not both the same pill) so they read as
-   two different documents at a glance, matching the Archivo/Oficina43 sector split shown on the
-   case rows themselves. */
-a.nav-pdf-archivo {
-    background: rgba(148, 163, 184, 0.2);
-    border: 1px solid rgba(148, 163, 184, 0.7);
-    color: #dde3ea;
-}
-a.nav-pdf-archivo:hover { background: rgba(148, 163, 184, 0.32); }
-
-a.nav-pdf-oficina43 {
-    background: rgba(255, 196, 0, 0.18);
-    border: 1px solid rgba(255, 196, 0, 0.6);
-    color: #ffe28a;
-}
-a.nav-pdf-oficina43:hover { background: rgba(255, 196, 0, 0.3); }
-
-nav.app-nav form button {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    border-radius: var(--radius);
-    padding: 4px 9px;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-    white-space: nowrap;
-    cursor: pointer;
-}
-nav.app-nav form button:hover { background: rgba(255, 255, 255, 0.22); }
-
-/* Three logical groups (view filters | reference tools | search+actions) instead of one long
-   run of links — each group wraps as a unit and gets a divider, so on a narrow window the nav
-   breaks between groups rather than mid-group. nav-group-end pins right on wide screens via
-   margin-left:auto and drops that once the row wraps (flex-wrap puts it on its own line). */
 .nav-group {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 5px;
     flex-wrap: wrap;
-    padding: 2px 8px;
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 2px 10px;
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .nav-group:first-child {
-    padding-left: 0;
     border-left: none;
+    padding-left: 0;
 }
 
-/* No longer forced onto its own row (flex-basis:100%) — with the smaller pill size below, all
-   three groups (filters | tools | search+actions) now fit on one line at normal window widths,
-   which is the point of a single continuous nav strip instead of it wrapping into separate rows. */
 .nav-group-end {
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
-    padding-left: 8px;
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+    padding-left: 10px;
 }
 
+nav.app-nav a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    padding: 5px 11px;
+    border-radius: var(--radius-full);
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+nav.app-nav a:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+nav.app-nav a.active {
+    background: #ffffff;
+    color: var(--color-primary-dark);
+    border-color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+nav.app-nav a.active .badge {
+    background: var(--color-review);
+    color: #ffffff;
+}
+
+/* Acciones en la cabecera */
 .nav-search {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     align-items: center;
 }
 
 .nav-search input[type="text"] {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    border-radius: var(--radius);
-    padding: 4px 8px;
-    font-size: 0.7rem;
-    min-width: 140px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius-full);
+    padding: 5px 12px;
+    font-size: 0.76rem;
+    font-family: inherit;
+    min-width: 170px;
+    outline: none;
+    transition: all var(--transition-fast);
 }
 
 .nav-search input[type="text"]::placeholder {
-    color: rgba(255, 255, 255, 0.65);
+    color: rgba(255, 255, 255, 0.6);
 }
 
-.nav-search button {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    border-radius: var(--radius);
-    padding: 4px 9px;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.2px;
-    cursor: pointer;
+.nav-search input[type="text"]:focus {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
 }
-.nav-search button:hover { background: rgba(255, 255, 255, 0.22); }
+
+.nav-search button,
+nav.app-nav form button {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius-full);
+    padding: 5px 12px;
+    font-size: 0.76rem;
+    font-family: inherit;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+}
+
+.nav-search button:hover,
+nav.app-nav form button:hover {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+nav.app-nav form button.nav-sync {
+    background: #0284c7;
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
+}
+
+nav.app-nav form button.nav-sync:hover {
+    background: #0369a1;
+    border-color: #7dd3fc;
+}
 
 .nav-search-clear {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
+    color: #bae6fd;
     text-decoration: underline;
     white-space: nowrap;
 }
 
+.nav-search-clear:hover {
+    color: #ffffff;
+}
+
+/* ==========================================================================
+   SUB-NAVEGACIÓN (SISTEMAS Y DOCUMENTOS)
+   ========================================================================== */
+div.app-subnav {
+    background: #0b2238;
+    padding: 6px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: nowrap;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+}
+
+.app-subnav-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.app-subnav-docs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    margin-left: auto;
+    padding-left: 18px;
+    border-left: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+div.app-subnav span.app-subnav-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-right: 4px;
+    user-select: none;
+}
+
+a.nav-casos,
+a.nav-f8,
+a.nav-caja,
+a.nav-estadisticas,
+a.nav-pdf-archivo,
+a.nav-pdf-oficina43 {
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    padding: 5px 12px;
+    text-decoration: none;
+    font-size: 0.76rem;
+    letter-spacing: 0.01em;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+a.nav-casos {
+    background: rgba(56, 189, 248, 0.12);
+    color: #bae6fd;
+    border-color: rgba(56, 189, 248, 0.3);
+}
+a.nav-casos:hover { background: rgba(56, 189, 248, 0.22); color: #ffffff; }
+a.nav-casos.active { background: #0284c7; color: #ffffff; border-color: #38bdf8; font-weight: 700; }
+
+a.nav-f8 {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fef08a;
+    border-color: rgba(251, 191, 36, 0.3);
+}
+a.nav-f8:hover { background: rgba(251, 191, 36, 0.22); color: #ffffff; }
+a.nav-f8.active { background: #d97706; color: #ffffff; border-color: #fbbf24; font-weight: 700; }
+
+a.nav-caja {
+    background: rgba(34, 197, 94, 0.14);
+    color: #bbf7d0;
+    border-color: rgba(34, 197, 94, 0.32);
+}
+a.nav-caja:hover { background: rgba(34, 197, 94, 0.24); color: #ffffff; }
+a.nav-caja.active { background: #16a34a; color: #ffffff; border-color: #4ade80; font-weight: 700; }
+
+a.nav-estadisticas {
+    background: rgba(168, 85, 247, 0.12);
+    color: #e9d5ff;
+    border-color: rgba(168, 85, 247, 0.3);
+}
+a.nav-estadisticas:hover { background: rgba(168, 85, 247, 0.22); color: #ffffff; }
+a.nav-estadisticas.active { background: #7c3aed; color: #ffffff; border-color: #c084fc; font-weight: 700; }
+
+a.nav-pdf-archivo {
+    background: rgba(148, 163, 184, 0.18);
+    color: #f1f5f9;
+    border-color: rgba(148, 163, 184, 0.38);
+}
+a.nav-pdf-archivo:hover {
+    background: rgba(148, 163, 184, 0.3);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+a.nav-pdf-oficina43 {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fef08a;
+    border-color: rgba(245, 158, 11, 0.42);
+}
+a.nav-pdf-oficina43:hover {
+    background: rgba(245, 158, 11, 0.28);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+a.nav-pdf-archivo svg,
+a.nav-pdf-oficina43 svg {
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+
+/* ==========================================================================
+   BANNERS DE MENSAJE Y BÚSQUEDA CRUZADA
+   ========================================================================== */
+.message-banner {
+    padding: 9px 16px;
+    border-radius: var(--radius-md);
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-sm);
+}
+
+.message-banner.message-error {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.cross-search-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    background: #eff6ff;
+    border: 1px solid #93c5fd;
+    color: #1e3a8a;
+    font-size: 0.8125rem;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.cross-search-banner.cross-search-banner-info {
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #14532d;
+}
+
+.cross-search-icon {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.cross-search-text {
+    flex: 1;
+}
+
+.btn-cross-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #1d4ed8;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.75rem;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(29, 78, 216, 0.3);
+}
+
+.btn-cross-search:hover {
+    background: #1e40af;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(29, 78, 216, 0.35);
+}
+
+.cross-search-banner-info .btn-cross-search {
+    background: #16a34a;
+    box-shadow: 0 1px 3px rgba(22, 163, 74, 0.3);
+}
+
+.cross-search-banner-info .btn-cross-search:hover {
+    background: #15803d;
+    box-shadow: 0 3px 6px rgba(22, 163, 74, 0.35);
+}
+
+/* ==========================================================================
+   LAYOUT PRINCIPAL Y CONTENEDORES
+   ========================================================================== */
 main {
-    padding: 20px 24px 40px;
-    max-width: 1400px;
+    padding: 16px 24px 32px;
+    max-width: 1440px;
     margin: 0 auto;
 }
 
-.message-banner {
-    background: var(--color-confirmed-bg);
-    border: 1px solid var(--color-confirmed);
-    color: var(--color-confirmed);
-    padding: 10px 14px;
-    border-radius: var(--radius);
-    margin-bottom: 16px;
-    font-size: 0.9rem;
-}
-
-.card {
-    background: var(--color-surface);
-    border-radius: var(--radius);
-    border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-sm);
-    overflow-x: auto;
-    overflow-y: hidden;
-}
-
-/* On the cases table (Index page), pin the table's own area to the viewport height instead of
-   letting the whole page scroll — otherwise the horizontal scrollbar sits at the bottom of a
-   potentially very long table, requiring a long vertical scroll first just to reach it. With
-   this, the horizontal scrollbar (and the vertical one, for tall tables) stays reachable right
-   at the bottom of the visible table area. */
 body.cases-page {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100% !important;
+    max-height: 100% !important;
+    /* auto, not hidden — see html.cases-page-html above for why. */
+    overflow: auto !important;
+    background: var(--color-bg);
 }
 
 body.cases-page main {
-    flex: 1;
+    flex: 1 1 0;
     display: flex;
     flex-direction: column;
     max-width: none;
     width: 100%;
-    padding-left: 14px;
-    padding-right: 14px;
+    padding: 8px 16px 10px;
     min-height: 0;
+    height: 0;
     min-width: 0;
+    /* auto, not hidden — see html.cases-page-html above for why. */
+    overflow: auto;
 }
 
-/* min-width: 0 overrides the flex-item default of min-width: auto, which otherwise refuses to
-   shrink this element below the table's full content width — without it, the table pushes
-   .table-card (and the whole page) wider than the viewport instead of scrolling internally, so
-   the *window* ends up needing horizontal scroll too. scroll-preserve.js only restores the
-   table's own scrollLeft, not window.scrollX, so that page-level overflow read back as "jumping
-   to the left" on every reload. */
+/* ==========================================================================
+   TARJETAS Y CONTENEDORES
+   ========================================================================== */
+.card {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-fast);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Tarjeta de Entrada Manual */
+.card-manual-entry {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    margin-bottom: 8px;
+    background: #ffffff;
+    border-left: 4px solid var(--color-primary);
+}
+
+.manual-entry-form {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.form-control,
+select.form-control,
+input.form-control {
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: 0.8125rem;
+    font-family: inherit;
+    color: var(--color-text);
+    background: #ffffff;
+    outline: none;
+    transition: all var(--transition-fast);
+}
+
+.form-control:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18);
+}
+
+.manual-case-rows {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.manual-case-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.manual-case-remove {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    background: var(--color-surface-subtle);
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.manual-case-remove:hover {
+    background: var(--color-review-bg);
+    color: var(--color-review);
+    border-color: var(--color-review-border);
+}
+
+.btn-add-more {
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    padding: 7px 14px;
+    background: transparent;
+    color: var(--color-accent);
+    font-weight: 600;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-add-more:hover {
+    background: var(--color-accent-subtle);
+    border-color: var(--color-accent);
+}
+
+/* ==========================================================================
+   TABLA DE CASOS (COMPONENTE CRÍTICO OPERATIVO)
+   ========================================================================== */
 .card.table-card {
-    flex: 1;
+    flex: 1 1 0;
     width: 100%;
+    max-width: 100%;
     min-height: 0;
+    height: 0;
     min-width: 0;
-    overflow-y: auto;
+    overflow-x: scroll !important;
+    overflow-y: scroll !important;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+    scrollbar-width: auto;
+    scrollbar-color: #475569 #f1f5f9;
+}
+
+/* Scrollbar estilizada */
+.card.table-card::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+.card.table-card::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+.card.table-card::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: var(--radius-full);
+    border: 2px solid #f1f5f9;
+}
+.card.table-card::-webkit-scrollbar-thumb:hover {
+    background: #1e293b;
 }
 
 table.cases {
     width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88rem;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.8125rem;
+}
+
+table.cases-index {
+    table-layout: auto;
+    width: 100%;
+    min-width: max-content;
 }
 
 table.cases th {
-    background: #eef2f6;
-    color: var(--color-text-muted);
+    background: #f8fafc;
+    color: #1e293b;
     text-transform: uppercase;
-    font-size: 0.72rem;
-    letter-spacing: 0.4px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
     text-align: center;
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--color-border);
-}
-
-table.cases td {
-    padding: 9px 14px;
-    border-bottom: 1px solid var(--color-border);
     vertical-align: middle;
-}
-
-table.cases tbody tr:nth-child(even) { background: #fafbfc; }
-table.cases tbody tr:hover { background: #f0f6fb; }
-
-table.cases-index {
-    table-layout: fixed;
-    font-size: 0.72rem;
-    width: 100%;
-    min-width: 0;
-}
-
-/* Zebra striping is computed server-side into an explicit class instead of relying on
-   :nth-child, since row visibility/order has changed before under a fixed layout — keeping
-   this explicit avoids depending on layout details that are unrelated to the striping itself. */
-table.cases-index tbody tr:nth-child(even) {
-    background: transparent;
-}
-
-table.cases-index tbody tr.row-alt {
-    background: #fafbfc;
-}
-
-table.cases-index th {
-    padding: 6px 6px;
-    font-size: 0.66rem;
-    line-height: 1.2;
-}
-
-table.cases-index td {
-    padding: 5px 6px;
-    font-weight: 700;
-}
-
-table.cases-index td input {
-    font-weight: 700;
-}
-
-table.cases-index th,
-table.cases-index td {
-    text-align: center;
-}
-
-/* Fixed layout needs explicit widths, otherwise all 12 columns split the row evenly and the
-   checkbox columns (which need very little space) starve Nombre/Acción of the room they need.
-   12 columns: Marcar, F8, Pendiente Carpeta, Nombre, RUT, Comuna, Recibido, Plazo, Estado,
-   Fecha última carpeta, Sector, Acción — updated when the F8/Pendiente Carpeta checkbox columns
-   were added; they previously shifted every percentage below one column out of place, squeezing
-   Acción's "Marcar subida" button into ~0% width. */
-table.cases-index th:nth-child(1), table.cases-index td:nth-child(1) { width: 4%; }
-table.cases-index th:nth-child(2), table.cases-index td:nth-child(2) { width: 4%; }
-table.cases-index th:nth-child(3), table.cases-index td:nth-child(3) { width: 4%; }
-table.cases-index th:nth-child(4), table.cases-index td:nth-child(4) { width: 20%; }
-table.cases-index th:nth-child(5), table.cases-index td:nth-child(5) { width: 9%; }
-table.cases-index th:nth-child(6), table.cases-index td:nth-child(6) { width: 8%; }
-table.cases-index th:nth-child(7), table.cases-index td:nth-child(7) { width: 7%; }
-table.cases-index th:nth-child(8), table.cases-index td:nth-child(8) { width: 9%; }
-table.cases-index th:nth-child(9), table.cases-index td:nth-child(9) { width: 6%; }
-table.cases-index th:nth-child(10), table.cases-index td:nth-child(10) { width: 9%; }
-table.cases-index th:nth-child(11), table.cases-index td:nth-child(11) { width: 6%; }
-table.cases-index th:nth-child(12), table.cases-index td:nth-child(12) { width: 14%; }
-
-/* F8 page table: auto layout instead of cases-index's fixed % columns, so each column shrinks to
-   fit its actual content (short RUT/badges/buttons) instead of leaving fixed-% whitespace. */
-table.cases-f8.cases-index {
-    table-layout: auto;
-    width: auto;
-}
-
-table.cases-f8.cases-index th,
-table.cases-f8.cases-index td {
-    width: auto;
-    white-space: nowrap;
-}
-
-table.cases-f8.cases-index td.name-cell {
+    padding: 10px 10px;
+    border-bottom: 2px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    line-height: 1.25;
     white-space: normal;
 }
 
-/* Auto layout doesn't grow a column to fit an <input>'s value — inputs have a fixed default
-   intrinsic width unlike plain text. Give the name field enough room for a full "Nombre Apellido
-   Apellido" without a min-width tied to the fixed cases-index percentage columns. */
-table.cases-f8.cases-index .name-input {
-    min-width: 46ch;
+.th-subtext {
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    letter-spacing: 0;
+    text-transform: none;
+    margin-top: 1px;
 }
 
+/* Cabecera en doble fila: fila superior agrupa columnas relacionadas,
+   fila inferior mantiene el nombre de cada columna. Solo aplica a las
+   tablas cases-index (Casos y F8) — las demás tablas .cases siguen
+   con fila única y heredan las reglas th de arriba sin cambios. */
+table.cases-index thead tr.header-groups th.th-group {
+    background: var(--color-primary);
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    border-right: 1px solid rgba(255, 255, 255, 0.18);
+    position: sticky;
+    top: 0;
+    z-index: 13;
+    text-align: center;
+    white-space: nowrap;
+    box-shadow: none;
+}
 
-table.cases-index .badge {
-    padding: 2px 8px;
-    font-size: 0.7rem;
+table.cases-index thead tr.header-groups th.th-group:last-child {
+    border-right: none;
+}
+
+table.cases-index thead tr.header-cols th {
+    top: var(--header-row2-top, 31px);
+}
+
+table.cases-index thead tr.header-groups th.th-group-frozen {
+    z-index: 14;
+}
+
+table.cases-index th.th-group-1 { left: 0; }
+
+table.cases-index thead tr.header-groups th.th-group-frozen-end {
+    box-shadow: 3px 0 5px -2px rgba(15, 23, 42, 0.18);
+    border-right: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+table.cases td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--color-border-subtle);
+    vertical-align: middle;
+    text-align: center;
+    transition: background var(--transition-fast);
+    white-space: nowrap !important;
+    font-weight: 700;
+    /* Visual only — text-transform doesn't touch the stored value, so RUTs, dates and the
+       underlying FullName stay exactly as typed/saved; this just displays them uppercase. */
+    text-transform: uppercase;
+}
+
+table.cases tbody tr {
+    height: 38px;
+    background: #ffffff;
+}
+
+/* Intercalado de filas neutro */
+table.cases-index tbody tr.row-alt {
+    background: #f8fafc;
+}
+
+table.cases tbody tr:hover {
+    background: #f1f5f9;
+}
+
+/* Estados de fila sutiles y profesionales (en lugar de colores fosforescentes) */
+table.cases-index tbody tr.row-confirmed {
+    background: var(--row-confirmed-bg) !important;
+}
+table.cases-index tbody tr.row-confirmed:hover {
+    background: #dcfce7 !important;
+}
+
+table.cases-index tbody tr.row-needs-review {
+    background: var(--row-review-bg) !important;
+}
+table.cases-index tbody tr.row-needs-review:hover {
+    background: #ffe4e6 !important;
+}
+
+table.cases-index tbody tr.row-bounced {
+    background: var(--row-bounced-bg) !important;
+}
+table.cases-index tbody tr.row-bounced:hover {
+    background: #fecdd3 !important;
+}
+
+/* Reactividad en vivo vía :has() para checkboxes */
+table.cases-index tbody tr:has(input[name="markedValue"]:checked) {
+    background: var(--row-marked-bg) !important;
+}
+table.cases-index tbody tr:has(input[name="markedValue"]:checked):hover {
+    background: #bbf7d0 !important;
+}
+
+table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked) {
+    background: #fefce8 !important;
+}
+table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover {
+    background: #fef9c3 !important;
+}
+
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) {
+    background: #fff7ed !important;
+}
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover {
+    background: #ffedd5 !important;
+}
+
+/* Checkbox columns (Marcar, F8, Pendiente Carpeta) sit after RUT and scroll with the rest. */
+table.cases-index thead tr.header-cols > th:has(.marked-checkbox),
+table.cases-index tbody tr > td.marked-cell {
+    min-width: 58px;
+    text-align: center;
+}
+
+/* F8 indicator ("!") on the F8 checkbox cell. */
+table.cases-index tbody tr td.marked-cell.f8-cell {
+    position: relative;
+    overflow: visible;
+}
+
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td.f8-cell::after {
+    content: "!";
+    position: absolute;
+    top: 50%;
+    right: 3px;
+    transform: translateY(-50%);
+    background: #f59e0b;
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Frozen columns while scrolling horizontally: only Nombre and RUT (Casos and F8). The RUT
+   column's left offset is computed in JS from the real width of Nombre (--freeze-left-2). */
+table.cases-index tbody tr td:nth-child(-n+2) {
+    position: sticky;
+    z-index: 2;
+}
+table.cases-index thead tr.header-cols th:nth-child(-n+2) {
+    position: sticky;
+    background: #f8fafc;
+    z-index: 12;
+}
+table.cases-index tbody tr > :nth-child(1),
+table.cases-index thead tr.header-cols > :nth-child(1) { left: 0; }
+table.cases-index tbody tr > :nth-child(2),
+table.cases-index thead tr.header-cols > :nth-child(2) {
+    left: var(--freeze-left-2, 0px);
+    box-shadow: 3px 0 5px -2px rgba(15, 23, 42, 0.18);
+    border-right: 2px solid var(--color-border);
+}
+
+/* Solid backgrounds on the frozen cells so scrolled content never shows through. */
+table.cases-index tbody tr td:nth-child(-n+2) { background-color: #ffffff; }
+table.cases-index tbody tr.row-alt td:nth-child(-n+2) { background-color: #f8fafc; }
+table.cases-index tbody tr:hover td:nth-child(-n+2) { background-color: #f1f5f9; }
+table.cases-index tbody tr.row-confirmed td:nth-child(-n+2) { background-color: var(--row-confirmed-bg) !important; }
+table.cases-index tbody tr.row-confirmed:hover td:nth-child(-n+2) { background-color: #dcfce7 !important; }
+table.cases-index tbody tr.row-needs-review td:nth-child(-n+2) { background-color: var(--row-review-bg) !important; }
+table.cases-index tbody tr.row-needs-review:hover td:nth-child(-n+2) { background-color: #ffe4e6 !important; }
+table.cases-index tbody tr.row-bounced td:nth-child(-n+2) { background-color: var(--row-bounced-bg) !important; }
+table.cases-index tbody tr.row-bounced:hover td:nth-child(-n+2) { background-color: #fecdd3 !important; }
+table.cases-index tbody tr:has(input[name="markedValue"]:checked) td:nth-child(-n+2) { background-color: var(--row-marked-bg) !important; }
+table.cases-index tbody tr:has(input[name="markedValue"]:checked):hover td:nth-child(-n+2) { background-color: #bbf7d0 !important; }
+table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked) td:nth-child(-n+2) { background-color: #fefce8 !important; }
+table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover td:nth-child(-n+2) { background-color: #fef9c3 !important; }
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td:nth-child(-n+2) { background-color: #fff7ed !important; }
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover td:nth-child(-n+2) { background-color: #ffedd5 !important; }
+
+/* Checkboxes modernos */
+.marked-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+    border-radius: var(--radius-xs);
+}
+
+/* Campos de edición inline */
+table.cases-index .input-inline {
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: var(--radius-xs);
+    padding: 3px 6px;
+    font-size: 0.8125rem;
+    font-family: inherit;
+    font-weight: 700;
+    color: var(--color-text);
+    outline: none;
+    transition: all var(--transition-fast);
+}
+
+table.cases-index .input-inline:hover {
+    border-color: var(--color-border-strong);
+    background: #ffffff;
+}
+
+table.cases-index .input-inline:focus {
+    border-color: var(--color-accent);
+    background: #ffffff;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+table.cases-index td.name-cell {
+    text-align: left;
+}
+
+table.cases-index td.name-cell .name-with-alert {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+table.cases-index td.name-cell .name-input {
+    width: auto;
+    min-width: 10ch;
+    /* No width cap: the column auto-fits to the longest full name (operator requirement — no
+       half-written names). Trade-off: on a very narrow window the frozen columns can exceed the
+       viewport; the table then scrolls horizontally inside its card. */
+    max-width: none;
+}
+
+table.cases-index td.rut-cell .rut-input {
+    width: auto;
+    min-width: 10ch;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+table.cases-index .codigo-f8-input {
+    width: 100%;
+    min-width: 110px;
+    text-align: center;
+}
+
+.review-alert {
+    flex: none;
+    color: var(--color-review);
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: help;
+}
+
+.fecha-form {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+}
+
+.fecha-form .fecha-input {
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
+}
+
+table.cases-index td:last-child {
+    white-space: nowrap !important;
+    text-align: center;
+}
+
+table.cases-index td:last-child form {
+    display: inline-flex;
+    margin: 0 2px;
+}
+
+table.cases-index td:last-child button {
+    white-space: nowrap !important;
+}
+
+/* ==========================================================================
+   BADGES Y CHIPS DE ESTADO
+   ========================================================================== */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: var(--radius-full);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+    line-height: 1.2;
     white-space: nowrap;
 }
 
-table.cases-index button.btn-primary {
+.badge-pending {
+    background: var(--color-pending-bg);
+    color: var(--color-pending);
+    border-color: var(--color-pending-border);
+}
+
+.badge-uploaded {
+    background: var(--color-uploaded-bg);
+    color: var(--color-uploaded);
+    border-color: var(--color-uploaded-border);
+}
+
+.badge-confirmed {
+    background: var(--color-confirmed-bg);
+    color: var(--color-confirmed);
+    border-color: var(--color-confirmed-border);
+}
+
+.badge-review {
+    background: var(--color-review-bg);
+    color: var(--color-review);
+    border-color: var(--color-review-border);
+}
+
+.badge-ok {
+    background: var(--color-confirmed-bg);
+    color: var(--color-confirmed);
+    border-color: var(--color-confirmed-border);
+}
+
+.badge-bounced {
+    background: var(--color-bounced-bg);
+    color: var(--color-bounced);
+    border-color: var(--color-bounced-border);
+    margin-left: 4px;
+}
+
+/* ==========================================================================
+   BOTONES Y ACCIONES
+   ========================================================================== */
+button.btn-primary {
+    background: var(--color-accent);
+    color: #ffffff;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    box-shadow: 0 1px 2px rgba(2, 132, 199, 0.2);
+    white-space: nowrap;
+}
+
+button.btn-primary:hover {
+    background: var(--color-accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
+}
+
+button.btn-primary:active {
+    transform: translateY(0);
+}
+
+button.btn-danger {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    transition: all var(--transition-fast);
+}
+
+button.btn-danger:hover {
+    color: var(--color-review);
+    background: var(--color-review-bg);
+    border-color: var(--color-review-border);
+}
+
+button.btn-outline-danger {
+    background: #ffffff;
+    color: var(--color-review);
+    border: 1px solid var(--color-review-border);
+    border-radius: var(--radius-sm);
     padding: 4px 10px;
-    font-size: 0.76rem;
-    white-space: nowrap;
+    font-size: 0.74rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-fast);
 }
 
-/* The two F8/Certificado transfer choices stack instead of squeezing side by side into the
-   Acción column next to the delete icon — they're mutually exclusive alternatives, not
-   simultaneous actions, so a column reads better than a cramped row. */
+button.btn-outline-danger:hover {
+    background: var(--color-review-bg);
+    border-color: var(--color-review);
+}
+
+/* Acciones en la última columna */
+table.cases-index td:last-child {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+table.cases-index td:last-child form {
+    margin: 0;
+}
+
 table.cases-index .transfer-choice {
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
 
-/* Both the transfer-choice buttons (.f8-only) and "Marcar subida" (.no-f8-only) are always
-   rendered for a Pending case (see Index.cshtml's Acción column) — this picks which one shows,
-   reacting live to the F8 checkbox via :has() instead of waiting for a page reload, same reasoning
-   as the row-tint rules above. Default state (hidden) matches an unchecked checkbox; the :has()
-   override below flips it the instant F8 is ticked, and back the instant it's unticked, since
-   :has() tracks live checked state, not the original rendered attribute. */
 table.cases-index td .f8-only {
     display: none;
 }
@@ -561,484 +1185,273 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no
     display: none !important;
 }
 
-table.cases-index .transfer-choice button.btn-primary {
-    padding: 3px 8px;
-    font-size: 0.68rem;
-    width: 100%;
-}
-
-table.cases-index td:last-child {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-table.cases-index td:last-child {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-table.cases-index td:last-child form {
-    margin: 0;
-}
-
-table.cases-index .input-inline {
-    padding: 3px 4px;
-    font-size: 0.74rem;
-}
-
-table.cases-index td.name-cell {
-    text-align: left;
-}
-
-/* width:100% here fills whatever extra room the column has (so short names don't leave a
-   visible gap); the per-row inline `min-width: Nch` (see Index.cshtml) is what actually forces
-   the column itself to grow — table-layout:auto respects an input's min-width when sizing its
-   column even under width:100%, unlike the HTML `size` attribute, which browsers ignore for
-   column sizing once a CSS width is set. */
-table.cases-index td.name-cell .name-input {
-    width: 100%;
-    min-width: 46ch;
-    box-sizing: border-box;
-    font-size: 0.66rem;
-    padding-left: 3px;
-    padding-right: 3px;
-}
-
-table.cases-index td.rut-cell .rut-input {
-    width: 100%;
-    min-width: 12ch;
-    box-sizing: border-box;
-    text-align: center;
-}
-
-table.cases-index .codigo-f8-input {
-    width: 100%;
-    box-sizing: border-box;
-    text-align: center;
-}
-
-/* No overflow/ellipsis clipping here on purpose — every cases table now uses table-layout:auto
-   (see .cases-f8 override, applied to all three case-list pages), which grows each column to fit
-   its widest cell instead of clipping. Long comuna names or RUTs stay fully visible. */
-table.cases-index td.text-cell,
-table.cases-index td.rut-cell {
-    white-space: nowrap;
-}
-
-table.cases-index .marked-checkbox {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-}
-
-/* Scoped to the markedValue checkbox specifically (not the shared .marked-checkbox class, which
-   the F8/Pendiente Carpeta checkboxes also use) — :has() reacts live to the checkbox's checked
-   state, so the tint appears instantly on click. This matters now that toggling goes through
-   fetch() (see submitCheckboxToggle) instead of a full-page reload: the old row-*-pending classes
-   are computed server-side and only update on the next render, so relying on them alone left the
-   row showing no color change at all until a manual refresh. */
-table.cases-index tbody tr:has(input[name="markedValue"]:checked) {
-    background: #bfe3b4 !important;
-}
-
-table.cases-index tbody tr:has(input[name="markedValue"]:checked):hover {
-    background: #aed89f !important;
-}
-
-/* Same live-update reasoning as the markedValue rule above, for the Pendiente Carpeta checkbox. */
-table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked) {
-    background: #fff3b0 !important;
-}
-
-table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover {
-    background: #ffe98a !important;
-}
-
-/* Confirmed (folder already uploaded + comuna already notified) is the most important
-   status to spot at a glance, so it wins over both the zebra stripe and the "marked" tint. */
-table.cases-index tbody tr.row-confirmed {
-    background: #b8d9f0 !important;
-}
-
-table.cases-index tbody tr.row-confirmed:hover {
-    background: #a0c8ea !important;
-}
-
-/* Needs-review (incomplete/unreliable extracted data) also needs to win over the zebra
-   stripe and the "marked" tint — same reasoning as row-confirmed above. It never overlaps
-   row-confirmed in practice: confirming a case already requires NeedsReview to be false. */
-table.cases-index tbody tr.row-needs-review {
-    background: var(--color-review-bg) !important;
-}
-
-table.cases-index tbody tr.row-needs-review:hover {
-    background: #f6d0d8 !important;
-}
-
-/* Pendiente Carpeta and F8 pending backgrounds are driven ONLY by the live :has() rules above/below
-   — no server-rendered class version. A class-based rule (tr.row-pendiente-carpeta / .row-f8-pending)
-   is baked into the HTML at render time and never removed by fetch()-based toggling (see
-   submitCheckboxToggle): pairing it with a live :has() rule as an OR meant unchecking the box
-   cleared the live half but left the stale class still matching, so the color never went away.
-   :has() alone is correct in both directions since it always reflects the checkbox's current
-   state, checked or not. */
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) {
-    background: #8c8c8c !important;
-}
-
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover {
-    background: #7c7c7c !important;
-}
-
-/* Reserved padding-right applies to EVERY row in this column, checked or not — not just the ones
-   showing the glyph. That keeps the checkbox's centered position identical across all rows; if the
-   padding only applied to checked rows, the checkbox itself would shift between checked/unchecked
-   rows even though the column width (shared across the whole auto-layout column) stays the same
-   either way. The glyph is then absolutely positioned inside that reserved space, so it never
-   touches the checkbox's own layout. */
-table.cases-index tbody tr td.marked-cell:nth-child(2) {
-    position: relative;
-    overflow: visible;
-    padding-right: 20px;
-}
-
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td.marked-cell:nth-child(2)::after {
-    content: "⚠";
-    position: absolute;
-    top: 50%;
-    right: 2px;
-    color: #ffd400;
-    font-size: 1.4rem;
-    font-weight: 700;
-    text-shadow: 0 0 3px #000;
-    line-height: 1;
-    animation: f8-alert-blink 1s step-start infinite;
-}
-
-/* transform is set inside the keyframe (not as a static property above) because the animation
-   overrides any transform declared outside it — centering vertically has to happen at each step. */
-@keyframes f8-alert-blink {
-    0%, 49% { opacity: 1; transform: translateY(-50%); }
-    50%, 100% { opacity: 0; transform: translateY(-50%); }
-}
-
-/* Groups the alert symbol and the name input on one row — without this, the input's own
-   width:100% makes it wrap onto its own line below the alert instead of sitting beside it. */
-table.cases-index td.name-cell .name-with-alert {
+/* ==========================================================================
+   BANNERS DE MENSAJE Y ALERTAS
+   ========================================================================== */
+.message-banner {
+    background: var(--color-confirmed-bg);
+    border: 1px solid var(--color-confirmed-border);
+    border-left: 4px solid var(--color-confirmed);
+    color: var(--color-confirmed);
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    font-size: 0.84rem;
+    font-weight: 500;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 10px;
+    box-shadow: var(--shadow-xs);
 }
 
-@keyframes review-alert-blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.2; }
-}
-
-.review-alert {
-    flex: none;
+.message-error {
+    background: var(--color-review-bg);
+    border-color: var(--color-review-border);
+    border-left-color: var(--color-review);
     color: var(--color-review);
-    font-weight: 700;
-    font-size: 0.95rem;
-    cursor: help;
-    animation: review-alert-blink 1.2s ease-in-out infinite;
-}
-
-table.cases-index td.review-cell {
-    text-align: left;
-}
-
-table.cases-index td.text-cell {
-    white-space: nowrap;
-    text-align: center;
-}
-
-.fecha-form {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-    justify-content: center;
-}
-
-.fecha-form .fecha-input {
-    flex: 1;
-    min-width: 0;
-    text-align: center;
-}
-
-.badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 0.76rem;
-    font-weight: 600;
-}
-
-.badge-pending { background: var(--color-pending-bg); color: var(--color-pending); }
-.badge-uploaded { background: var(--color-uploaded-bg); color: var(--color-uploaded); }
-.badge-confirmed { background: var(--color-confirmed-bg); color: var(--color-confirmed); }
-.badge-review { background: var(--color-review-bg); color: var(--color-review); }
-.badge-ok { background: var(--color-confirmed-bg); color: var(--color-confirmed); }
-
-.message-error { background: var(--color-review-bg); border-color: var(--color-review); color: var(--color-review); }
-
-.input-inline {
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    padding: 4px 6px;
-    font-size: 0.85rem;
 }
 
 .review-hint {
-    margin-top: 4px;
-    font-size: 0.72rem;
+    margin: 8px 0 14px;
+    font-size: 0.8125rem;
     color: var(--color-text-muted);
-}
-
-.form-label {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-    margin-bottom: 4px;
-}
-
-.input-block {
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 9px 10px;
-    margin-bottom: 14px;
+    background: var(--color-surface);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius);
-    font-size: 0.9rem;
+    border-left: 3px solid var(--color-accent);
 }
 
-input[type="date"] {
-    border: 1px solid var(--color-border);
-    border-radius: 4px;
-    padding: 4px 6px;
-    font-size: 0.85rem;
-}
-
-button.btn-primary {
-    background: var(--color-accent);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius);
-    padding: 6px 14px;
-    font-size: 0.85rem;
-    cursor: pointer;
-}
-button.btn-primary:hover { background: var(--color-primary); }
-
-button.btn-danger {
-    background: none;
-    border: none;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 4px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 0;
-}
-button.btn-danger:hover {
-    color: var(--color-review);
-    background: var(--color-review-bg);
-}
-
-button.btn-outline-danger {
-    background: none;
-    color: var(--color-review);
-    border: 1px solid var(--color-review);
-    border-radius: var(--radius);
-    padding: 6px 14px;
-    font-size: 0.85rem;
-    cursor: pointer;
-}
-button.btn-outline-danger:hover { background: var(--color-review-bg); }
-
+/* ==========================================================================
+   PANTALLA DE LOGIN
+   ========================================================================== */
 .login-shell {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(160deg, var(--color-primary-dark), #051627);
+    background: linear-gradient(145deg, var(--color-primary-dark) 0%, #031424 100%);
+    padding: 20px;
 }
 
 .login-card {
-    background: linear-gradient(160deg, var(--color-primary), var(--color-primary-dark));
-    border-radius: 14px;
-    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.4);
-    padding: 32px 36px;
-    width: 340px;
-    color: #fff;
+    background: #ffffff;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+    padding: 36px 40px;
+    width: 100%;
+    max-width: 400px;
+    color: var(--color-text);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .login-logo {
     display: flex;
     justify-content: center;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .login-logo img {
     height: 72px;
     width: auto;
-    border-radius: 8px;
-    background: #fff;
-    padding: 6px 10px;
+    object-fit: contain;
 }
 
 .login-card h1 {
-    font-size: 1.2rem;
-    font-weight: 700;
-    margin: 0 0 12px;
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0 0 6px;
     text-align: center;
-    color: #fff;
-}
-
-.login-card .login-title {
-    font-size: 1.4rem;
-    font-weight: 600;
-    margin: 0 0 4px;
-    color: #fff;
+    color: var(--color-primary-dark);
 }
 
 .login-card p.subtitle {
-    margin: 0 0 20px;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 24px;
+    font-size: 0.84rem;
+    color: var(--color-text-muted);
+    text-align: center;
 }
 
 .login-card label {
     display: block;
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 0.78rem;
+    font-weight: 700;
     margin-bottom: 6px;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .login-card input {
     display: block;
     width: 100%;
-    padding: 10px 12px;
-    margin-bottom: 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    background: #ffffff;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
     font-size: 0.9rem;
-    color: #fff;
-}
-
-.login-card input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    font-family: inherit;
+    color: var(--color-text);
+    transition: all var(--transition-fast);
 }
 
 .login-card input:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.6);
-    background: rgba(255, 255, 255, 0.14);
-}
-
-.login-card .password-field {
-    position: relative;
-}
-
-.login-card .password-field input {
-    padding-right: 36px;
-}
-
-.login-card .password-toggle {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 14px;
-    width: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: none;
-    padding: 0;
-    color: rgba(255, 255, 255, 0.6);
-    cursor: pointer;
-}
-
-.login-card .password-toggle:hover,
-.login-card .password-toggle.active {
-    color: #fff;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
 }
 
 .login-card button {
     width: 100%;
-    padding: 10px;
-    background: #fff;
-    color: var(--color-primary-dark);
+    padding: 11px;
+    background: var(--color-primary);
+    color: #ffffff;
     border: none;
-    border-radius: var(--radius);
-    font-size: 0.9rem;
-    font-weight: 600;
+    border-radius: var(--radius-sm);
+    font-size: 0.92rem;
+    font-weight: 700;
+    font-family: inherit;
     cursor: pointer;
-    margin-top: 4px;
-}
-.login-card button:hover { background: rgba(255, 255, 255, 0.85); }
-
-.login-card .error {
-    color: #ffb4be;
-    font-size: 0.82rem;
-    margin-top: 10px;
+    margin-top: 6px;
+    transition: all var(--transition-fast);
+    box-shadow: 0 2px 4px rgba(10, 51, 86, 0.3);
 }
 
-.login-links {
+.login-card button:hover {
+    background: var(--color-primary-light);
+    transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   FORMULARIOS Y TARJETAS GENERALES
+   ========================================================================== */
+.card-form {
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    background: #ffffff;
+    border-left: 4px solid var(--color-primary);
+}
+
+.action-bar {
+    margin-bottom: 14px;
     display: flex;
-    justify-content: space-between;
-    margin-top: 18px;
-    font-size: 0.82rem;
+    justify-content: flex-start;
 }
 
-.login-links a {
-    color: rgba(255, 255, 255, 0.8);
-    text-decoration: none;
+/* ==========================================================================
+   ESTADÍSTICAS Y GRÁFICOS INSTITUCIONALES
+   ========================================================================== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 20px;
 }
 
-.login-links a:hover {
-    color: #fff;
-    text-decoration: underline;
+.stats-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: all var(--transition-fast);
 }
 
-/* Tablet and phone breakpoints. The layout is already flex-wrap based (header, nav groups,
-   .card) and the cases table already scrolls horizontally inside .table-card, so nothing here
-   restructures those — it only shrinks paddings/fonts and lets the brand/logo/subnav shrink so
-   the same composition (header -> subnav -> filters -> table) still fits without overflowing
-   the viewport or clipping controls off-screen. */
-@media (max-width: 900px) {
+.stats-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border-strong);
+}
+
+.stats-card h2 {
+    font-size: 0.88rem;
+    font-weight: 700;
+    margin: 0 0 16px;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: center;
+    border-bottom: 1px solid var(--color-border-subtle);
+    padding-bottom: 8px;
+}
+
+.stats-card canvas {
+    max-height: 260px;
+}
+
+.stats-card-wide {
+    grid-column: 1 / -1;
+}
+
+.stats-card-wide canvas {
+    max-height: 420px;
+}
+
+.stats-nodata {
+    color: var(--color-text-muted);
+    font-size: 0.88rem;
+    text-align: center;
+    padding: 40px 0;
+    font-style: italic;
+}
+
+/* ==========================================================================
+   RESPONSIVIDAD Y BREAKPOINTS
+   ========================================================================== */
+@media (max-width: 1200px), (max-height: 760px) {
     header.app-header {
-        padding: 10px 14px;
+        padding: 6px 14px;
+        gap: 8px;
     }
 
     header.app-header .brand-logo {
-        height: 52px;
+        height: 58px;
     }
 
     header.app-header .brand {
         font-size: 1.05rem;
+        gap: 8px;
     }
 
-    main {
-        padding: 14px 12px 28px;
+    header.app-header .brand small {
+        font-size: 0.68rem;
+    }
+
+    div.app-subnav {
+        padding: 4px 14px;
+        gap: 6px;
     }
 
     body.cases-page main {
-        padding-left: 8px;
-        padding-right: 8px;
+        padding: 6px 10px 8px;
+    }
+
+    .card.card-manual-entry {
+        padding: 6px 12px;
+        margin-bottom: 6px;
+    }
+}
+
+@media (max-width: 900px) {
+    header.app-header {
+        padding: 6px 10px;
+    }
+
+    header.app-header .brand-logo {
+        height: 46px;
+    }
+
+    header.app-header .brand {
+        font-size: 0.95rem;
     }
 
     .nav-search input[type="text"] {
-        min-width: 100px;
+        min-width: 110px;
+    }
+
+    body.cases-page main {
+        padding: 4px 8px 6px;
     }
 }
 
@@ -1046,6 +1459,8 @@ button.btn-outline-danger:hover { background: var(--color-review-bg); }
     header.app-header {
         flex-direction: column;
         align-items: stretch;
+        padding: 8px;
+        gap: 6px;
     }
 
     header.app-header .brand {
@@ -1054,7 +1469,7 @@ button.btn-outline-danger:hover { background: var(--color-review-bg); }
     }
 
     nav.app-nav {
-        justify-content: flex-start;
+        justify-content: center;
     }
 
     .nav-group {
@@ -1066,15 +1481,317 @@ button.btn-outline-danger:hover { background: var(--color-review-bg); }
 
     .nav-group-end {
         border-left: none;
+        padding-left: 0;
     }
 
     div.app-subnav {
         flex-wrap: wrap;
-        padding: 8px 12px;
+        padding: 4px 8px;
+        gap: 4px;
     }
+}
 
-    .login-card {
-        width: 100%;
-        padding: 24px 20px;
-    }
+/* ==========================================================================
+   RESALTADO ULTRA POTENTE PARA CASO BUSCADO EN F8
+   ========================================================================== */
+table.cases tbody tr.row-highlight-target,
+table.cases tbody tr.row-highlight-target td,
+table.cases-f8 tbody tr.row-highlight-target td,
+table.cases-index tbody tr.row-highlight-target td {
+    background-color: #fef08a !important;
+    color: #0f172a !important;
+    font-weight: 800 !important;
+    border-top: 3px solid #d97706 !important;
+    border-bottom: 3px solid #d97706 !important;
+}
+table.cases tbody tr.row-highlight-target td:first-child,
+table.cases-f8 tbody tr.row-highlight-target td:first-child,
+table.cases-index tbody tr.row-highlight-target td:first-child {
+    border-left: 6px solid #b45309 !important;
+}
+table.cases tbody tr.row-highlight-target td:last-child,
+table.cases-f8 tbody tr.row-highlight-target td:last-child,
+table.cases-index tbody tr.row-highlight-target td:last-child {
+    border-right: 6px solid #b45309 !important;
+}
+table.cases tbody tr.row-highlight-target input.input-inline,
+table.cases-f8 tbody tr.row-highlight-target input.input-inline,
+table.cases-index tbody tr.row-highlight-target input.input-inline {
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+.badge-f8-target {
+    display: inline-flex;
+    align-items: center;
+    background: #dc2626;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.74rem;
+    padding: 2px 8px;
+    border-radius: var(--radius-xs);
+    margin-right: 6px;
+    letter-spacing: 0.03em;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4);
+    animation: pulse-target 1.5s infinite;
+}
+@keyframes pulse-target {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+.f8-search-active-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-left: 5px solid #d97706;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #92400e;
+}
+.btn-clear-f8-filter {
+    background: #d97706;
+    color: #ffffff;
+    padding: 5px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+.btn-clear-f8-filter:hover {
+    background: #b45309;
+    color: #ffffff;
+}
+/* ── Action-column icon buttons (Casos, F8, Caja) ─────────────────────────────
+   One color per action type so the operator reads the row at a glance:
+   upload/confirm blue, Caja green, Sin carpeta amber, revert/return neutral,
+   F8 violet, delete neutral turning red on hover. */
+.action-group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+.action-group form {
+    margin: 0;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.btn-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.18);
+}
+
+.btn-action:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.btn-action:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.45);
+    outline-offset: 2px;
+}
+
+.btn-action-icon {
+    flex-shrink: 0;
+}
+
+.btn-action--upload,
+.btn-action--confirm {
+    background: #0284c7;
+    border-color: #0369a1;
+    color: #ffffff;
+}
+
+.btn-action--upload:hover,
+.btn-action--confirm:hover {
+    background: #0369a1;
+}
+
+.btn-action--caja {
+    background: #16a34a;
+    border-color: #15803d;
+    color: #ffffff;
+}
+
+.btn-action--caja:hover {
+    background: #15803d;
+}
+
+.btn-action--sin-carpeta {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #92400e;
+}
+
+.btn-action--sin-carpeta:hover {
+    background: #fde68a;
+}
+
+.btn-action--f8 {
+    background: #ede9fe;
+    border-color: #a78bfa;
+    color: #5b21b6;
+}
+
+.btn-action--f8:hover {
+    background: #ddd6fe;
+}
+
+.btn-action--revert,
+.btn-action--return {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+
+.btn-action--revert:hover,
+.btn-action--return:hover {
+    background: #e2e8f0;
+}
+
+.btn-action--rectify {
+    background: #ffffff;
+    border-color: #fca5a5;
+    color: #b91c1c;
+}
+
+.btn-action--rectify:hover {
+    background: #fef2f2;
+}
+
+.btn-action--resolve {
+    background: #ffffff;
+    border-color: #fdba74;
+    color: #c2410c;
+}
+
+.btn-action--resolve:hover {
+    background: #fff7ed;
+}
+
+/* Icon-only: no text label, so it relies on title/aria-label. */
+.btn-action--delete {
+    padding: 6px;
+    background: transparent;
+    border-color: transparent;
+    color: #64748b;
+}
+
+.btn-action--delete:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #dc2626;
+}
+
+.badge-closed {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px dashed #94a3b8;
+}
+
+.btn-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+
+/* ── Navigation icons (header + sub-nav) ─────────────────────────────────────
+   Every nav button carries an inline SVG (Shared/_NavIcon.cshtml) left of its label. */
+.nav-icon {
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+
+nav.app-nav a:hover .nav-icon,
+.app-subnav a:hover .nav-icon,
+nav.app-nav a.active .nav-icon,
+.app-subnav a.active .nav-icon {
+    opacity: 1;
+}
+
+.nav-search button,
+.nav-search .nav-search-clear,
+#sync-form button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+nav.app-nav a,
+.app-subnav a,
+.nav-search button,
+#sync-form button {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+nav.app-nav a:focus-visible,
+.app-subnav a:focus-visible,
+.nav-search button:focus-visible,
+#sync-form button:focus-visible {
+    outline: 2px solid #7dd3fc;
+    outline-offset: 2px;
+}
+
+.app-subnav a:hover {
+    transform: translateY(-1px);
+}
+
+
+/* The generic "td:last-child form { display: inline-flex }" rule would otherwise out-rank the
+   plain ".f8-only" hide rule and show "Traspaso a F8" on rows whose F8 box is unticked. */
+table.cases-index td:last-child form.f8-only {
+    display: none;
+}
+
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td:last-child form.f8-only {
+    display: inline-flex !important;
+}
+
+table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td:last-child form.no-f8-only {
+    display: none !important;
+}
+
+
+/* Auto-fit (operator requirement): no table cell may clip its text. Cells grow to their content;
+   wide tables scroll horizontally inside their card instead of cutting words. */
+table.cases td,
+table.cases th {
+    overflow: visible;
+    text-overflow: clip;
+}
+
+table.cases td {
+    white-space: nowrap;
+}
+
+/* Inline inputs size to their actual text (not to a character count, which underestimates the
+   bold uppercase font). `size` stays as the fallback for browsers without field-sizing. */
+table.cases-index td.name-cell .name-input,
+table.cases-index td.rut-cell .rut-input,
+table.cases-index .codigo-f8-input {
+    field-sizing: content;
 }

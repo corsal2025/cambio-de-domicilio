@@ -1,14 +1,10 @@
 ## ADDED Requirements
 
 ### Requirement: Statistics screen access
-The system SHALL provide a `/Estadisticas` screen, reachable only by an authenticated operator, linked from the navigation header of every existing dashboard screen (Casos, F8, Certificado, Discarded, Comunas).
-
-#### Scenario: Unauthenticated user is redirected to login
-- **WHEN** an unauthenticated visitor requests `/Estadisticas`
-- **THEN** the system redirects to `/Login`, consistent with every other dashboard page
+The system SHALL provide a `/Estadisticas` screen, linked from the navigation header of every existing dashboard screen (Casos, F8, Discarded, Comunas).
 
 #### Scenario: Nav link visible from every screen
-- **WHEN** an authenticated operator is on Casos, F8, Certificado, Discarded, or Comunas
+- **WHEN** the operator is on Casos, F8, Discarded, or Comunas
 - **THEN** the page header shows a link to `/Estadisticas`
 
 ### Requirement: Case status distribution
@@ -63,20 +59,6 @@ The system SHALL show, among F8-destined cases with a folder sector assigned, ho
 #### Scenario: Re-generating a PDF updates the count
 - **WHEN** a previously-pending case is included in a new sector PDF run, setting `SectorPdfGeneratedAt`
 - **THEN** the "generated" count increases and the "pending" count decreases by one
-
-### Requirement: Certificado folder-location split
-The system SHALL show, among cases with `Destination == Certificado`, how many have `FolderNotFound` set versus not.
-
-#### Scenario: Folder found is the default bucket
-- **WHEN** a Certificado case has `FolderNotFound == false`
-- **THEN** it counts toward the "found" bucket, not "not found"
-
-### Requirement: Certificado notification status
-The system SHALL show, among cases with `Destination == Certificado`, how many have been notified (`CertificadoNotifiedAt` set) versus pending notification.
-
-#### Scenario: Newly transferred case starts as pending
-- **WHEN** a case is transferred to Certificado and has not yet been included in an "Avisar certificado" batch
-- **THEN** it counts toward "pending", not "notified"
 
 ### Requirement: Discarded emails by reason
 The system SHALL show a count of discarded emails grouped by their recorded discard reason (e.g., unrecognized sender domain), to help prioritize additions to the comuna directory.

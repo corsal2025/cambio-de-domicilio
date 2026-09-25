@@ -2,41 +2,48 @@
 
 ## Purpose
 
-The operator-facing web dashboard for the upload-confirmation flow: authentication gate, case list with lifecycle status, manual data entry, confirmation actions, sector PDF generation, comuna directory management, and portable distribution. Password-hashing/reset-token mechanics live in the separate `dashboard-auth` capability.
-
+The operator-facing web dashboard for the upload-confirmation flow: case list with lifecycle status, manual data entry, confirmation actions, sector PDF generation, comuna directory management, and portable distribution. It runs on the municipal LAN with no login gate — access is controlled at the network layer, not the application.
 ## Requirements
-
-### Requirement: Per-user authentication
-The dashboard SHALL require a per-user login (username + password) before showing any data. Passwords SHALL be stored only as salted hashes.
-
-#### Scenario: Unauthenticated access
-- **WHEN** a browser requests any dashboard page without a valid session
-- **THEN** it is redirected to the login page and no personal data is served
-
-#### Scenario: Successful login
-- **WHEN** a user submits valid credentials
-- **THEN** a session cookie is issued and the dashboard is shown
-
 ### Requirement: Encrypted transport
 The dashboard SHALL be served over HTTPS only; plain HTTP requests SHALL be redirected to HTTPS, never served with data.
 
 #### Scenario: HTTP request redirected
 - **WHEN** a browser requests `http://<host>:<port>/...`
-- **THEN** the response is a redirect to the equivalent `https://` URL, with no page content or session cookie issued over the plain connection
+- **THEN** the response is a redirect to the equivalent `https://` URL, with no page content served over the plain connection
 
 ### Requirement: Case list reflecting the real lifecycle
-The dashboard SHALL show tracked cases (`PersonRequest`) with their current status (`Pending`/`Uploaded`/`Confirmed`), filterable by status and by "Requiere revisión."
+The dashboard SHALL show tracked cases (`PersonRequest`) with their current status (`Pending`/`Uploaded`/`Confirmed`), filterable by status and by "Requiere revisión." Cases transferred to another screen (`TransferredAt` set, e.g. F8 or Caja) SHALL NOT appear in Casos. Cases closed without folder SHALL appear with the label "Cerrado sin carpeta" and no actions. The action column SHALL show only the actions valid for the case state, rendered as icon buttons with a tooltip and accessible label.
 
 #### Scenario: Viewing cases
-- **WHEN** an authenticated user opens the case list
-- **THEN** every tracked case is shown with `full_name`, `rut`, `comuna`, `status`, `fecha_ultima_carpeta` (if set), and `sector` (if derivable)
+- **WHEN** the operator opens the case list
+- **THEN** every tracked case not transferred to another screen is shown with `full_name`, `rut`, `comuna`, `status`, `fecha_ultima_carpeta` (if set), and `sector` (if derivable)
 
 #### Scenario: Filtering by review status
 - **WHEN** the user filters by "Requiere revisión"
 - **THEN** only cases with `needs_review = true` are shown
 
+#### Scenario: Case in Caja hidden from Casos
+- **WHEN** a case has `Destination = Caja`
+- **THEN** it is not shown in Casos
+
+#### Scenario: Closed-without-folder case
+- **WHEN** a case has `ClosedWithoutFolderAt` set
+- **THEN** it is shown in Casos with the label "Cerrado sin carpeta" and no action buttons except delete
+
+#### Scenario: Uploaded case actions
+- **WHEN** a case has `Status` `Uploaded` or `Confirmed` and is not closed without folder
+- **THEN** its action column includes the "Caja" action
+
+#### Scenario: Reincorporated F8 case actions
+- **WHEN** a case has `SoloCaja = true`
+- **THEN** its action column shows only the "Caja" action (and delete), never "Marcar subida" nor confirmation actions
+
+#### Scenario: Action button presentation
+- **WHEN** any action button is rendered in Casos, F8 or Caja
+- **THEN** it shows an inline SVG icon, a color by action type (upload blue, Caja green, Sin carpeta amber, delete red on hover), and a `title` and `aria-label`
+
 ### Requirement: Editable última-carpeta date
-The dashboard SHALL let an authenticated user set or change the `fecha_ultima_carpeta` for any case by typing it as free text — no calendar picker (the operator types faster than navigating a calendar) — in the format "día mes-en-palabras año" (e.g. `15 marzo 2024`, also accepting `15 de marzo de 2024`), case-insensitive. The stored/displayed value SHALL render in the same format, and the derived `sector` SHALL update immediately.
+The dashboard SHALL let the operator set or change the `fecha_ultima_carpeta` for any case by typing it as free text — no calendar picker (the operator types faster than navigating a calendar) — in the format "día mes-en-palabras año" (e.g. `15 marzo 2024`, also accepting `15 de marzo de 2024`), case-insensitive. The stored/displayed value SHALL render in the same format, and the derived `sector` SHALL update immediately.
 
 #### Scenario: Operator types the date
 - **WHEN** a user types `10 enero 2024` on a case and saves
@@ -50,8 +57,8 @@ The dashboard SHALL let an authenticated user set or change the `fecha_ultima_ca
 The dashboard SHALL provide a "Enviar confirmación" action on cases with `status = Uploaded` and complete data, calling the existing `SendConfirmationAsync`. The action SHALL be unavailable (disabled or hidden) for cases that are not eligible, and the server SHALL enforce the same eligibility regardless of what the page displays.
 
 #### Scenario: Sending a confirmation
-- **WHEN** an authenticated user triggers the action on an eligible `Uploaded` case
-- **THEN** the confirmation email is sent, the case becomes `Confirmed`, and `confirmed_by_user_id` / `confirmed_at` are recorded for that user and timestamp
+- **WHEN** the operator triggers the action on an eligible `Uploaded` case
+- **THEN** the confirmation email is sent, the case becomes `Confirmed`, and `confirmed_at` is recorded
 
 #### Scenario: Attempting to confirm a non-eligible case
 - **WHEN** the action is attempted on a case that is `Pending`, already `Confirmed`, or missing required data
@@ -65,7 +72,7 @@ The dashboard SHALL render a print-ready document per sector (Archivo / Oficina 
 - **THEN** the printed output contains only cases whose derived sector is `Archivo`, with no navigation chrome, ready to print or save as PDF via the browser
 
 ### Requirement: Manual person-data entry for unextractable cases
-For cases flagged `needs_review` (the request's data arrived in an attachment, an empty auto-reply, or a forward the extractor cannot parse), the dashboard SHALL let an authenticated user type in the contributor's full name and RUT. The RUT SHALL be check-digit-validated and normalized like an auto-extracted one; on success the case stops being flagged for review and continues the normal lifecycle.
+For cases flagged `needs_review` (the request's data arrived in an attachment, an empty auto-reply, or a forward the extractor cannot parse), the dashboard SHALL let the operator type in the contributor's full name and RUT. The RUT SHALL be check-digit-validated and normalized like an auto-extracted one; on success the case stops being flagged for review and continues the normal lifecycle.
 
 #### Scenario: Operator completes a case manually
 - **WHEN** a user enters a name and a valid RUT on a `needs_review` case and saves
@@ -90,8 +97,22 @@ Each case SHALL display the date its request email was received and a countdown 
 - **WHEN** a case is `Uploaded` or `Confirmed`
 - **THEN** no deadline alert is shown for it
 
+### Requirement: Bounced-confirmation visibility
+The dashboard SHALL mark every case whose confirmation email bounced (see the `routing` spec's
+"Detect bounced confirmation emails") with a distinct row style and a "REBOTÓ" badge, offer a
+filter that shows only those cases, and provide a "Marcar resuelto" action that clears the flag
+once the operator has re-sent the confirmation or handled it another way.
+
+#### Scenario: A bounced case stands out
+- **WHEN** a `Confirmed` case has been flagged as bounced
+- **THEN** its row is styled distinctly, shows a "REBOTÓ" badge, and appears under the "Rebotados" filter
+
+#### Scenario: Operator resolves the bounce
+- **WHEN** the operator triggers "Marcar resuelto" on a bounced case
+- **THEN** the flag is cleared and the case no longer appears under the "Rebotados" filter
+
 ### Requirement: Comuna directory management
-The dashboard SHALL provide a directory view listing every comuna (name, contact email, domain) and let an authenticated user correct a comuna's contact email. Changes SHALL persist to the same CSV file the polling cycle reads, so the next confirmation email uses the corrected address.
+The dashboard SHALL provide a directory view listing every comuna (name, contact email, domain) and let the operator correct a comuna's contact email. Changes SHALL persist to the same CSV file the polling cycle reads, so the next confirmation email uses the corrected address.
 
 #### Scenario: Operator corrects a changed email
 - **WHEN** a user edits the contact email of a comuna and saves
@@ -107,3 +128,40 @@ The application SHALL be publishable as a self-contained single-file executable 
 #### Scenario: Copy to a second PC
 - **WHEN** the published executable and its config/data folder are copied to another Windows machine and started
 - **THEN** the worker and dashboard run without additional installation steps
+
+### Requirement: Readable sector names
+Every place that displays a folder sector (dashboard tables, filters, banners, and printed PDFs) SHALL show `Oficina 43` (with a space) and `Archivo`, never the raw enum name `Oficina43`.
+
+#### Scenario: Sector shown in Casos
+- **WHEN** a case has última carpeta from July 2023 onward
+- **THEN** its sector cell reads "Oficina 43"
+
+#### Scenario: Sector in printed document
+- **WHEN** the operator prints the Oficina 43 sector PDF
+- **THEN** the title and rows read "Oficina 43"
+
+### Requirement: Icon navigation buttons
+The header and sub-navigation buttons of every dashboard page (status filters, systems, documents, search, sync, back links) SHALL show an inline SVG icon next to their label, with a consistent pill style, hover state and focus ring.
+
+#### Scenario: Header buttons have icons
+- **WHEN** the operator opens Casos, F8, Caja, Estadísticas or Comunas
+- **THEN** every navigation button shows an icon and its label
+
+### Requirement: Auto-fit table columns
+Every table column in the dashboard (Casos, F8, Caja, sector documents) SHALL size to its content so no text is clipped or ellipsized; wide tables SHALL scroll horizontally inside their card.
+
+#### Scenario: Long name fully visible
+- **WHEN** a case has a 40-character full name
+- **THEN** the Nombre column shows the whole name without "…"
+
+#### Scenario: Traspaso a F8 only when F8 is ticked
+- **WHEN** a Pending case has its F8 checkbox unticked
+- **THEN** its action column shows "Marcar subida" and not "Traspaso a F8"
+
+### Requirement: Frozen identity columns
+In Casos and F8 only Nombre and RUT SHALL stay fixed while scrolling horizontally; the Marcado group (Marcar, F8, Pendiente Carpeta) SHALL come right after RUT and scroll with the rest.
+
+#### Scenario: Column order
+- **WHEN** the operator opens Casos
+- **THEN** the columns start with Nombre, RUT, Marcar, F8, Pendiente Carpeta
+

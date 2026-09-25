@@ -1,7 +1,13 @@
 # Reporte Técnico — CambioDeDomicilio
 
-**Última actualización:** 2026-07-07
+**Última actualización:** 2026-09-03
 **Fuente:** consolidado desde los artefactos OpenSpec del proyecto (`openspec/specs/`, `openspec/changes/`) y la sesión de trabajo del 2026-07-06/07 — la metodología del proyecto exige que toda decisión quede documentada ahí antes de implementarse.
+
+> Cambios posteriores (2026-09): se eliminó la autenticación del dashboard (corre en la
+> red municipal, acceso controlado a nivel de red); se eliminó la función Certificado
+> (los casos con carpeta no encontrada se resuelven solo por F8); y se agregó detección
+> de rebotes — cada ciclo revisa la Bandeja de entrada en busca de NDR de las
+> confirmaciones y marca el caso Confirmado como "REBOTÓ" en el dashboard.
 
 ---
 
@@ -18,7 +24,7 @@
 | `add-upload-confirmation-flow` | Implementado e integrado al spec vigente de `routing` |
 | `add-web-dashboard` | Implementado e integrado al spec vigente de `routing` |
 | `extraction` (spec nuevo, 2026-07-07) | Algoritmo de extracción de nombre/RUT, multi-contribuyente, respaldo por asunto, reordenamiento Viña |
-| `dashboard-auth` (spec nuevo, 2026-07-07) | Login, cambio de contraseña, recuperación por correo |
+| `dashboard-auth` | Eliminado (2026-09) — el dashboard ya no tiene login |
 
 > Nota de higiene documental: el spec `routing/spec.md` había quedado congelado en el diseño original archivado (hablaba de "enviar solicitud automática" y estados `sent`/`responded`, que nunca se implementaron así). Se corrigió el 2026-07-07 para reflejar el comportamiento real: Pendiente → Subido → Confirmado, disparado por carpeta, sin envío automático.
 
@@ -70,7 +76,7 @@
                         ┌─────────────────────────────┐
                         │   DASHBOARD WEB (HTTPS)      │
                         │   https://<pc>:5001          │
-                        │   - login + recuperación      │
+                        │   - sin login (acceso LAN)    │
                         │   - lista de casos, editable  │
                         │   - fecha última carpeta ────┼──► deriva SECTOR:
                         │     (la digita el operador)   │    < jul 2023 → Archivo
@@ -170,29 +176,28 @@ Operaciones EWS implementadas:
 | Componente | Tecnología | Rol |
 |---|---|---|
 | Servicio de sondeo | .NET 10 `BackgroundService` | Lee ambas carpetas Outlook cada 30 min vía EWS |
-| Dashboard | ASP.NET Core Razor Pages (mismo proceso) | UI del operador, HTTPS-only en puerto 5001 |
-| Autenticación | PBKDF2 + cookies (sin ASP.NET Identity) | Login por usuario, bloqueo tras 5 intentos, cambio propio de contraseña, recuperación por correo con token de un solo uso (30 min) |
-| Base de datos | SQLite (sin ORM) | Casos + usuarios + tokens de recuperación, archivo único portable |
+| Dashboard | ASP.NET Core Razor Pages (mismo proceso) | UI del operador, HTTPS-only en puerto 5001, sin login (acceso controlado por red) |
+| Base de datos | SQLite (sin ORM) | Casos + correos descartados, archivo único portable |
 | Directorio de comunas | CSV editable (300+ filas) | Dominio → comuna → correo de contacto; resolución por dirección exacta cuando el dominio es compartido (ej. gmail.com) |
 | Extracción de datos | Regex calibrado + reglas de seguridad | Multi-contribuyente por correo, respaldo por asunto (solo RUT), reordenamiento de nombre para el formato Viña |
 | Mover/marcar correo | EWS `MoveItem`/`UpdateItem` (nuevo) | Soporta el botón "Marcar subida" de un clic |
 | Reporte | CSV regenerado cada ciclo | nombre, rut, comuna, estado, fecha, sector, confirmado |
 | Notificaciones | Toast Windows + correo al operador | Solo al confirmar (feedback del envío real) |
 | Distribución | `dotnet publish` self-contained single-file | Un .exe (~100 MB) copiable a otro PC sin instalar .NET; tarea programada de Windows para auto-inicio |
-| Estadísticas (2026-07-28) | Chart.js (vendorizado, un solo archivo `wwwroot/js/vendor/chart.umd.js`, sin CDN) | Pantalla `/Estadisticas` de solo lectura: agregaciones en memoria (`StatisticsService`) sobre los mismos datos de Casos/F8/Certificado/Descartados, sin cambio de schema |
+| Estadísticas (2026-07-28) | Chart.js (vendorizado, un solo archivo `wwwroot/js/vendor/chart.umd.js`, sin CDN) | Pantalla `/Estadisticas` de solo lectura: agregaciones en memoria (`StatisticsService`) sobre los mismos datos de Casos/F8/Descartados, sin cambio de schema |
 
 ## 8. Decisiones técnicas relevantes
 
-- **Confirmación explícita, nunca automática por sí sola**: mover el correo solo marca "Subido"; el envío del aviso a la comuna requiere una acción explícita del operador (botón de 2 pasos, o botón de 1 clic), con registro de quién y cuándo. El botón de 1 clic (2026-07-07) fue una decisión consciente de eliminar el paso manual de arrastrar el correo en Outlook, pedida explícitamente por el usuario sabiendo que reduce el control de último minuto que el diseño original tenía a propósito.
+- **Confirmación explícita, nunca automática por sí sola**: mover el correo solo marca "Subido"; el envío del aviso a la comuna requiere una acción explícita del operador (botón de 2 pasos, o botón de 1 clic), con registro de la fecha/hora. El botón de 1 clic (2026-07-07) fue una decisión consciente de eliminar el paso manual de arrastrar el correo en Outlook, pedida explícitamente por el usuario sabiendo que reduce el control de último minuto que el diseño original tenía a propósito.
 - **Detección por directorio, no por patrón**: los dominios municipales chilenos no siguen ningún patrón (`litueche.cl`, `munisanfelipe.cl`, `maho.cl`...); la fuente de verdad es el CSV del directorio.
 - **Resolución exacta para dominios compartidos**: cuando un dominio (típicamente gmail.com) es usado por más de una comuna, el sistema exige que la dirección exacta del remitente esté registrada — nunca adivina cuál de las comunas es, para no atribuir mal una confirmación oficial. Se corrigió tras encontrar 4 comunas reales compartiendo gmail.com en el directorio.
 - **Extracción anclada al RUT, multi-contribuyente**: sin RUT válido no se inventa nombre. Un mismo correo puede listar varias personas — cada una se registra como su propio caso, con el nombre de cada quien acotado por sus vecinos para que no se mezclen.
 - **El nombre del asunto nunca se confía automáticamente**: el RUT del asunto sí se usa como respaldo cuando el cuerpo no trae nada, pero el nombre encontrado ahí siempre exige revisión manual — ver incidente en sección 5.
 - **Reordenamiento de nombre acotado a la fuente conocida**: el formato de Viña del Mar (exportación automatizada) siempre trae apellido-apellido-nombre-nombre; se reordena SOLO cuando se detecta ese patrón específico, nunca por adivinar en texto libre (rompería los nombres que ya vienen bien ordenados).
 - **Todos los nombres son editables desde el dashboard**, no solo los marcados "Requiere revisión" — porque la extracción es heurística y a veces produce un nombre incompleto o levemente incorrecto sin activar la bandera de revisión.
-- **Recuperación de contraseña self-service, no la opción completa por email al inicio**: se evaluaron 3 opciones (cambiar sabiendo la clave actual, recuperar por correo, resetear por CLI) y se implementó primero la más simple; se agregó recuperación por correo completa después, cuando el usuario tuvo fricción real para entrar.
+- **Autenticación del dashboard eliminada (2026-09)**: se implementó login por usuario con PBKDF2 + recuperación por correo, y luego se eliminó por completo — el dashboard corre en la red municipal y el acceso se controla a nivel de red, no de la aplicación.
 - **Sector derivado de la fecha**: la fecha de última carpeta la digita el operador; el sistema deriva Archivo (< julio 2023) u Oficina 43 (≥ julio 2023).
-- **HTTPS obligatorio en la LAN**: contraseñas y RUTs nunca viajan en claro; el puerto HTTP solo redirige.
+- **HTTPS obligatorio en la LAN**: los RUTs nunca viajan en claro; el puerto HTTP solo redirige.
 - **Sin frameworks innecesarios**: sin EF Core, sin ASP.NET Identity, sin framework CSS/JS.
 
 ## 9. Incidentes detectados y corregidos durante el desarrollo

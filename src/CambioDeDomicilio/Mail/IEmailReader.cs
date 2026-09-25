@@ -9,6 +9,13 @@ public interface IEmailReader
     /// membership (the operator moving an item in), not when it was originally received.
     /// </summary>
     Task<IReadOnlyList<IncomingEmail>> GetMessagesInFolderAsync(string folderDisplayName, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Lists mailbox inbox items received on or after <paramref name="receivedSince"/>. Time-filtered
+    /// (unlike the CARP. folders) because the inbox is unbounded — used to scan for confirmation-email
+    /// bounces, which always arrive within a short window of the send.
+    /// </summary>
+    Task<IReadOnlyList<IncomingEmail>> GetInboxMessagesSinceAsync(DateTimeOffset receivedSince, CancellationToken cancellationToken);
 }
 
 public interface IEmailMover

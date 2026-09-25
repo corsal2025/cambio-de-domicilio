@@ -60,8 +60,6 @@ public class EstadisticasModelTests : IDisposable
         Assert.NotNull(model.SectorDistribution);
         Assert.NotNull(model.F8DeadlineBacklog);
         Assert.NotNull(model.F8PdfStatus);
-        Assert.NotNull(model.CertificadoFolderStatus);
-        Assert.NotNull(model.CertificadoNotificationStatus);
         Assert.Single(model.DiscardedByReason);
     }
 

@@ -19,7 +19,7 @@ public static class EwsMessages
     /// does not change on move, so time-filtering it would silently drop manually-triaged mail.
     /// Idempotency (see AddressChangeRoutingService) is what prevents reprocessing, not this filter.
     /// </summary>
-    public static string BuildFindItemRequest(EwsFolderRef folder, int maxEntries = 200) =>
+    public static string BuildFindItemRequest(EwsFolderRef folder, int offset = 0, int maxEntries = 200) =>
         Envelope(
             new XElement(M + "FindItem",
                 new XAttribute("Traversal", "Shallow"),
@@ -27,13 +27,43 @@ public static class EwsMessages
                     new XElement(T + "BaseShape", "IdOnly")),
                 new XElement(M + "IndexedPageItemView",
                     new XAttribute("MaxEntriesReturned", maxEntries),
-                    new XAttribute("Offset", 0),
+                    new XAttribute("Offset", offset),
                     new XAttribute("BasePoint", "Beginning")),
                 new XElement(M + "SortOrder",
                     new XElement(T + "FieldOrder",
-                        new XAttribute("Order", "Ascending"),
+                        new XAttribute("Order", "Descending"),
                         new XElement(T + "FieldURI", new XAttribute("FieldURI", "item:DateTimeReceived")))),
                 new XElement(M + "ParentFolderIds", ParentFolderElement(folder))));
+
+    /// <summary>
+    /// Lists inbox items received on or after <paramref name="receivedSince"/> — used to scan for
+    /// non-delivery reports (bounces) of our confirmation emails. Unlike the CARP. folders, the
+    /// inbox is unbounded, so this one IS time-filtered: an NDR always comes back within minutes to
+    /// hours of the send, so a short look-back window covers every bounce worth acting on while
+    /// keeping the result set small. Idempotency (ProcessedBounce) still prevents re-processing.
+    /// </summary>
+    public static string BuildFindInboxItemsSinceRequest(DateTimeOffset receivedSince, int offset = 0, int maxEntries = 200) =>
+        Envelope(
+            new XElement(M + "FindItem",
+                new XAttribute("Traversal", "Shallow"),
+                new XElement(M + "ItemShape",
+                    new XElement(T + "BaseShape", "IdOnly")),
+                new XElement(M + "IndexedPageItemView",
+                    new XAttribute("MaxEntriesReturned", maxEntries),
+                    new XAttribute("Offset", offset),
+                    new XAttribute("BasePoint", "Beginning")),
+                new XElement(M + "Restriction",
+                    new XElement(T + "IsGreaterThanOrEqualTo",
+                        new XElement(T + "FieldURI", new XAttribute("FieldURI", "item:DateTimeReceived")),
+                        new XElement(T + "FieldURIOrConstant",
+                            new XElement(T + "Constant",
+                                new XAttribute("Value", receivedSince.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")))))),
+                new XElement(M + "SortOrder",
+                    new XElement(T + "FieldOrder",
+                        new XAttribute("Order", "Descending"),
+                        new XElement(T + "FieldURI", new XAttribute("FieldURI", "item:DateTimeReceived")))),
+                new XElement(M + "ParentFolderIds",
+                    new XElement(T + "DistinguishedFolderId", new XAttribute("Id", "inbox")))));
 
     /// <summary>Resolves a folder by display name (custom folders are not exposed as distinguished IDs).</summary>
     public static string BuildFindFolderRequest(string displayName) =>

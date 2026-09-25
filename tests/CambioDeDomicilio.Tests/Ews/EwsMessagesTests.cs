@@ -38,6 +38,24 @@ public class EwsMessagesTests
     }
 
     [Fact]
+    public void BuildFindInboxItemsSinceRequest_RestrictsInboxByDateTimeReceived()
+    {
+        var since = new DateTimeOffset(2026, 8, 20, 0, 0, 0, TimeSpan.Zero);
+        var xml = EwsMessages.BuildFindInboxItemsSinceRequest(since);
+        var document = XDocument.Parse(xml);
+
+        var folderRef = document.Descendants(EwsMessages.T + "DistinguishedFolderId").Single();
+        Assert.Equal("inbox", folderRef.Attribute("Id")!.Value);
+
+        var restriction = document.Descendants(EwsMessages.M + "Restriction").Single();
+        var comparison = restriction.Elements(EwsMessages.T + "IsGreaterThanOrEqualTo").Single();
+        Assert.Equal("item:DateTimeReceived",
+            comparison.Element(EwsMessages.T + "FieldURI")!.Attribute("FieldURI")!.Value);
+        Assert.Equal("2026-08-20T00:00:00Z",
+            comparison.Descendants(EwsMessages.T + "Constant").Single().Attribute("Value")!.Value);
+    }
+
+    [Fact]
     public void BuildFindFolderRequest_SearchesByDisplayNameUnderMsgFolderRoot()
     {
         var xml = EwsMessages.BuildFindFolderRequest("Para pedir");

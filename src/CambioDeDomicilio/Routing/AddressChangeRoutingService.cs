@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using CambioDeDomicilio.Configuration;
-using CambioDeDomicilio.Dashboard.Auth;
 using CambioDeDomicilio.Directories;
 using CambioDeDomicilio.Domain;
 using CambioDeDomicilio.Extraction;
@@ -25,7 +24,6 @@ public sealed class AddressChangeRoutingService(
     IComunaDirectory directory,
     IMailSender mailSender,
     IEmailMover emailMover,
-    IUserRepository users,
     IEnumerable<INotificationChannel> notificationChannels,
     RouterOptions options,
     ILogger<AddressChangeRoutingService> logger)
@@ -205,6 +203,94 @@ public sealed class AddressChangeRoutingService(
     }
 
     /// <summary>
+    /// Processes one message from the mailbox inbox: if it is a non-delivery report for one of our
+    /// "carpeta subida a Conaset" confirmation emails (see <see cref="BounceDetector"/>), finds the
+    /// Confirmed case(s) it refers to by RUT and flags them so the operator sees the comuna never
+    /// received the notice. When the NDR body names exactly one known comuna contact address (an
+    /// NDR normally echoes back the original recipient), only that comuna's matching case(s) are
+    /// flagged — a contributor can have Confirmed cases with the same RUT open for more than one
+    /// comuna at once, and only one of them may have actually bounced. Every recognized NDR is
+    /// tombstoned so a later poll never re-processes it (the message stays in the inbox); an NDR
+    /// that matches no Confirmed case is still tombstoned.
+    /// </summary>
+    public void ProcessPotentialBounce(IncomingEmail email, IReadOnlyList<ComunaContact> contacts)
+    {
+        if (repository.IsBounceProcessed(email.MessageId))
+        {
+            return;
+        }
+
+        if (!BounceDetector.LooksLikeConfirmationBounce(email))
+        {
+            return; // a normal comuna reply, or a bounce for some unrelated email — leave it alone
+        }
+
+        var ruts = PersonDataExtractor.ExtractAll(email.BodyText)
+            .Select(p => p.Rut)
+            .Where(r => r is not null)
+            .Distinct()
+            .ToList();
+
+        var bouncedComuna = FindBouncedRecipientComuna(email.BodyText, contacts);
+
+        var flagged = 0;
+        foreach (var rut in ruts)
+        {
+            var matches = repository.FindConfirmedByRut(rut!);
+            var candidates = bouncedComuna is null
+                ? matches // recipient not identified — fall back to flagging every Confirmed match for the RUT
+                : matches.Where(c => string.Equals(c.Comuna, bouncedComuna, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            foreach (var confirmed in candidates)
+            {
+                if (confirmed.ConfirmationBouncedAt is not null)
+                {
+                    continue; // already flagged from an earlier NDR — keep the first timestamp
+                }
+
+                repository.SetConfirmationBounced(confirmed.Id, email.ReceivedAt);
+                flagged++;
+            }
+        }
+
+        repository.RecordProcessedBounce(email.MessageId);
+
+        if (flagged > 0)
+        {
+            logger.LogWarning(
+                "Rebote de confirmación detectado: {Count} caso(s) marcado(s) como no entregado(s) a la comuna", flagged);
+        }
+        else
+        {
+            logger.LogWarning(
+                "Rebote de confirmación detectado pero sin caso Confirmado que coincida (asunto: {Subject})", email.Subject);
+        }
+    }
+
+    /// <summary>
+    /// Identifies which comuna's confirmation actually bounced by looking for that comuna's known
+    /// contact address literally quoted in the NDR body (Exchange echoes back the original
+    /// recipient, e.g. "Your message to x@y.cl could not be delivered"). Returns null — rather than
+    /// guessing — when no known address is found or more than one matches, mirroring
+    /// <see cref="IComunaDirectory.ResolveByDomain"/>'s "don't guess among several" rule.
+    /// </summary>
+    private static string? FindBouncedRecipientComuna(string? bodyText, IReadOnlyList<ComunaContact> contacts)
+    {
+        if (string.IsNullOrEmpty(bodyText))
+        {
+            return null;
+        }
+
+        var matches = contacts
+            .Where(c => bodyText.Contains(c.ContactEmail, StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.Comuna)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return matches.Count == 1 ? matches[0] : null;
+    }
+
+    /// <summary>
     /// Operator-triggered one-click action for a Pending case: moves the original email to
     /// "CARP. YA SUBIDAS" (marking it unread there), transitions the case to Uploaded, and
     /// immediately sends the confirmation email — collapsing what would otherwise be a manual
@@ -212,7 +298,7 @@ public sealed class AddressChangeRoutingService(
     /// (e.g. already moved manually, or a mailbox hiccup), the case still advances — the operator
     /// explicitly asked for this outcome, so a mailbox-side inconsistency shouldn't block it.
     /// </summary>
-    public async Task<ConfirmationResult> MarkUploadedAndConfirmAsync(long requestId, long confirmedByUserId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false)
+    public async Task<ConfirmationResult> MarkUploadedAndConfirmAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false)
     {
         var request = repository.FindById(requestId);
         if (request is null)
@@ -245,11 +331,12 @@ public sealed class AddressChangeRoutingService(
         }
 
         repository.MarkUploaded(request.Id, DateTimeOffset.UtcNow);
-        return await SendConfirmationAsync(requestId, confirmedByUserId, contacts, cancellationToken, viaF8);
+
+        return await SendConfirmationAsync(requestId, contacts, cancellationToken, viaF8);
     }
 
     /// <summary>Operator-triggered (button): sends the confirmation email for an Uploaded case.</summary>
-    public async Task<ConfirmationResult> SendConfirmationAsync(long requestId, long confirmedByUserId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false)
+    public async Task<ConfirmationResult> SendConfirmationAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false)
     {
         var request = repository.FindById(requestId);
         if (request is null)
@@ -285,15 +372,8 @@ public sealed class AddressChangeRoutingService(
         var (subject, body) = viaF8
             ? EmailTemplates.UploadConfirmationF8(request.FullName, request.Rut)
             : EmailTemplates.UploadConfirmation(request.FullName, request.Rut);
-        await mailSender.SendAsync(comunaContact.ContactEmail, subject, AppendFooter(body, confirmedByUserId), cancellationToken);
-        repository.UpdateStatusToConfirmed(request.Id, DateTimeOffset.UtcNow, confirmedByUserId);
-        if (viaF8)
-        {
-            // The F8 code is only useful while the case is in progress — once confirmed (row turns
-            // blue, same as a normal Casos confirmation) it's done its job and gets cleared automatically
-            // instead of lingering as stale data on a closed case.
-            repository.SetCodigoF8(request.Id, null);
-        }
+        await mailSender.SendAsync(comunaContact.ContactEmail, subject, body, cancellationToken);
+        repository.UpdateStatusToConfirmed(request.Id, DateTimeOffset.UtcNow);
         logger.LogInformation("Confirmación de subida enviada a la comuna correspondiente");
 
         foreach (var channel in notificationChannels)
@@ -310,7 +390,7 @@ public sealed class AddressChangeRoutingService(
     /// resets the case to Pending. Only Confirmed cases can be rectified this way — an Uploaded
     /// case that was never confirmed has nothing to retract, since no email ever reached the comuna.
     /// </summary>
-    public async Task<ConfirmationResult> RectifyConfirmationAsync(long requestId, long rectifiedByUserId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken)
+    public async Task<ConfirmationResult> RectifyConfirmationAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken)
     {
         var request = repository.FindById(requestId);
         if (request is null)
@@ -335,19 +415,11 @@ public sealed class AddressChangeRoutingService(
         }
 
         var (subject, body) = EmailTemplates.ConfirmationRectification(request.FullName, request.Rut);
-        await mailSender.SendAsync(comunaContact.ContactEmail, subject, AppendFooter(body, rectifiedByUserId), cancellationToken);
+        await mailSender.SendAsync(comunaContact.ContactEmail, subject, body, cancellationToken);
         repository.RevertConfirmedToPending(request.Id);
         logger.LogInformation("Correo de rectificación enviado y caso revertido a Pendiente");
 
         return new ConfirmationResult(true, "Correo de rectificación enviado y caso revertido a Pendiente");
-    }
-
-    /// <summary>Appends the operator's personal signature (set in ChangePassword) to an outgoing
-    /// email body, if they have one configured. Silent no-op otherwise.</summary>
-    private string AppendFooter(string body, long userId)
-    {
-        var footer = users.FindById(userId)?.EmailFooter;
-        return string.IsNullOrWhiteSpace(footer) ? body : $"{body}\n\n{footer}";
     }
 
     private static string ExtractDomain(string emailAddress)

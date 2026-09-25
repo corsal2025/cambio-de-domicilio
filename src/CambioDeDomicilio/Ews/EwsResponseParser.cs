@@ -24,17 +24,26 @@ public static class EwsResponseParser
         }
     }
 
-    public static IReadOnlyList<EwsItemRef> ParseFindItemResponse(XDocument document)
+    public static (IReadOnlyList<EwsItemRef> Items, bool IncludesLastItemInRange) ParseFindItemPagedResponse(XDocument document)
     {
         EnsureSuccess(document, "FindItem");
 
-        return document.Descendants(T + "ItemId")
+        var rootFolder = document.Descendants().FirstOrDefault(e => e.Name.LocalName == "RootFolder");
+        var includesLastAttr = rootFolder?.Attribute("IncludesLastItemInRange")?.Value;
+        var includesLast = includesLastAttr is null || string.Equals(includesLastAttr, "true", StringComparison.OrdinalIgnoreCase);
+
+        var items = document.Descendants(T + "ItemId")
             .Select(e => new EwsItemRef(
                 e.Attribute("Id")?.Value ?? string.Empty,
                 e.Attribute("ChangeKey")?.Value ?? string.Empty))
             .Where(r => r.Id.Length > 0)
             .ToList();
+
+        return (items, includesLast);
     }
+
+    public static IReadOnlyList<EwsItemRef> ParseFindItemResponse(XDocument document) =>
+        ParseFindItemPagedResponse(document).Items;
 
     /// <summary>Returns the first matching folder's reference, or null when FindFolder found no match.</summary>
     public static EwsFolderRef? ParseFindFolderResponse(XDocument document)

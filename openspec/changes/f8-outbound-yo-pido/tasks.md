@@ -62,8 +62,8 @@ Chain strategy: feature-branch-chain
 
 ## 5. Inbound-Only Filter (leak prevention) + Regression Tests
 
-- [ ] 5.1 RED: `IndexModelTests`/`CsvReportWriterTests` — an Outbound row never appears in Casos, Sector, SectorF8, Certificado, Discarded, or the CSV
-- [ ] 5.2 GREEN: add `.Where(c => c.Direction == RequestDirection.Inbound)` at `Index.cshtml.cs:366`, `Sector.cshtml.cs:23,59`, `SectorF8.cshtml.cs:24,51`, `Certificado.cshtml.cs:120,169`
+- [ ] 5.1 RED: `IndexModelTests`/`CsvReportWriterTests` — an Outbound row never appears in Casos, Sector, SectorF8, Discarded, or the CSV
+- [ ] 5.2 GREEN: add `.Where(c => c.Direction == RequestDirection.Inbound)` at `Index.cshtml.cs:366`, `Sector.cshtml.cs:23,59`, `SectorF8.cshtml.cs:24,51` (the `/Certificado` screen was removed)
 - [ ] 5.3 Check `Discarded.cshtml.cs:14,27` at implementation time; add the Inbound filter if it surfaces `PersonRequest` rows
 - [ ] 5.4 GREEN: `RouterWorker.cs:77` — filter to Inbound at the `CsvReportWriter.Write` call site (writer itself stays Direction-unaware)
 

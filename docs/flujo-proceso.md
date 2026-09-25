@@ -55,6 +55,24 @@ Diagrama acordado con el operador (2026-07-03). Fuente de verdad del proceso de 
  RUT [X] a Conaset") y marca el caso CONFIRMADO.
  Nada se envía sin ese clic.
 
+ PASO 7b — CARPETA FÍSICA A CAJA                          [manual]
+ ─────────────────────────────────────────────
+ Con la carpeta ya subida (SUBIDA o CONFIRMADO), el operador
+ aprieta "Caja": el caso sale de Casos y queda en la cola de
+ la pantalla Caja, hasta que se cierra la caja física.
+ En Caja, "Devolver a casos" lo regresa a Casos (por error).
+
+ Casos en F8 (no se encontró la carpeta):
+   • "Caja"        → apareció la carpeta: va directo a la cola
+                     de Caja.
+   • "Sin carpeta" → se cierra el proceso sin carpeta: vuelve a
+                     Casos como "Cerrado sin carpeta", sin
+                     acciones, y nunca entra a Caja.
+   • "Revertir"    → el F8 se pidió por error: se borran TODOS
+                     los datos F8 (incluido el código F8), esté
+                     subido o no, y el caso vuelve a Casos solo
+                     con el botón "Caja". No se envía correo.
+
  ESTADOS DE UN CASO:
    PENDIENTE → SUBIDA → CONFIRMADO
    (+ marca "Requiere revisión" si faltan datos extraíbles)
@@ -63,14 +81,14 @@ Diagrama acordado con el operador (2026-07-03). Fuente de verdad del proceso de 
 ## Programa en red (dashboard)
 
 El proceso se opera desde una interfaz web accesible en la red municipal
-(cambio `add-web-dashboard`), con: login por usuario, celda editable de
-fecha de última carpeta, botón de PDF por sector, botón de envío de
-confirmación, y la base de datos SQLite detrás.
+(cambio `add-web-dashboard`), sin login (el acceso se controla a nivel de
+red): celda editable de fecha de última carpeta, botón de PDF por sector,
+botón de envío de confirmación, y la base de datos SQLite detrás.
 
 ## Paso 8 — Estadísticas (reporte, no bloquea el flujo)
 
 Capa de solo lectura sobre los mismos datos de los pasos anteriores (Casos,
-F8, Certificado, Descartados) — no agrega ningún paso al trámite en sí, solo
+F8, Descartados) — no agrega ningún paso al trámite en sí, solo
 lo hace visible de un vistazo: casos por estado, ingresos por semana, top
 comunas, tiempo promedio de confirmación, sector Archivo/Oficina 43, plazo
 F8 (dentro/vencido de 15 días hábiles), PDFs generados, y correos

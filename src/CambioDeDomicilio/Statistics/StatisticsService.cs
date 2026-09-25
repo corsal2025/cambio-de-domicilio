@@ -24,10 +24,6 @@ public sealed record F8DeadlineBacklog(int WithinDeadline, int PastDeadline);
 
 public sealed record F8PdfStatus(int Generated, int Pending);
 
-public sealed record CertificadoFolderStatus(int Found, int NotFound);
-
-public sealed record CertificadoNotificationStatus(int Notified, int Pending);
-
 /// <summary>Read-only aggregations over already-loaded case/discarded-email lists, feeding the
 /// /Estadisticas dashboard. Mirrors the in-memory LINQ pattern every other dashboard page already
 /// uses over IPersonRequestRepository.GetAll() — no new SQL, no new tables.</summary>
@@ -148,21 +144,5 @@ public sealed class StatisticsService(RouterOptions options)
         return new F8PdfStatus(
             Generated: withSector.Count(c => c.SectorPdfGeneratedAt is not null),
             Pending: withSector.Count(c => c.SectorPdfGeneratedAt is null));
-    }
-
-    public CertificadoFolderStatus GetCertificadoFolderStatus(IReadOnlyList<PersonRequest> cases)
-    {
-        var certificado = cases.Where(c => c.Destination == CaseDestination.Certificado).ToList();
-        return new CertificadoFolderStatus(
-            Found: certificado.Count(c => !c.FolderNotFound),
-            NotFound: certificado.Count(c => c.FolderNotFound));
-    }
-
-    public CertificadoNotificationStatus GetCertificadoNotificationStatus(IReadOnlyList<PersonRequest> cases)
-    {
-        var certificado = cases.Where(c => c.Destination == CaseDestination.Certificado).ToList();
-        return new CertificadoNotificationStatus(
-            Notified: certificado.Count(c => c.CertificadoNotifiedAt is not null),
-            Pending: certificado.Count(c => c.CertificadoNotifiedAt is null));
     }
 }

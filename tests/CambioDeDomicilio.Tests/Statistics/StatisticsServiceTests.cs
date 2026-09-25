@@ -29,7 +29,6 @@ public class StatisticsServiceTests
         DateOnly? fechaUltimaCarpeta = null,
         CaseDestination destination = CaseDestination.None,
         bool folderNotFound = false,
-        DateTimeOffset? certificadoNotifiedAt = null,
         DateTimeOffset? sectorPdfGeneratedAt = null) => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",
@@ -45,7 +44,6 @@ public class StatisticsServiceTests
         FechaUltimaCarpeta = fechaUltimaCarpeta,
         Destination = destination,
         FolderNotFound = folderNotFound,
-        CertificadoNotifiedAt = certificadoNotifiedAt,
         SectorPdfGeneratedAt = sectorPdfGeneratedAt
     };
 
@@ -254,38 +252,5 @@ public class StatisticsServiceTests
 
         Assert.Equal(1, result.Generated);
         Assert.Equal(1, result.Pending);
-    }
-
-    [Fact]
-    public void GetCertificadoFolderStatus_SplitsByFolderNotFound()
-    {
-        var cases = new[]
-        {
-            NewRequest("m1", destination: CaseDestination.Certificado, folderNotFound: false),
-            NewRequest("m2", destination: CaseDestination.Certificado, folderNotFound: true),
-            NewRequest("m3", destination: CaseDestination.Certificado, folderNotFound: true),
-            NewRequest("m4", destination: CaseDestination.F8, folderNotFound: true), // not Certificado, excluded
-        };
-
-        var result = service.GetCertificadoFolderStatus(cases);
-
-        Assert.Equal(1, result.Found);
-        Assert.Equal(2, result.NotFound);
-    }
-
-    [Fact]
-    public void GetCertificadoNotificationStatus_SplitsByNotifiedAt()
-    {
-        var cases = new[]
-        {
-            NewRequest("m1", destination: CaseDestination.Certificado, certificadoNotifiedAt: DateTimeOffset.UtcNow),
-            NewRequest("m2", destination: CaseDestination.Certificado, certificadoNotifiedAt: null),
-            NewRequest("m3", destination: CaseDestination.Certificado, certificadoNotifiedAt: null),
-        };
-
-        var result = service.GetCertificadoNotificationStatus(cases);
-
-        Assert.Equal(1, result.Notified);
-        Assert.Equal(2, result.Pending);
     }
 }

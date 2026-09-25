@@ -1,10 +1,8 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using CambioDeDomicilio.Configuration;
-using CambioDeDomicilio.Dashboard.Auth;
 using CambioDeDomicilio.Dashboard.Pages;
 using CambioDeDomicilio.Directories;
 using CambioDeDomicilio.Domain;
@@ -31,8 +29,6 @@ public class IndexModelTests : IDisposable
         repository.EnsureSchema();
         var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
         discardedRepository.EnsureSchema();
-        var users = new UserRepository($"Data Source={dbPath}");
-        users.EnsureSchema();
         File.WriteAllText(csvPath, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
 
         var options = new RouterOptions
@@ -52,7 +48,6 @@ public class IndexModelTests : IDisposable
             new ComunaDirectory(),
             new NoOpMailSender(),
             new NoOpEmailMover(),
-            users,
             [],
             options,
             NullLogger<AddressChangeRoutingService>.Instance);
@@ -69,11 +64,7 @@ public class IndexModelTests : IDisposable
         {
             PageContext = new PageContext
             {
-                HttpContext = new DefaultHttpContext
-                {
-                    User = new ClaimsPrincipal(new ClaimsIdentity(
-                        [new Claim(ClaimTypes.NameIdentifier, "1")]))
-                }
+                HttpContext = new DefaultHttpContext()
             }
         };
     }
@@ -290,7 +281,7 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
-    public async Task OnPostConfirmAsync_UploadedCase_RecordsAttributionFromClaim()
+    public async Task OnPostConfirmAsync_UploadedCase_ConfirmsSuccessfully()
     {
         var id = repository.Insert(NewRequest("msg-1"));
         repository.SetFechaUltimaCarpeta(id, new DateOnly(2024, 3, 15));
@@ -300,7 +291,6 @@ public class IndexModelTests : IDisposable
 
         var stored = repository.GetAll().Single(c => c.Id == id);
         Assert.Equal(RequestStatus.Confirmed, stored.Status);
-        Assert.Equal(1, stored.ConfirmedByUserId);
     }
 
     [Fact]
@@ -313,7 +303,6 @@ public class IndexModelTests : IDisposable
 
         var stored = repository.GetAll().Single(c => c.Id == id);
         Assert.Equal(RequestStatus.Confirmed, stored.Status);
-        Assert.Equal(1, stored.ConfirmedByUserId);
         Assert.False(model.MessageIsError);
     }
 
@@ -429,6 +418,39 @@ public class IndexModelTests : IDisposable
 
         Assert.False(model.MessageIsError);
         Assert.Equal("Sincronización completada.", model.Message);
+    }
+
+    [Fact]
+    public async Task OnPostSyncNowAsync_BrowserAbortsRequestMidCycle_DoesNotCancelTheCycle()
+    {
+        // A slow cycle (e.g. many inbox messages during the bounce check) can outlive the browser
+        // request — a closed tab or proxy timeout aborts HttpContext.RequestAborted while the EWS
+        // calls are still in flight. The cycle must not be tied to that token, or the operator sees
+        // the sync silently fail mid-way with no clear reason.
+        var reader = new RecordingEmailReader();
+        var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
+        var workerOptions = new RouterOptions
+        {
+            Ews = new EwsOptions { Url = "https://mail.munivalpo.cl/EWS/Exchange.asmx", Username = "u", Password = "p" },
+            MailboxAddress = "cambiodedomicilio@munivalpo.cl",
+            OwnDomain = "munivalpo.cl",
+            SqliteDbPath = dbPath,
+            ComunaDirectoryCsvPath = csvPath,
+            ReportCsvPath = "unused-report-aborted.csv",
+            NotificationEmailAddress = "raul.salazar1984@gmail.com"
+        };
+        var worker = new RouterWorker(routingService, reader, repository, new NoOpCsvReportWriter(), workerOptions, NullLogger<RouterWorker>.Instance);
+        var abortedModel = new IndexModel(repository, discardedRepository, routingService, worker, workerOptions, NullLogger<IndexModel>.Instance)
+        {
+            PageContext = new PageContext
+            {
+                HttpContext = new DefaultHttpContext { RequestAborted = new CancellationToken(canceled: true) }
+            }
+        };
+
+        await abortedModel.OnPostSyncNowAsync();
+
+        Assert.False(reader.AnyCallSawCancelledToken);
     }
 
     [Fact]
@@ -614,21 +636,6 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
-    public void OnGet_CaseMovedToCertificado_IsExcludedFromCases()
-    {
-        var movedId = repository.Insert(NewRequest("msg-1"));
-        repository.SetFolderNotFound(movedId, true);
-        repository.SetDestination(movedId, CaseDestination.Certificado, DateTimeOffset.UtcNow);
-
-        var stillInCasesId = repository.Insert(NewRequest("msg-2"));
-
-        model.OnGet(status: null);
-
-        var result = Assert.Single(model.Cases);
-        Assert.Equal(stillInCasesId, result.Id);
-    }
-
-    [Fact]
     public void OnGet_CaseWithFolderNotFoundButNotMovedToF8_StillAppearsInCases()
     {
         var id = repository.Insert(NewRequest("msg-1"));
@@ -654,16 +661,108 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
-    public void OnPostTransferToCertificado_SetsDestinationAndTimestamp()
+    public void OnPostResolveBounce_ClearsTheBounceFlag()
     {
         var id = repository.Insert(NewRequest("msg-1"));
-        repository.SetFolderNotFound(id, true);
+        repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
+        repository.SetConfirmationBounced(id, DateTimeOffset.UtcNow);
 
-        model.OnPostTransferToCertificado(id);
+        model.OnPostResolveBounce(id);
 
-        var stored = repository.FindById(id)!;
-        Assert.Equal(CaseDestination.Certificado, stored.Destination);
-        Assert.NotNull(stored.TransferredAt);
+        Assert.Null(repository.FindById(id)!.ConfirmationBouncedAt);
+    }
+
+    [Fact]
+    public void OnGet_BouncedFilter_ShowsOnlyCasesWithABounce()
+    {
+        var bounced = repository.Insert(NewRequest("msg-1"));
+        repository.UpdateStatusToConfirmed(bounced, DateTimeOffset.UtcNow);
+        repository.SetConfirmationBounced(bounced, DateTimeOffset.UtcNow);
+        var normal = repository.Insert(NewRequest("msg-2"));
+        repository.UpdateStatusToConfirmed(normal, DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null, needsReview: false, search: null, bounced: true);
+
+        var shown = Assert.Single(model.Cases);
+        Assert.Equal(bounced, shown.Id);
+    }
+
+    [Fact]
+    public void OnGet_AlwaysExposesBouncedCount()
+    {
+        var bounced = repository.Insert(NewRequest("msg-1"));
+        repository.UpdateStatusToConfirmed(bounced, DateTimeOffset.UtcNow);
+        repository.SetConfirmationBounced(bounced, DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null);
+
+        Assert.Equal(1, model.BouncedCount);
+    }
+
+    [Fact]
+    public void OnGet_SearchMatchesCaseInClosedBox_ReportsCajaMatchWithBoxCode()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+        repository.CloseBox("A7-CD", DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null, search: "18.785.387-7");
+
+        Assert.Empty(model.Cases);
+        Assert.Equal(1, model.CajaMatchCount);
+        Assert.Equal("A7-CD", model.CajaMatchBoxCode);
+    }
+
+    [Fact]
+    public void OnGet_SearchMatchesCaseInOpenCajaQueue_ReportsQueueAsLocation()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null, search: "PEÑA");
+
+        Assert.Equal(1, model.CajaMatchCount);
+        Assert.Equal("cola de Caja", model.CajaMatchBoxCode);
+    }
+
+    [Fact]
+    public void OnGet_NoSearch_CajaMatchCountIsZero()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null);
+
+        Assert.Equal(0, model.CajaMatchCount);
+    }
+
+    [Fact]
+    public void OnPostSubirACaja_ConfirmedCaseWithoutFecha_MovesToCajaAndLeavesCasos()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
+
+        model.OnPostSubirACaja(id);
+
+        Assert.Equal(CaseDestination.Caja, repository.FindById(id)!.Destination);
+        model.OnGet(status: null);
+        Assert.DoesNotContain(model.Cases, c => c.Id == id);
+    }
+
+    [Fact]
+    public void OnGet_ClosedWithoutFolderCase_StaysVisibleInCasos()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null);
+
+        Assert.Contains(model.Cases, c => c.Id == id && c.ClosedWithoutFolderAt is not null);
     }
 
     private static PersonRequest NewRequest(string sourceMessageId) => new()
@@ -712,6 +811,26 @@ public class IndexModelTests : IDisposable
     {
         public Task<IReadOnlyList<IncomingEmail>> GetMessagesInFolderAsync(string folderDisplayName, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
+
+        public Task<IReadOnlyList<IncomingEmail>> GetInboxMessagesSinceAsync(DateTimeOffset receivedSince, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
+    }
+
+    private sealed class RecordingEmailReader : IEmailReader
+    {
+        public bool AnyCallSawCancelledToken { get; private set; }
+
+        public Task<IReadOnlyList<IncomingEmail>> GetMessagesInFolderAsync(string folderDisplayName, CancellationToken cancellationToken)
+        {
+            AnyCallSawCancelledToken |= cancellationToken.IsCancellationRequested;
+            return Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
+        }
+
+        public Task<IReadOnlyList<IncomingEmail>> GetInboxMessagesSinceAsync(DateTimeOffset receivedSince, CancellationToken cancellationToken)
+        {
+            AnyCallSawCancelledToken |= cancellationToken.IsCancellationRequested;
+            return Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
+        }
     }
 
     private sealed class NoOpEmailMover : IEmailMover

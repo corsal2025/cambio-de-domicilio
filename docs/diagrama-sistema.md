@@ -1,6 +1,6 @@
 # Diagrama del sistema — CambioDeDomicilio
 
-**Última actualización:** 2026-07-28
+**Última actualización:** 2026-09-03
 **Propósito:** referencia rápida para reportar el flujo del sistema (jefatura, auditoría, onboarding). Refleja el comportamiento real del código a esta fecha, no el diseño original.
 
 > Nota de vigencia: el sondeo de correo **ya no es automático cada 30 min** — corre solo cuando el operador presiona "Sincronizar ahora" en el dashboard (`RouterWorker.RunCycleAsync`, disparado por `IndexModel.OnPostSyncNowAsync`). Otros documentos del proyecto (`reporte-tecnico.md`) todavía describen el sondeo periódico viejo; este diagrama es la versión actualizada.
@@ -30,6 +30,7 @@ flowchart TB
         DUP -->|sí, se ignora| SKIP["No se registra de nuevo"]
         DUP -->|no| INS["Insertar caso<br/>Status = Pending"]
         UP["Correo en CARP. YA SUBIDAS<br/>+ Message-ID conocido"] --> SETUP["Caso pasa a<br/>Status = Uploaded"]
+        NDR["Rebote en Bandeja de entrada<br/>(postmaster + menciona Conaset)"] --> BNC["Caso Confirmado<br/>marcado 'REBOTÓ'<br/>(por RUT del NDR)"]
     end
 
     INS --> CSV["Reporte CSV<br/>regenerado cada ciclo"]
@@ -38,16 +39,14 @@ flowchart TB
     INS --> DASH
     SETUP --> DASH
 
-    subgraph DASH["Dashboard web (HTTPS, login requerido)"]
+    subgraph DASH["Dashboard web (HTTPS, sin login — acceso por red)"]
         CASOS["/Index — Casos<br/>(Cambio de Domicilio)"]
         F8P["/F8 — Casos F8"]
-        CERT["/Certificado"]
         DISCP["/Discarded"]
         COMU["/Comunas"]
     end
 
     CASOS -->|"Traspaso a F8<br/>(TransferredAt, Destination=F8)"| F8P
-    CASOS -->|"Traspaso a Certificado<br/>(Destination=Certificado)"| CERT
     DISC --> DISCP
 ```
 
@@ -64,9 +63,9 @@ stateDiagram-v2
 
     Confirmed --> Uploaded: "Rectificar confirmación"<br/>(revierte, para corregir un error)
 
-    Pending --> [*]: Traspaso a F8 o Certificado<br/>(sale de Casos, TransferredAt fijado)
-    Uploaded --> [*]: Traspaso a F8 o Certificado
-    Confirmed --> [*]: Traspaso a F8 o Certificado
+    Pending --> [*]: Traspaso a F8<br/>(sale de Casos, TransferredAt fijado)
+    Uploaded --> [*]: Traspaso a F8
+    Confirmed --> [*]: Traspaso a F8
 
     note right of Confirmed
         Reglas clave:
@@ -102,12 +101,11 @@ flowchart TB
 
 **Por qué el nombre del asunto nunca se confía:** un correo real con asunto `Fwd: SUBIR CARPETA PLATAFORMA CONASET 14.148.466-4` (una instrucción, no un nombre) se registró una vez como si ese texto fuera el nombre del contribuyente. Desde entonces, el RUT del asunto se acepta como respaldo pero el nombre del asunto **jamás** — el caso siempre queda "Requiere revisión".
 
-## 4. F8 y Certificado — pistas separadas después del traspaso
+## 4. F8 — pista separada después del traspaso
 
 ```mermaid
 flowchart LR
     CASOS["/Index — Casos"] -->|"Traspaso a F8"| F8["/F8"]
-    CASOS -->|"Traspaso a Certificado"| CERT["/Certificado"]
 
     subgraph F8flow["F8"]
         F8 --> F8sector{"Fecha última<br/>carpeta (S/C admitido)"}
@@ -117,12 +115,6 @@ flowchart LR
         OF43 --> MARCA
         MARCA --> PDFARCH["PDF Archivo"]
         MARCA --> PDFOF43["PDF Oficina 43"]
-    end
-
-    subgraph CERTflow["Certificado"]
-        CERT --> FN{"¿Carpeta<br/>no encontrada?"}
-        FN -->|sí| SECMU["Certificación vía<br/>Secretaría Municipal"]
-        SECMU --> NOTIF["Avisar certificado<br/>(batch: Secretaría + comuna)"]
     end
 ```
 
@@ -135,7 +127,7 @@ flowchart TB
         RP["ASP.NET Core Razor Pages<br/>Dashboard HTTPS :5001"]
     end
     EWS["Cliente EWS propio (SOAP)<br/>Exchange Server 2016 on-premise"]
-    SQLITE["SQLite<br/>(casos + usuarios + tokens,<br/>sin ORM)"]
+    SQLITE["SQLite<br/>(casos + correos descartados,<br/>sin ORM)"]
     CSVDIR["CSV editable<br/>directorio de comunas<br/>(300+ filas)"]
     CSVOUT["CSV de reporte<br/>regenerado cada ciclo"]
 
@@ -158,11 +150,10 @@ flowchart TB
     subgraph Metricas["Métricas por proceso"]
         M1["Casos: estado, ingresos por semana,<br/>top comunas, turnaround promedio,<br/>sector Archivo/Oficina43"]
         M2["F8: plazo 15 días hábiles<br/>(dentro/vencido), PDFs generados"]
-        M3["Certificado: carpeta encontrada,<br/>notificación enviada"]
         M4["Descartados: por motivo/dominio<br/>no reconocido"]
     end
 
     CHARTS --> Metricas
 ```
 
-No agrega ningún paso al trámite — es una capa de reporte sobre datos que los otros cuatro procesos ya generan, sin escritura y sin cambio de schema.
+No agrega ningún paso al trámite — es una capa de reporte sobre datos que los otros procesos ya generan, sin escritura y sin cambio de schema.

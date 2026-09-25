@@ -16,11 +16,13 @@ public interface IComunaDirectory
     ComunaContact? ResolveByDomain(string senderEmailAddress, string ownDomain, IReadOnlyList<ComunaContact> contacts);
 
     /// <summary>
-    /// Persists a corrected contact email for a comuna back to the CSV (the same file the
-    /// polling cycle reads, so the next confirmation send uses the new address).
-    /// Returns false when the comuna is not in the directory or the email is not valid.
+    /// Persists a corrected domain and/or contact email for a comuna back to the CSV (the same
+    /// file the polling cycle reads, so the next confirmation send uses the new address). The
+    /// existing row is located by its current comuna+domain pair, since a comuna can have more
+    /// than one domain on file. Returns false when no row matches that pair, or the new domain/
+    /// email don't have a valid shape.
     /// </summary>
-    bool UpdateContactEmail(string csvPath, string comuna, string newEmail);
+    bool UpdateContact(string csvPath, string comuna, string domain, string newDomain, string newEmail);
 
     /// <summary>
     /// Appends a brand-new comuna/domain/contact-email row to the CSV, for comunas not yet in the
@@ -28,6 +30,13 @@ public interface IComunaDirectory
     /// domain or email don't have a valid shape.
     /// </summary>
     bool AddContact(string csvPath, string comuna, string contactEmail, string domain);
+
+    /// <summary>
+    /// Removes one comuna/domain row from the CSV — for a comuna that no longer requests folders,
+    /// or a contact address that no longer applies. Returns false when no row matches that
+    /// comuna+domain pair.
+    /// </summary>
+    bool DeleteContact(string csvPath, string comuna, string domain);
 }
 
 public sealed class ComunaDirectory : IComunaDirectory
@@ -174,33 +183,55 @@ public sealed class ComunaDirectory : IComunaDirectory
         return $"\"{value.Replace("\"", "\"\"")}\"";
     }
 
-    public bool UpdateContactEmail(string csvPath, string comuna, string newEmail)
+    public bool UpdateContact(string csvPath, string comuna, string domain, string newDomain, string newEmail)
     {
         newEmail = newEmail.Trim();
-        if (!EmailShapeValidator.IsValidEmailShape(newEmail))
+        newDomain = newDomain.Trim().ToLowerInvariant();
+        if (!EmailShapeValidator.IsValidEmailShape(newEmail) || !IsValidDomainShape(newDomain))
         {
             return false;
         }
 
         var contacts = LoadFromCsv(csvPath);
         var target = contacts.FirstOrDefault(c =>
-            string.Equals(c.Comuna, comuna, StringComparison.OrdinalIgnoreCase));
+            string.Equals(c.Comuna, comuna, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(c.Domain, domain, StringComparison.OrdinalIgnoreCase));
         if (target is null)
         {
             return false;
         }
 
         var updated = contacts
-            .Select(c => c == target ? c with { ContactEmail = newEmail } : c)
+            .Select(c => c == target ? c with { ContactEmail = newEmail, Domain = newDomain } : c)
             .ToList();
 
-        // Write to a temp file then move, so the polling cycle never reads a half-written directory.
+        WriteCsv(csvPath, updated);
+        return true;
+    }
+
+    public bool DeleteContact(string csvPath, string comuna, string domain)
+    {
+        var contacts = LoadFromCsv(csvPath);
+        var target = contacts.FirstOrDefault(c =>
+            string.Equals(c.Comuna, comuna, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(c.Domain, domain, StringComparison.OrdinalIgnoreCase));
+        if (target is null)
+        {
+            return false;
+        }
+
+        WriteCsv(csvPath, contacts.Where(c => c != target).ToList());
+        return true;
+    }
+
+    // Write to a temp file then move, so the polling cycle never reads a half-written directory.
+    private static void WriteCsv(string csvPath, IReadOnlyList<ComunaContact> contacts)
+    {
         var tempPath = csvPath + ".tmp";
         var lines = new List<string> { "Comuna,ContactEmail,Domain" };
-        lines.AddRange(updated.Select(c => $"{QuoteCsvField(c.Comuna)},{QuoteCsvField(c.ContactEmail)},{QuoteCsvField(c.Domain)}"));
+        lines.AddRange(contacts.Select(c => $"{QuoteCsvField(c.Comuna)},{QuoteCsvField(c.ContactEmail)},{QuoteCsvField(c.Domain)}"));
         File.WriteAllLines(tempPath, lines);
         File.Move(tempPath, csvPath, overwrite: true);
-        return true;
     }
 
     public bool AddContact(string csvPath, string comuna, string contactEmail, string domain)
@@ -217,12 +248,7 @@ public sealed class ComunaDirectory : IComunaDirectory
         var contacts = LoadFromCsv(csvPath).ToList();
         contacts.Add(new ComunaContact(comuna, contactEmail, domain));
 
-        // Write to a temp file then move, so the polling cycle never reads a half-written directory.
-        var tempPath = csvPath + ".tmp";
-        var lines = new List<string> { "Comuna,ContactEmail,Domain" };
-        lines.AddRange(contacts.Select(c => $"{QuoteCsvField(c.Comuna)},{QuoteCsvField(c.ContactEmail)},{QuoteCsvField(c.Domain)}"));
-        File.WriteAllLines(tempPath, lines);
-        File.Move(tempPath, csvPath, overwrite: true);
+        WriteCsv(csvPath, contacts);
         return true;
     }
 

@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using CambioDeDomicilio.Configuration;
-using CambioDeDomicilio.Dashboard.Auth;
 using CambioDeDomicilio.Directories;
 using CambioDeDomicilio.Domain;
 using CambioDeDomicilio.Mail;
@@ -74,6 +73,39 @@ public class RouterWorkerTests : IDisposable
         File.Delete(csvPath);
     }
 
+    [Fact]
+    public async Task RunCycleAsync_InboxHasBounceForConfirmedCase_FlagsTheCase()
+    {
+        var csvPath = Path.Combine(Path.GetTempPath(), $"worker-comunas-{Guid.NewGuid():N}.csv");
+        File.WriteAllText(csvPath, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
+
+        var confirmedId = repository.Insert(new PersonRequest
+        {
+            FullName = "JUAN PEREZ SOTO",
+            Rut = "12.345.678-5",
+            Comuna = "Catemu",
+            SourceMessageId = "msg-1",
+            SourceSubject = "Solicitud",
+            SourceSender = "rfloresc@municatemu.cl",
+            NeedsReview = false,
+            Status = RequestStatus.Pending,
+            ReceivedAt = DateTimeOffset.UtcNow
+        });
+        repository.UpdateStatusToConfirmed(confirmedId, DateTimeOffset.UtcNow);
+
+        emailReader.InboxMessages.Add(new IncomingEmail(
+            "ndr-1", "c", "Undeliverable: Carpeta subida a Conaset",
+            "postmaster@munivalpo.cl",
+            "Your message could not be delivered.\nSe informa que la carpeta del contribuyente JUAN PEREZ SOTO, RUT 12.345.678-5, ya fue subida al sistema de Conaset.",
+            DateTimeOffset.UtcNow));
+
+        var sut = BuildWorker(comunaDirectoryCsvPath: csvPath);
+        await sut.RunCycleAsync(CancellationToken.None);
+
+        Assert.NotNull(repository.FindById(confirmedId)!.ConfirmationBouncedAt);
+        File.Delete(csvPath);
+    }
+
     private RouterWorker BuildWorker(string comunaDirectoryCsvPath, IEmailReader? emailReaderOverride = null)
     {
         var options = new RouterOptions
@@ -91,8 +123,6 @@ public class RouterWorkerTests : IDisposable
 
         var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
         discardedRepository.EnsureSchema();
-        var users = new UserRepository($"Data Source={dbPath}");
-        users.EnsureSchema();
 
         var routingService = new AddressChangeRoutingService(
             repository,
@@ -100,7 +130,6 @@ public class RouterWorkerTests : IDisposable
             new ComunaDirectory(),
             new FakeMailSender(),
             new NoOpEmailMover(),
-            users,
             [],
             options,
             NullLogger<AddressChangeRoutingService>.Instance);
@@ -118,11 +147,18 @@ public class RouterWorkerTests : IDisposable
     private sealed class FakeEmailReader : IEmailReader
     {
         public bool WasCalled { get; private set; }
+        public List<IncomingEmail> InboxMessages { get; } = [];
 
         public Task<IReadOnlyList<IncomingEmail>> GetMessagesInFolderAsync(string folderDisplayName, CancellationToken cancellationToken)
         {
             WasCalled = true;
             return Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
+        }
+
+        public Task<IReadOnlyList<IncomingEmail>> GetInboxMessagesSinceAsync(DateTimeOffset receivedSince, CancellationToken cancellationToken)
+        {
+            WasCalled = true;
+            return Task.FromResult<IReadOnlyList<IncomingEmail>>(InboxMessages);
         }
     }
 
@@ -137,6 +173,9 @@ public class RouterWorkerTests : IDisposable
             await gate.Task;
             return [];
         }
+
+        public Task<IReadOnlyList<IncomingEmail>> GetInboxMessagesSinceAsync(DateTimeOffset receivedSince, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<IncomingEmail>>([]);
 
         public void Release() => gate.TrySetResult();
     }

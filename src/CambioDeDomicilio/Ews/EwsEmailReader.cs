@@ -30,6 +30,40 @@ public sealed class EwsEmailReader(IEwsClient client, ILogger<EwsEmailReader> lo
         }
     }
 
+    public async Task<IReadOnlyList<IncomingEmail>> GetInboxMessagesSinceAsync(DateTimeOffset receivedSince, CancellationToken cancellationToken)
+    {
+        var allItemRefs = new List<EwsItemRef>();
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        var offset = 0;
+        const int pageSize = 200;
+        const int maxPages = 20;
+
+        for (var page = 0; page < maxPages; page++)
+        {
+            var findResponse = await client.SendAsync(
+                EwsMessages.BuildFindInboxItemsSinceRequest(receivedSince, offset: offset, maxEntries: pageSize),
+                cancellationToken);
+
+            var (items, includesLast) = EwsResponseParser.ParseFindItemPagedResponse(findResponse);
+            foreach (var item in items)
+            {
+                if (seenIds.Add(item.Id))
+                {
+                    allItemRefs.Add(item);
+                }
+            }
+
+            if (includesLast || items.Count == 0)
+            {
+                break;
+            }
+
+            offset += items.Count;
+        }
+
+        return await FetchItemDetailsAsync(allItemRefs, cancellationToken);
+    }
+
     private async Task<IReadOnlyList<IncomingEmail>> ListFolderAsync(string folderDisplayName, CancellationToken cancellationToken)
     {
         var folder = await ResolveFolderAsync(folderDisplayName, cancellationToken);
@@ -41,9 +75,40 @@ public sealed class EwsEmailReader(IEwsClient client, ILogger<EwsEmailReader> lo
             return [];
         }
 
-        var findResponse = await client.SendAsync(EwsMessages.BuildFindItemRequest(folder), cancellationToken);
-        var itemRefs = EwsResponseParser.ParseFindItemResponse(findResponse);
+        var allItemRefs = new List<EwsItemRef>();
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+        var offset = 0;
+        const int pageSize = 200;
+        const int maxPages = 50;
 
+        for (var page = 0; page < maxPages; page++)
+        {
+            var findResponse = await client.SendAsync(
+                EwsMessages.BuildFindItemRequest(folder, offset: offset, maxEntries: pageSize),
+                cancellationToken);
+
+            var (items, includesLast) = EwsResponseParser.ParseFindItemPagedResponse(findResponse);
+            foreach (var item in items)
+            {
+                if (seenIds.Add(item.Id))
+                {
+                    allItemRefs.Add(item);
+                }
+            }
+
+            if (includesLast || items.Count == 0)
+            {
+                break;
+            }
+
+            offset += items.Count;
+        }
+
+        return await FetchItemDetailsAsync(allItemRefs, cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<IncomingEmail>> FetchItemDetailsAsync(IReadOnlyList<EwsItemRef> itemRefs, CancellationToken cancellationToken)
+    {
         if (itemRefs.Count == 0)
         {
             return [];

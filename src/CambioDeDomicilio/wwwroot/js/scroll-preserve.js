@@ -15,14 +15,23 @@
     var savedScroll = sessionStorage.getItem(scrollKey);
     var savedTableX = table ? sessionStorage.getItem(tableScrollXKey) : null;
     var savedTableY = table ? sessionStorage.getItem(tableScrollYKey) : null;
+    var messageBanner = document.querySelector('.message-banner');
 
     // Restoring here is a no-op if the window is minimized: the browser hasn't laid out the
     // page (table.scrollWidth is still 0), so scrollLeft/scrollTop assignments get clamped back
     // to 0 and the values are lost since we already removed them from storage. Keep the saved
     // values around and re-apply on visibilitychange so a restore-while-minimized retries once
     // the tab is actually visible and laid out.
+    //
+    // A message banner (success or error feedback from the action that just ran, e.g.
+    // OnPostSetPersonData rejecting an invalid RUT) sits above the table — restoring a deep
+    // scroll position here would silently carry the operator right past it, so they'd see their
+    // edit "revert" with no visible explanation. Feedback wins over scroll restoration that one
+    // time; the table's own internal scroll still gets restored below either way.
     function applyRestore() {
-        if (savedScroll !== null) {
+        if (messageBanner) {
+            messageBanner.scrollIntoView({ block: 'start' });
+        } else if (savedScroll !== null) {
             window.scrollTo(0, parseInt(savedScroll, 10));
         }
         if (table) {

@@ -22,23 +22,30 @@
         </div>
         <nav class="app-nav">
             <div class="nav-group nav-group-filters">
-                <a asp-page="/Index" class="@(Model.StatusFilter is null && !Model.OnlyNeedsReview && string.IsNullOrEmpty(Model.SearchQuery) ? "active" : "")">Todos</a>
-                <a asp-page="/Index" asp-route-status="Pending" class="@(Model.StatusFilter == "Pending" ? "active" : "")">Pendientes</a>
-                <a asp-page="/Index" asp-route-status="Uploaded" class="@(Model.StatusFilter == "Uploaded" ? "active" : "")">Subidos</a>
-                <a asp-page="/Index" asp-route-status="Confirmed" class="@(Model.StatusFilter == "Confirmed" ? "active" : "")">Confirmados</a>
+                <a asp-page="/Index" class="@(Model.StatusFilter is null && !Model.OnlyNeedsReview && string.IsNullOrEmpty(Model.SearchQuery) ? "active" : "")"><partial name="_NavIcon" model="@("list")" /><span>Todos</span></a>
+                <a asp-page="/Index" asp-route-status="Pending" class="@(Model.StatusFilter == "Pending" ? "active" : "")"><partial name="_NavIcon" model="@("clock")" /><span>Pendientes</span></a>
+                <a asp-page="/Index" asp-route-status="Uploaded" class="@(Model.StatusFilter == "Uploaded" ? "active" : "")"><partial name="_NavIcon" model="@("upload")" /><span>Subidos</span></a>
+                <a asp-page="/Index" asp-route-status="Confirmed" class="@(Model.StatusFilter == "Confirmed" ? "active" : "")"><partial name="_NavIcon" model="@("check")" /><span>Confirmados</span></a>
                 <a asp-page="/Index" asp-route-needsReview="true" class="@(Model.OnlyNeedsReview ? "active" : "")">
-                    Requiere revisión
+                    <partial name="_NavIcon" model="@("alert")" /><span>Requiere revisión</span>
                     @if (Model.NeedsReviewCount > 0)
                     {
                         <span class="badge badge-review">@Model.NeedsReviewCount</span>
                     }
                 </a>
+                @if (Model.BouncedCount > 0)
+                {
+                    <a asp-page="/Index" asp-route-bounced="true" class="@(Model.OnlyBounced ? "active" : "")">
+                        <partial name="_NavIcon" model="@("bounce")" /><span>Rebotados</span>
+                        <span class="badge badge-bounced">@Model.BouncedCount</span>
+                    </a>
+                }
             </div>
 
             <div class="nav-group nav-group-tools">
-                <a asp-page="/Comunas">Comunas</a>
+                <a asp-page="/Comunas"><partial name="_NavIcon" model="@("map")" /><span>Comunas</span></a>
                 <a asp-page="/Discarded">
-                    Descartados
+                    <partial name="_NavIcon" model="@("discarded")" /><span>Descartados</span>
                     @if (Model.DiscardedCount > 0)
                     {
                         <span class="badge badge-review">@Model.DiscardedCount</span>
@@ -50,25 +57,35 @@
                 <form method="get" class="nav-search">
                     <input type="hidden" name="status" value="@Model.StatusFilter" />
                     <input type="hidden" name="needsReview" value="@Model.OnlyNeedsReview" />
+                    <input type="hidden" name="bounced" value="@Model.OnlyBounced" />
                     <input type="text" name="search" id="search-input" placeholder="Buscar por RUT o nombre..." value="@Model.SearchQuery" data-had-value="@(!string.IsNullOrEmpty(Model.SearchQuery) ? "true" : "false")" oninput="formatSearchRut(this); clearSearchIfEmpty(this)" />
-                    <button type="submit" class="nav-pill">Buscar</button>
+                    <button type="submit" class="nav-pill"><partial name="_NavIcon" model="@("search")" /><span>Buscar</span></button>
                     @if (!string.IsNullOrEmpty(Model.SearchQuery))
                     {
-                        <a asp-page="/Index" asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" class="nav-search-clear">Limpiar</a>
+                        <a asp-page="/Index" asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" asp-route-bounced="@Model.OnlyBounced" class="nav-search-clear"><partial name="_NavIcon" model="@("clear")" /><span>Limpiar</span></a>
                     }
                 </form>
-                <form method="post" asp-page-handler="SyncNow"><button type="submit" class="nav-pill nav-sync">Sincronizar ahora</button></form>
+                <form method="post" asp-page-handler="SyncNow" id="sync-form" onsubmit="return handleSyncSubmit(this);"><button type="submit" class="nav-pill nav-sync"><partial name="_NavIcon" model="@("sync")" /><span>Sincronizar ahora</span></button></form>
             </div>
         </nav>
     </header>
     <div class="app-subnav">
-        <span class="app-subnav-label">Otros sistemas</span>
-        <a asp-page="/Index" class="nav-casos active">Cambio de Domicilio</a>
-        <a asp-page="/F8" class="nav-f8">F8</a>
-        <a asp-page="/Certificado" class="nav-certificado">Certificado</a>
-        <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
-        <a asp-page="/Sector" asp-route-sector="Archivo" class="nav-pdf-archivo">PDF Archivo</a>
-        <a asp-page="/Sector" asp-route-sector="Oficina43" class="nav-pdf-oficina43">PDF Oficina 43</a>
+        <div class="app-subnav-main">
+            <span class="app-subnav-label">Sistemas</span>
+            <a asp-page="/Index" class="nav-casos active"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
+        </div>
+        <div class="app-subnav-docs">
+            <span class="app-subnav-label">Documentos</span>
+            <a asp-page="/Sector" asp-route-sector="Archivo" class="nav-pdf-archivo" title="Generar listado para Archivo">
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Archivo</span>
+            </a>
+            <a asp-page="/Sector" asp-route-sector="Oficina43" class="nav-pdf-oficina43" title="Generar listado para Oficina 43">
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Oficina 43</span>
+            </a>
+        </div>
     </div>
 
     <main>
@@ -77,13 +94,52 @@
             <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
         }
 
-        <div class="card" style="padding: 20px 24px; margin-bottom: 16px;">
-            <form method="post" asp-page-handler="AddManualCases" id="manual-cases-form"
-                  style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-                <div>
+        @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+        {
+            if (Model.Cases.Count == 0 && Model.F8MatchCount > 0)
+            {
+                <div class="cross-search-banner">
+                    <span class="cross-search-icon">🔍</span>
+                    <div class="cross-search-text">
+                        No se encontraron casos en Cambio de Domicilio para <strong>"@Model.SearchQuery"</strong>, pero existe(n) <strong>@Model.F8MatchCount caso(s)</strong> en <strong>Casos F8</strong>.
+                    </div>
+                    <a asp-page="/F8" asp-route-search="@Model.SearchQuery" asp-route-highlightId="@Model.F8FirstMatchId" class="btn-cross-search">
+                        Ver y seleccionar en F8 &rarr;
+                    </a>
+                </div>
+            }
+            else if (Model.Cases.Count > 0 && Model.F8MatchCount > 0)
+            {
+                <div class="cross-search-banner cross-search-banner-info">
+                    <span class="cross-search-icon">ℹ️</span>
+                    <div class="cross-search-text">
+                        Esta persona también tiene <strong>@Model.F8MatchCount caso(s)</strong> registrado(s) en <strong>Casos F8</strong>.
+                    </div>
+                    <a asp-page="/F8" asp-route-search="@Model.SearchQuery" asp-route-highlightId="@Model.F8FirstMatchId" class="btn-cross-search">
+                        Ver y seleccionar en F8 &rarr;
+                    </a>
+                </div>
+            }
+
+            if (Model.CajaMatchCount > 0)
+            {
+                <div class="cross-search-banner" style="background: #f0fdf4; border-color: #86efac; color: #166534;">
+                    <span class="cross-search-icon">📦</span>
+                    <div class="cross-search-text">
+                        Carpeta física ubicada en <strong>@Model.CajaMatchBoxCode</strong> (@Model.CajaMatchCount caso(s)).
+                    </div>
+                    <a asp-page="/Caja" class="btn-cross-search" style="background: #16a34a; border-color: #15803d;">
+                        Ver en Caja &rarr;
+                    </a>
+                </div>
+            }
+        }
+
+        <div class="card card-manual-entry">
+            <form method="post" asp-page-handler="AddManualCases" id="manual-cases-form" class="manual-entry-form">
+                <div class="form-group">
                     <label class="form-label" for="manual-comuna">Comuna</label>
-                    <select name="comuna" id="manual-comuna" required
-                            style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem;">
+                    <select name="comuna" id="manual-comuna" required class="form-control">
                         <option value="">Seleccione...</option>
                         @foreach (var contact in Model.ComunaOptions)
                         {
@@ -92,26 +148,24 @@
                     </select>
                 </div>
 
-                <div id="manual-case-rows" style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <div class="manual-case-row" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-                        <div>
+                <div id="manual-case-rows" class="manual-case-rows">
+                    <div class="manual-case-row">
+                        <div class="form-group">
                             <label class="form-label">Nombre completo</label>
                             <input type="text" name="nombre" required placeholder="ej: Gustavo Peña Castro"
-                                   style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem; min-width:220px;" />
+                                   class="form-control" style="min-width: 240px;" />
                         </div>
-                        <div>
+                        <div class="form-group">
                             <label class="form-label">RUT</label>
                             <input type="text" name="rut" required placeholder="ej: 18.785.387-7"
-                                   style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem;" />
+                                   class="form-control" style="min-width: 130px;" />
                         </div>
-                        <button type="button" class="manual-case-remove" title="Quitar fila"
-                                style="border:1px solid var(--color-border); border-radius:4px; padding:6px 10px; background:none; cursor:pointer;">&times;</button>
+                        <button type="button" class="manual-case-remove" title="Quitar fila">&times;</button>
                     </div>
                 </div>
 
-                <button type="button" id="manual-case-add"
-                        style="border:1px solid var(--color-border); border-radius:4px; padding:8px 16px; background:none; cursor:pointer;">+ Agregar otro</button>
-                <button type="submit" class="btn-primary" style="padding:8px 16px;">Agregar caso(s)</button>
+                <button type="button" id="manual-case-add" class="btn-add-more">+ Agregar otro</button>
+                <button type="submit" class="btn-primary">Agregar caso(s)</button>
             </form>
         </div>
 
@@ -144,28 +198,36 @@
         <div class="card table-card">
             <table class="cases cases-index">
                 <thead>
-                    <tr>
-                        <th style="white-space:nowrap;">
-                            <span style="display:flex; flex-direction:column; align-items:center; gap:2px;">
-                                Marcar
+                    <tr class="header-groups">
+                        <th colspan="2" class="th-group th-group-frozen th-group-1 th-group-frozen-end">Contribuyente</th>
+                        <th colspan="3" class="th-group">Marcado</th>
+                        <th class="th-group">Destino</th>
+                        <th colspan="3" class="th-group">Plazos y Estado</th>
+                        <th colspan="2" class="th-group">Carpeta física</th>
+                        <th class="th-group">Acción</th>
+                    </tr>
+                    <tr class="header-cols">
+                        <th>Nombre</th>
+                        <th>RUT</th>
+                        <th>
+                            <div style="display:inline-flex; flex-direction:column; align-items:center; gap:3px; justify-content:center;">
+                                <span>Marcar</span>
                                 <form method="post" asp-page-handler="MarkAllVisible"
-                                      asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview">
+                                      asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" style="display:inline-flex; margin:0;">
                                     <input type="checkbox" class="marked-checkbox" title="Marcar/desmarcar todos los casos visibles"
                                            @(Model.AllVisibleMarked ? "checked" : "")
                                            onchange="this.nextElementSibling.value = this.checked; this.form.submit();" />
                                     <input type="hidden" name="marked" value="@(Model.AllVisibleMarked ? "true" : "false")" />
                                 </form>
-                            </span>
+                            </div>
                         </th>
                         <th title="Marca un caso cuya carpeta física no fue posible localizar (solo fichas sin fecha o anteriores a 2000)">F8</th>
                         <th title="Marca la carpeta como pendiente de retiro — resalta la fila en amarillo">Pendiente<br />Carpeta</th>
-                        <th>Nombre</th>
-                        <th>RUT</th>
                         <th>Comuna</th>
                         <th>Recibido</th>
-                        <th>Plazo (15 días hábiles)</th>
+                        <th>Plazo<br /><span class="th-subtext">(15 días hábiles)</span></th>
                         <th>Estado</th>
-                        <th>Fecha última carpeta</th>
+                        <th>Fecha última<br />Carpeta</th>
                         <th>Sector</th>
                         <th>Acción</th>
                     </tr>
@@ -180,33 +242,9 @@
                         : (item.NeedsReview ? "row-needs-review" : "");
                     var f8PendingClass = item.FolderNotFound ? "row-f8-pending" : "";
                     var pendienteCarpetaClass = item.PendienteCarpeta ? "row-pendiente-carpeta" : "";
+                    var bouncedClass = item.ConfirmationBouncedAt is not null ? "row-bounced" : "";
                     rowIndex++;
-                    <tr class="@rowClass @statusRowClass @f8PendingClass @pendienteCarpetaClass">
-                        <td class="marked-cell">
-                            <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
-                                <input type="hidden" name="id" value="@item.Id" />
-                                <input type="checkbox" name="markedValue" class="marked-checkbox"
-                                       data-pdf-generated-at="@(item.SectorPdfGeneratedAt is { } pdfAt ? SpanishDate.Format(DateOnly.FromDateTime(pdfAt.LocalDateTime)) : "")"
-                                       @(item.Marked ? "checked" : "") onchange="toggleMutuallyExclusive(this, 'markedValue', 'pendienteCarpetaValue')"
-                                       title="@(item.Marked ? "Desmarcar caso" : "Marcar caso")" />
-                            </form>
-                        </td>
-                        <td class="marked-cell">
-                            <form method="post" asp-page-handler="ToggleFolderNotFound" class="marked-form">
-                                <input type="hidden" name="id" value="@item.Id" />
-                                <input type="checkbox" name="folderNotFoundValue" class="marked-checkbox"
-                                       @(item.FolderNotFound ? "checked" : "") onchange="submitCheckboxToggle(this, 'folderNotFoundValue')"
-                                       title="F8 - Carpeta no encontrada" />
-                            </form>
-                        </td>
-                        <td class="marked-cell">
-                            <form method="post" asp-page-handler="TogglePendienteCarpeta" class="marked-form">
-                                <input type="hidden" name="id" value="@item.Id" />
-                                <input type="checkbox" name="pendienteCarpetaValue" class="marked-checkbox"
-                                       @(item.PendienteCarpeta ? "checked" : "") onchange="toggleMutuallyExclusive(this, 'pendienteCarpetaValue', 'markedValue')"
-                                       title="@(item.PendienteCarpeta ? "Desmarcar pendiente carpeta" : "Marcar pendiente carpeta")" />
-                            </form>
-                        </td>
+                    <tr class="@rowClass @statusRowClass @f8PendingClass @pendienteCarpetaClass @bouncedClass">
                         <td class="name-cell">
                             <form method="post" asp-page-handler="SetPersonData" id="person-form-@item.Id">
                                 <input type="hidden" name="id" value="@item.Id" />
@@ -217,19 +255,46 @@
                                 <span class="review-alert" aria-label="Requiere revisión"
                                       title="Requiere revisión — datos no extraíbles del correo (asunto: @item.SourceSubject)">⚠</span>
                             }
-                            @* min-width in `ch` (not the `size` attribute) sets the column's floor: `size` estimates
-                               using the "0" glyph, which under-counts wide capitals (W, M) common in these names and
-                               let the column collapse below what the actual text needs. width:100% (see CSS) then
-                               lets each row's input still fill any extra space the widest name in the column grants it. *@
+                            @* size in characters (not `ch` width) drives the column's real width — the column
+                               auto-fits to the widest name in it because each row's input reports its own
+                               intrinsic width via `size`, computed from the actual name length (+2 padding,
+                               floor of 12 so short names don't collapse the column below a usable minimum,
+                               no ceiling so the full name is always visible). *@
                             <input type="text" name="nombre" value="@item.FullName" placeholder="Nombre completo" required
+                                   size="@Math.Max((item.FullName?.Length ?? 0) + 2, 12)"
                                    class="input-inline name-input" form="person-form-@item.Id" onchange="savePersonFieldIfDoneEditing(this)"
-                                   title="@(item.NeedsReview ? $"Requiere revisión — datos no extraíbles del correo (asunto: {item.SourceSubject})" : "")" />
+                                   title="@(item.NeedsReview ? $"Requiere revisión — datos no extraíbles del correo (asunto: {item.SourceSubject})" : item.FullName)" />
                             </span>
                         </td>
                         <td class="text-cell rut-cell">
                             <input type="text" name="rut" value="@item.Rut" placeholder="RUT" required size="13"
                                    class="input-inline rut-input" form="person-form-@item.Id" onchange="savePersonFieldIfDoneEditing(this)"
                                    oncopy="var s=this.value.substring(this.selectionStart,this.selectionEnd)||this.value; event.clipboardData.setData('text/plain', s.replace(/\./g,'')); event.preventDefault();" />
+                        </td>
+                        <td class="marked-cell">
+                            <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="checkbox" name="markedValue" class="marked-checkbox"
+                                       data-pdf-generated-at="@(item.SectorPdfGeneratedAt is { } pdfAt ? SpanishDate.Format(DateOnly.FromDateTime(pdfAt.LocalDateTime)) : "")"
+                                       @(item.Marked ? "checked" : "") onchange="toggleRowCheckbox(this, 'markedValue')"
+                                       title="@(item.Marked ? "Desmarcar caso" : "Marcar caso")" />
+                            </form>
+                        </td>
+                        <td class="marked-cell f8-cell">
+                            <form method="post" asp-page-handler="ToggleFolderNotFound" class="marked-form">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="checkbox" name="folderNotFoundValue" class="marked-checkbox"
+                                       @(item.FolderNotFound ? "checked" : "") onchange="toggleRowCheckbox(this, 'folderNotFoundValue')"
+                                       title="F8 - Carpeta no encontrada" />
+                            </form>
+                        </td>
+                        <td class="marked-cell">
+                            <form method="post" asp-page-handler="TogglePendienteCarpeta" class="marked-form">
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <input type="checkbox" name="pendienteCarpetaValue" class="marked-checkbox"
+                                       @(item.PendienteCarpeta ? "checked" : "") onchange="toggleRowCheckbox(this, 'pendienteCarpetaValue')"
+                                       title="@(item.PendienteCarpeta ? "Desmarcar pendiente carpeta" : "Marcar pendiente carpeta")" />
+                            </form>
                         </td>
                         <td class="text-cell">@item.Comuna</td>
                         <td class="text-cell">@item.ReceivedAt.LocalDateTime.ToString("dd-MM-yyyy")</td>
@@ -258,7 +323,19 @@
                                     _ => ("badge-pending", item.Status.ToString())
                                 };
                             }
-                            <span class="badge @badgeClass">@badgeText</span>
+                            @if (item.ClosedWithoutFolderAt is not null)
+                            {
+                                <span class="badge badge-closed" title="Proceso cerrado sin carpeta física">Cerrado sin carpeta</span>
+                            }
+                            else
+                            {
+                                <span class="badge @badgeClass">@badgeText</span>
+                            }
+                            @if (item.ConfirmationBouncedAt is { } bouncedAt)
+                            {
+                                <span class="badge badge-bounced"
+                                      title="La confirmación a la comuna rebotó el @bouncedAt.LocalDateTime.ToString("dd-MM-yyyy") — la comuna no la recibió">REBOTÓ</span>
+                            }
                         </td>
                         <td>
                             <form method="post" asp-page-handler="SetFecha" class="fecha-form">
@@ -270,75 +347,102 @@
                                        onchange="this.form.submit()" />
                             </form>
                         </td>
-                        <td class="text-cell">@(item.Sector?.ToString() ?? "—")</td>
+                        <td class="text-cell">@item.Sector.ToDisplayName()</td>
                         <td>
-                            @if (item.Status == RequestStatus.Pending && !item.NeedsReview)
+                            <div class="action-group">
+                            @if (item.ClosedWithoutFolderAt is not null)
                             {
-                                <!-- Both blocks always render for Pending cases; CSS (tr:has(input[name="folderNotFoundValue"]:checked))
+                                @* Closed without folder: process finished, no actions except delete. *@
+                            }
+                            else if (item.SoloCaja)
+                            {
+                                @* Reincorporated from F8 (folder found): only Caja, never upload/confirm/email. *@
+                                <form method="post" asp-page-handler="SubirACaja">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--caja" title="Enviar la carpeta a la cola de Caja (sin enviar correo)" aria-label="Enviar a Caja">
+                                        <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
+                                    </button>
+                                </form>
+                            }
+                            else if (item.Status == RequestStatus.Pending && !item.NeedsReview)
+                            {
+                                <!-- Both forms always render for Pending cases; CSS (tr:has(input[name="folderNotFoundValue"]:checked))
                                      picks which one shows, live, the instant the F8 checkbox is toggled — ticking F8 goes through
-                                     fetch() now (see submitCheckboxToggle), not a full-page reload, so without this the button here
-                                     stayed frozen on whatever was true when the page last rendered until the operator refreshed. -->
-                                <div class="transfer-choice f8-only">
-                                    <form method="post" asp-page-handler="TransferToF8"
-                                          onsubmit="return confirm('Esto moverá el caso a la pantalla F8 y desaparecerá de Casos. ¿Confirmar?');">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="btn-primary" title="Trasladar caso a la pantalla F8">Traspaso a F8</button>
-                                    </form>
-                                    <form method="post" asp-page-handler="TransferToCertificado"
-                                          onsubmit="return confirm('Esto moverá el caso a la pantalla Certificado y desaparecerá de Casos. ¿Confirmar?');">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="btn-primary" title="Trasladar caso a la pantalla Certificado">Traspaso a Certificado</button>
-                                    </form>
-                                </div>
+                                     fetch() (see submitCheckboxToggle), not a full-page reload. -->
+                                <form method="post" asp-page-handler="TransferToF8" class="f8-only"
+                                      onsubmit="return confirm('Esto moverá el caso a la pantalla F8 y desaparecerá de Casos. ¿Confirmar?');">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--f8" title="Trasladar caso a la pantalla F8" aria-label="Traspaso a F8">
+                                        <partial name="_ActionIcon" model="@("f8")" /><span>Traspaso a F8</span>
+                                    </button>
+                                </form>
                                 <form method="post" asp-page-handler="MarkUploadedAndConfirm" class="no-f8-only"
                                       onsubmit="return confirm('Esto moverá el correo a \'CARP. YA SUBIDAS\' y enviará la confirmación a la comuna de inmediato. ¿Confirmar?');">
                                     <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn-primary" title="Mover correo a 'CARP. YA SUBIDAS' y enviar confirmación">Marcar subida</button>
+                                    <button type="submit" class="btn-action btn-action--upload" title="Mover correo a 'CARP. YA SUBIDAS' y enviar confirmación" aria-label="Marcar subida">
+                                        <partial name="_ActionIcon" model="@("upload")" /><span>Marcar subida</span>
+                                    </button>
                                 </form>
                             }
                             else if (item.FolderNotFound)
                             {
-                                <div class="transfer-choice">
-                                    <form method="post" asp-page-handler="TransferToF8"
-                                          onsubmit="return confirm('Esto moverá el caso a la pantalla F8 y desaparecerá de Casos. ¿Confirmar?');">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="btn-primary" title="Trasladar caso a la pantalla F8">Traspaso a F8</button>
-                                    </form>
-                                    <form method="post" asp-page-handler="TransferToCertificado"
-                                          onsubmit="return confirm('Esto moverá el caso a la pantalla Certificado y desaparecerá de Casos. ¿Confirmar?');">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <button type="submit" class="btn-primary" title="Trasladar caso a la pantalla Certificado">Traspaso a Certificado</button>
-                                    </form>
-                                </div>
+                                <form method="post" asp-page-handler="TransferToF8"
+                                      onsubmit="return confirm('Esto moverá el caso a la pantalla F8 y desaparecerá de Casos. ¿Confirmar?');">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--f8" title="Trasladar caso a la pantalla F8" aria-label="Traspaso a F8">
+                                        <partial name="_ActionIcon" model="@("f8")" /><span>Traspaso a F8</span>
+                                    </button>
+                                </form>
                             }
                             else if (item.Status == RequestStatus.Uploaded && !item.NeedsReview)
                             {
                                 <form method="post" asp-page-handler="Confirm">
                                     <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn-primary" title="Enviar confirmación">Confirmar</button>
+                                    <button type="submit" class="btn-action btn-action--confirm" title="Enviar confirmación a la comuna" aria-label="Confirmar">
+                                        <partial name="_ActionIcon" model="@("confirm")" /><span>Confirmar</span>
+                                    </button>
+                                </form>
+                                <form method="post" asp-page-handler="SubirACaja">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--caja" title="Enviar la carpeta a la cola de Caja (sin enviar correo)" aria-label="Enviar a Caja">
+                                        <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
+                                    </button>
                                 </form>
                             }
                             else if (item.Status == RequestStatus.Confirmed)
                             {
+                                <form method="post" asp-page-handler="SubirACaja">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--caja" title="Enviar la carpeta a la cola de Caja (sin enviar correo)" aria-label="Enviar a Caja">
+                                        <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
+                                    </button>
+                                </form>
                                 <form method="post" asp-page-handler="RectifyConfirmation"
                                       onsubmit="return confirm('Esto enviará un correo de RECTIFICACIÓN a la comuna indicando que la confirmación anterior fue un error, y revertirá el caso a Pendiente. ¿Continuar?') && confirm('¿Estás completamente seguro? Se enviará un correo real a la comuna ahora mismo.');">
                                     <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn-outline-danger" style="padding:4px 10px; font-size:0.72rem;" title="Enviar correo de rectificación y volver el caso a Pendiente">Deshacer y rectificar</button>
+                                    <button type="submit" class="btn-action btn-action--rectify" title="Enviar correo de rectificación y volver el caso a Pendiente" aria-label="Deshacer y rectificar">
+                                        <partial name="_ActionIcon" model="@("rectify")" /><span>Rectificar</span>
+                                    </button>
+                                </form>
+                            }
+                            @if (item.ConfirmationBouncedAt is not null)
+                            {
+                                <form method="post" asp-page-handler="ResolveBounce"
+                                      onsubmit="return confirm('Marca el rebote como resuelto (ya reenviaste la confirmación o lo gestionaste de otra forma). ¿Confirmar?');">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--resolve" title="Marcar el rebote de confirmación como resuelto" aria-label="Marcar resuelto">
+                                        <partial name="_ActionIcon" model="@("resolve")" /><span>Resuelto</span>
+                                    </button>
                                 </form>
                             }
                             <form method="post" asp-page-handler="DeleteCase"
                                   onsubmit="return confirm('Esto elimina el caso de forma permanente, no se puede deshacer. ¿Confirmar?');">
                                 <input type="hidden" name="id" value="@item.Id" />
-                                <button type="submit" class="btn-danger" title="Eliminar caso permanentemente" aria-label="Eliminar caso">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M3 6h18" />
-                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                                        <line x1="10" y1="11" x2="10" y2="17" />
-                                        <line x1="14" y1="11" x2="14" y2="17" />
-                                    </svg>
+                                <button type="submit" class="btn-action btn-action--delete" title="Eliminar caso permanentemente" aria-label="Eliminar caso">
+                                    <partial name="_ActionIcon" model="@("delete")" />
                                 </button>
                             </form>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -347,6 +451,14 @@
         </div>
     </main>
     <script>
+        // Blurs active input on sync submit to ensure any pending onchange handlers fire and save
+        function handleSyncSubmit(form) {
+            if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT')) {
+                document.activeElement.blur();
+            }
+            return true;
+        }
+
         // nombre and rut are two separate inputs sharing one form (person-form-ID), each
         // autosaving independently on change. Submitting on the nombre field's own onchange fires
         // as soon as it loses focus (e.g. tabbing into rut) — before rut has been typed — which
@@ -382,24 +494,23 @@
             });
         }
 
-        // Marcar and Pendiente Carpeta are mutually exclusive (a row is either green or yellow,
-        // never both) but not locked — checking one clears the other automatically, and the
-        // cleared one can still be re-checked manually afterward at any time.
-        function toggleMutuallyExclusive(checkbox, fieldName, otherFieldName) {
-            // Re-marking a case that already had a PDF generated resets SectorPdfGeneratedAt
-            // server-side so it prints again — let the operator know that's what's happening.
-            if (fieldName === 'markedValue' && checkbox.checked && checkbox.dataset.pdfGeneratedAt) {
-                alert('Ya se había generado un PDF para esta persona el ' + checkbox.dataset.pdfGeneratedAt + '. Se incluirá de nuevo en el próximo PDF.');
-            }
-            submitCheckboxToggle(checkbox, fieldName);
+        // Marcar, F8 y Pendiente Carpeta son mutuamente excluyentes en la misma fila:
+        // marcar una desmarca automáticamente las otras dos en la interfaz y en el servidor.
+        function toggleRowCheckbox(checkbox, fieldName) {
             if (checkbox.checked) {
+                if (fieldName === 'markedValue' && checkbox.dataset.pdfGeneratedAt) {
+                    alert('Ya se había generado un PDF para esta persona el ' + checkbox.dataset.pdfGeneratedAt + '. Se incluirá de nuevo en el próximo PDF.');
+                }
                 var row = checkbox.closest('tr');
-                var other = row ? row.querySelector('input[name="' + otherFieldName + '"]') : null;
-                if (other && other.checked) {
-                    other.checked = false;
-                    submitCheckboxToggle(other, otherFieldName);
+                if (row) {
+                    row.querySelectorAll('.marked-checkbox').forEach(function (other) {
+                        if (other !== checkbox) {
+                            other.checked = false;
+                        }
+                    });
                 }
             }
+            submitCheckboxToggle(checkbox, fieldName);
         }
     </script>
     <script>
@@ -456,6 +567,47 @@
             }
             input.dataset.hadValue = input.value !== '' ? 'true' : 'false';
         }
+    </script>
+    <script>
+        (function () {
+            var table = document.querySelector('table.cases-index');
+            if (!table) return;
+
+            var isF8 = table.classList.contains('cases-f8');
+            var freezeCount = 2; // Nombre + RUT
+            var headerCells = table.querySelectorAll('thead tr.header-cols > *');
+            var groupRow = table.querySelector('thead tr.header-groups');
+
+            function setFreezeOffsets() {
+                var cumulative = 0;
+                for (var i = 0; i < freezeCount && i < headerCells.length; i++) {
+                    cumulative += headerCells[i].getBoundingClientRect().width;
+                    if (i < freezeCount - 1) {
+                        table.style.setProperty('--freeze-left-' + (i + 2), cumulative + 'px');
+                    }
+                }
+                if (groupRow) {
+                    table.style.setProperty('--header-row2-top', groupRow.getBoundingClientRect().height + 'px');
+                }
+            }
+
+            setFreezeOffsets();
+
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(setFreezeOffsets);
+            }
+
+            if (window.ResizeObserver) {
+                var ro = new ResizeObserver(setFreezeOffsets);
+                ro.observe(table);
+            } else {
+                var resizeTimer = null;
+                window.addEventListener('resize', function () {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(setFreezeOffsets, 100);
+                });
+            }
+        })();
     </script>
 </body>
 </html>

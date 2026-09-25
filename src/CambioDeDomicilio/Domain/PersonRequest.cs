@@ -51,6 +51,12 @@ public sealed class PersonRequest
     /// <summary>Who pressed "Enviar confirmación" — a real email goes out to another municipality, so this is attributed.</summary>
     public long? ConfirmedByUserId { get; set; }
 
+    /// <summary>Set when a non-delivery report (bounce) for this case's confirmation email was found
+    /// in the mailbox inbox — the requesting comuna never received the "carpeta subida" notice.
+    /// Cleared by the operator with "Marcar resuelto" once they have re-sent it or handled it
+    /// another way. Null means the confirmation is presumed delivered.</summary>
+    public DateTimeOffset? ConfirmationBouncedAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>Operator-only bookkeeping checkbox, independent of Status — lets the operator tick off
@@ -76,8 +82,8 @@ public sealed class PersonRequest
         ? fecha < new DateOnly(2023, 7, 1) ? FolderSector.Archivo : FolderSector.Oficina43
         : null;
 
-    /// <summary>Operator-ticked flag: the physical folder could not be located, so a certification
-    /// request must go to Secretaría Municipal instead of the normal upload flow.</summary>
+    /// <summary>Operator-ticked flag: the physical folder could not be located, so the case is
+    /// handled through the F8 process instead of the normal upload flow.</summary>
     public bool FolderNotFound { get; set; }
 
     /// <summary>Operator-ticked flag: the physical folder is pending retrieval. Purely a visual
@@ -90,7 +96,7 @@ public sealed class PersonRequest
 
     /// <summary>Which dedicated screen this case was transferred to, if any. None means it still
     /// shows in Casos (Index) — ticking the FolderNotFound checkbox alone does not change this,
-    /// only clicking "Traspaso a F8" or "Traspaso a Certificado" does.</summary>
+    /// only clicking "Traspaso a F8" does.</summary>
     public CaseDestination Destination { get; set; } = CaseDestination.None;
 
     /// <summary>When the operator confirmed the transfer to whichever Destination is set. Null means
@@ -98,10 +104,20 @@ public sealed class PersonRequest
     /// Destination's dedicated screen.</summary>
     public DateTimeOffset? TransferredAt { get; set; }
 
-    /// <summary>When this Certificado case was last included in the "Avisar certificado" batch email
-    /// to Secretaría Municipal + acknowledgement to its comuna. Null means not yet notified — a case
-    /// is excluded from future batches once this is set, so re-sending doesn't repeat names.</summary>
-    public DateTimeOffset? CertificadoNotifiedAt { get; set; }
+    /// <summary>Which physical box (see <see cref="Box"/>) this case's folder was packed into.
+    /// Null means it's still in the Caja screen's open queue, waiting for the operator to press
+    /// "Cerrar Caja". Only meaningful for cases with Destination == Caja.</summary>
+    public long? BoxId { get; set; }
+
+    /// <summary>Flag set when an F8 case whose physical folder was found is reincorporated into Casos.
+    /// It must only be sent to Caja - never re-confirmed or emailed to the comuna again.</summary>
+    public bool SoloCaja { get; set; }
+
+    /// <summary>When the operator pressed "Sin carpeta" on an F8 case: the process is closed without
+    /// a physical folder. Distinct from <see cref="SinCarpeta"/> (the "S/C" typed in place of a
+    /// date). The case shows in Casos as "Cerrado sin carpeta", with no actions, and can never
+    /// enter Caja. Null means not closed.</summary>
+    public DateTimeOffset? ClosedWithoutFolderAt { get; set; }
 }
 
 public enum CaseDestination
@@ -110,6 +126,18 @@ public enum CaseDestination
     None,
     /// <summary>Transferred to the /F8 screen.</summary>
     F8,
-    /// <summary>Transferred to the /Certificado screen.</summary>
-    Certificado
+    /// <summary>Moved to the /Caja screen by an explicit operator "Caja" click — from Casos (uploaded,
+    /// confirmed or SoloCaja cases) or from F8 (folder found). See IPersonRequestRepository.SendToCaja.</summary>
+    Caja
+}
+
+/// <summary>A closed batch of Caja cases, in the physical order they were packed — see
+/// PersonRequestRepository.CloseBox. Numbered sequentially; once closed a box's membership never
+/// changes.</summary>
+public sealed class Box
+{
+    public long Id { get; set; }
+    public int Number { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public DateTimeOffset ClosedAt { get; set; }
 }

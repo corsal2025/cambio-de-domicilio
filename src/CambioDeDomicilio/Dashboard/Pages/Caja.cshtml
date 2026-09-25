@@ -1,0 +1,394 @@
+﻿@page "{boxId:long?}"
+@model CambioDeDomicilio.Dashboard.Pages.CajaModel
+@using CambioDeDomicilio.Domain
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Caja — CambioDeDomicilio</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <style>
+        .caja-section {
+            margin-bottom: 24px;
+        }
+
+        .caja-section h2 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin: 0 0 10px;
+        }
+
+        .caja-empty {
+            padding: 20px;
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 0.82rem;
+        }
+
+        table.boxes-history td:first-child, table.boxes-history th:first-child { width: 70px; }
+
+        a.box-link {
+            color: var(--color-accent);
+            font-weight: 700;
+            text-decoration: none;
+        }
+        a.box-link:hover { text-decoration: underline; }
+
+        .doc-sheet { background: #fff; }
+        .doc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 3px solid var(--color-primary);
+            padding-bottom: 14px;
+        }
+        .doc-header .doc-seal { height: 68px; width: auto; flex: none; object-fit: contain; }
+        .doc-header .doc-title-block { display: flex; gap: 16px; align-items: center; }
+        .doc-header .doc-org {
+            margin: 0; font-size: 0.82rem; color: var(--color-text-muted);
+            text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700;
+        }
+        .doc-header h2 { margin: 4px 0 0; color: var(--color-primary); font-size: 1.45rem; font-weight: 700; }
+        .doc-header .doc-meta {
+            text-align: right; font-size: 0.92rem; color: var(--color-text-muted); white-space: nowrap;
+            background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius);
+            padding: 8px 16px; line-height: 1.5;
+        }
+        .doc-header .doc-meta strong { color: var(--color-primary); font-size: 1.05rem; }
+        .doc-count { margin: 10px 2px 0; font-size: 0.75rem; color: var(--color-text-muted); }
+
+        @@media print {
+            header.app-header, .app-header, .app-subnav, .no-print, .feedback-banner, form {
+                display: none !important;
+            }
+            body { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; }
+            main { padding: 0 !important; margin: 0 !important; max-width: none !important; width: 100% !important; }
+            .card { border: none !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; margin: 0 !important; }
+            .doc-sheet { background: #fff !important; padding: 0 !important; }
+            .doc-header { border-bottom: 3px solid #000 !important; padding-bottom: 14px !important; }
+            .doc-header .doc-seal { height: 72px !important; }
+            .doc-header .doc-org { font-size: 0.85rem !important; color: #444 !important; }
+            .doc-header h2 { font-size: 1.5rem !important; color: #000 !important; }
+            .doc-header .doc-meta { font-size: 0.95rem !important; border: 1px solid #777 !important; background: #fff !important; color: #333 !important; }
+            .doc-header .doc-meta strong { font-size: 1.1rem !important; color: #000 !important; }
+            table.cases { width: 100% !important; font-size: 0.88rem !important; }
+            table.cases th {
+                background: #eef2f6 !important;
+                color: #000 !important;
+                font-size: 0.88rem !important;
+                padding: 6px 8px !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            table.cases td {
+                border: 1px solid #888 !important;
+                color: #000 !important;
+                font-size: 0.88rem !important;
+                padding: 6px 8px !important;
+            }
+            tbody tr { break-inside: avoid; }
+        }
+    </style>
+    <style id="page-size-style">
+        @@page { size: A4; margin: 12mm; }
+    </style>
+</head>
+<body>
+    <header class="app-header no-print">
+        <div class="brand">
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                CambioDeDomicilio
+                <small>Municipalidad de Valparaíso</small>
+                <small>Caja</small>
+            </span>
+        </div>
+        <nav class="app-nav">
+            <div class="nav-group">
+                <a asp-page="/Index"><partial name="_NavIcon" model="@("back")" /><span>Volver a Casos</span></a>
+                <a asp-page="/F8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            </div>
+        </nav>
+    </header>
+    <div class="app-subnav no-print">
+        <div class="app-subnav-main">
+            <span class="app-subnav-label">Sistemas</span>
+            <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/Caja" class="nav-caja active"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
+        </div>
+    </div>
+
+    <main>
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="feedback-banner no-print" style="background:rgba(34,197,94,0.14); color:#bbf7d0; border:1px solid rgba(34,197,94,0.32); padding:10px 14px; border-radius:6px; margin-bottom:16px; font-size:0.85rem; font-weight:600;">
+            @Model.Message
+        </div>
+    }
+
+    @if (Model.SelectedBox is { } box)
+    {
+        <div class="no-print" style="margin-bottom: 14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <a asp-page="/Caja" class="btn-action btn-action--return" style="text-decoration:none;" title="Volver al listado de cajas" aria-label="Volver a Caja">
+                <partial name="_NavIcon" model="@("back")" /><span>Volver a Caja</span>
+            </a>
+            <button type="button" class="btn-action btn-action--upload" onclick="window.print()" title="Imprimir o guardar el listado como PDF" aria-label="Imprimir o guardar como PDF">
+                <partial name="_NavIcon" model="@("pdf")" /><span>Imprimir / Guardar como PDF</span>
+            </button>
+            <form method="post" asp-page-handler="ReopenBox" style="display:inline; margin-left:auto;"
+                  onsubmit="return confirm('¿Reabrir la Caja @box.Code? Sus carpetas volverán a la cola abierta para que puedas quitar las que sobren, agregar otras o corregirlas.');">
+                <input type="hidden" name="boxId" value="@box.Id" />
+                <button type="submit" class="btn-action btn-action--sin-carpeta" title="Deshacer el cierre: las carpetas vuelven a la cola" aria-label="Reabrir caja">
+                    <partial name="_ActionIcon" model="@("revert")" /><span>Reabrir caja (deshacer cierre)</span>
+                </button>
+            </form>
+        </div>
+
+        <div class="doc-sheet">
+            <div class="doc-header">
+                <div class="doc-title-block">
+                    <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="doc-seal" />
+                    <div>
+                        <p class="doc-org">Municipalidad de Valparaíso — Dirección de Tránsito</p>
+                        <h2>Cambio de Domicilio — Listado Caja @box.Code</h2>
+                    </div>
+                </div>
+                <div class="doc-meta">
+                    <div>Caja: <strong>@box.Code</strong></div>
+                    <div>Cerrada: <strong>@box.ClosedAt.LocalDateTime.ToString("dd-MM-yyyy HH:mm")</strong></div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+                @if (Model.SelectedBoxCases.Count == 0)
+                {
+                    <p class="caja-empty">Esta caja se cerró sin carpetas.</p>
+                }
+                else
+                {
+                    <table class="cases doc-table">
+                        <thead>
+                            <tr>
+                                <th>N°</th>
+                                <th style="text-align:left;">Nombre completo</th>
+                                <th>RUT</th>
+                                <th>Comuna</th>
+                                <th>Fecha última carpeta</th>
+                                <th class="no-print" style="width:85px; text-align:center;">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @{ var correlativo = 0; }
+                        @foreach (var item in Model.SelectedBoxCases)
+                        {
+                            correlativo++;
+                            <tr>
+                                <td>@correlativo</td>
+                                <td style="text-align:left; font-weight:600;">@item.FullName</td>
+                                <td style="text-align:center;">@item.Rut</td>
+                                <td style="text-align:center;">@item.Comuna</td>
+                                <td style="text-align:center;">@(item.SinCarpeta ? "S/C" : item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")</td>
+                                <td class="no-print" style="text-align:center;">
+                                    <form method="post" asp-page-handler="RemoveFromClosedBox" style="display:inline;"
+                                          onsubmit="return confirm('¿Devolver a @item.FullName a Casos? Saldrá de esta caja.');">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <input type="hidden" name="boxId" value="@box.Id" />
+                                        <button type="submit" class="btn-action btn-action--return" title="Quitar de esta caja y devolver a Casos" aria-label="Devolver a casos">
+                                            <partial name="_ActionIcon" model="@("return")" /><span>Devolver a casos</span>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+            <p class="doc-count no-print">Total en esta caja: <strong>@Model.SelectedBoxCases.Count</strong> carpeta(s).</p>
+        </div>
+    }
+    else
+    {
+        <div class="caja-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+                <h2 style="margin:0;">Cola de carpetas para la próxima caja (<span id="queueTotalCount">@Model.Queue.Count</span> en cola)</h2>
+                @if (Model.Queue.Count > 0)
+                {
+                    <form id="undoBatchForm" method="post" asp-page-handler="UndoBatch" style="display:inline;">
+                        <button type="button" id="btnUndoBatch" class="btn-action btn-action--return" onclick="submitUndoBatch()" disabled
+                                title="Devolver a Casos las carpetas seleccionadas" aria-label="Devolver seleccionados a casos">
+                            <partial name="_ActionIcon" model="@("return")" /><span>Devolver seleccionados a casos (<span id="undoCount">0</span>)</span>
+                        </button>
+                    </form>
+                }
+            </div>
+
+            <div class="card table-card" style="height:auto; max-height:480px; overflow-y:auto;">
+                @if (Model.Queue.Count == 0)
+                {
+                    <p class="caja-empty">No hay carpetas en la cola. Ve a <strong>Casos</strong> y presiona el botón <strong>Caja</strong> en un caso subido o confirmado, o en F8 cuando aparezca la carpeta.</p>
+                }
+                else
+                {
+                    <table class="cases queue-table">
+                        <thead>
+                            <tr>
+                                <th style="width:36px; text-align:center;">
+                                    <input type="checkbox" id="selectAllQueue" onclick="toggleSelectAll(this)" title="Seleccionar todas" />
+                                </th>
+                                <th>N°</th>
+                                <th style="text-align:left;">Nombre completo</th>
+                                <th>RUT</th>
+                                <th>Comuna</th>
+                                <th>Fecha última carpeta</th>
+                                <th>Estado</th>
+                                <th style="width:85px; text-align:center;">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @{ var correlativoQueue = 0; }
+                        @foreach (var item in Model.Queue)
+                        {
+                            correlativoQueue++;
+                            <tr>
+                                <td style="text-align:center;">
+                                    <input type="checkbox" class="queue-check" value="@item.Id" onchange="updateQueueSelection()" />
+                                </td>
+                                <td>@correlativoQueue</td>
+                                <td style="text-align:left; font-weight:600;">@item.FullName</td>
+                                <td style="text-align:center;">@item.Rut</td>
+                                <td style="text-align:center;">@item.Comuna</td>
+                                <td style="text-align:center;">@(item.SinCarpeta ? "S/C" : item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")</td>
+                                <td style="text-align:center;"><span class="badge @(item.Status == RequestStatus.Confirmed ? "badge-confirmed" : "badge-uploaded")">@item.Status</span></td>
+                                <td style="text-align:center;">
+                                    <form method="post" asp-page-handler="UndoSingle" style="display:inline;"
+                                          onsubmit="return confirm('¿Devolver a @item.FullName a Casos? Saldrá de la cola de caja.');">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="btn-action btn-action--return" title="Quitar de la cola de caja y devolver a Casos" aria-label="Devolver a casos">
+                                            <partial name="_ActionIcon" model="@("return")" /><span>Devolver a casos</span>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+            <form method="post" asp-page-handler="CerrarCaja" style="margin-top:14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;"
+                  onsubmit="var num = document.getElementById('boxNumberInput')?.value || '@Model.NextBoxNumber'; return confirm('¿Confirmar cierre de caja A' + num + '-CD con las @Model.Queue.Count carpeta(s) de la cola?');">
+                <label for="boxNumberInput" style="font-weight:700; font-size:0.85rem; color:var(--color-primary);">Rótulo / N° de Caja:</label>
+                <div style="display:inline-flex; align-items:center; border:1px solid var(--color-border); border-radius:6px; overflow:hidden; background:var(--color-bg); height:38px;">
+                    <span style="padding:0 12px; font-weight:700; color:var(--color-primary); background:var(--color-card); border-right:1px solid var(--color-border); font-size:0.95rem; line-height:38px; user-select:none;">A</span>
+                    <input type="number" id="boxNumberInput" name="boxNumber" value="@Model.NextBoxNumber" min="1" step="1" required autocomplete="off"
+                           oninput="updateCerrarBtnText(this.value)"
+                           style="width:70px; text-align:center; font-weight:700; font-size:1.05rem; border:none; outline:none; background:transparent; color:var(--color-text); padding:0;" />
+                    <span style="padding:0 12px; font-weight:700; color:var(--color-text-muted); background:var(--color-card); border-left:1px solid var(--color-border); font-size:0.95rem; line-height:38px; user-select:none;">-CD</span>
+                </div>
+                <button type="submit" id="btnCerrarCaja" class="btn-action btn-action--caja" @(Model.Queue.Count == 0 ? "disabled" : "") aria-label="Cerrar caja">
+                    <partial name="_ActionIcon" model="@("caja")" /><span>Cerrar Caja <span id="cerrarBoxCodeLabel">A@(Model.NextBoxNumber)-CD</span> (@Model.Queue.Count carpetas)</span>
+                </button>
+            </form>
+        </div>
+
+        <script>
+            function updateCerrarBtnText(val) {
+                var num = (val || '').trim() || '@Model.NextBoxNumber';
+                var label = document.getElementById('cerrarBoxCodeLabel');
+                if (label) label.textContent = 'A' + num + '-CD';
+            }
+
+            function toggleSelectAll(master) {
+                var checks = document.querySelectorAll('.queue-check');
+                checks.forEach(function (c) { c.checked = master.checked; });
+                updateQueueSelection();
+            }
+
+            function updateQueueSelection() {
+                var checked = document.querySelectorAll('.queue-check:checked');
+                var countSpan = document.getElementById('undoCount');
+                var btn = document.getElementById('btnUndoBatch');
+                if (countSpan) countSpan.textContent = checked.length;
+                if (btn) btn.disabled = checked.length === 0;
+
+                var allChecks = document.querySelectorAll('.queue-check');
+                var master = document.getElementById('selectAllQueue');
+                if (master && allChecks.length > 0) {
+                    master.checked = checked.length === allChecks.length;
+                }
+            }
+
+            function submitUndoBatch() {
+                var checked = document.querySelectorAll('.queue-check:checked');
+                if (checked.length === 0) return;
+                if (!confirm('¿Quitar las ' + checked.length + ' carpeta(s) seleccionadas de la cola de caja y devolverlas a Casos?')) return;
+
+                var form = document.getElementById('undoBatchForm');
+                // Remove previous selectedIds inputs only, NEVER wipe innerHTML (which contains __RequestVerificationToken)
+                form.querySelectorAll('input[name="selectedIds"]').forEach(function (el) { el.remove(); });
+                checked.forEach(function (c) {
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'selectedIds';
+                    input.value = c.value;
+                    form.appendChild(input);
+                });
+                form.submit();
+            }
+        </script>
+
+        <div class="caja-section">
+            <h2>Cajas cerradas (@Model.ClosedBoxes.Count)</h2>
+            <div class="card table-card" style="height:auto; overflow:visible;">
+                @if (Model.ClosedBoxes.Count == 0)
+                {
+                    <p class="caja-empty">Todavía no se ha cerrado ninguna caja.</p>
+                }
+                else
+                {
+                    <table class="cases boxes-history">
+                        <thead>
+                            <tr>
+                                <th>Caja</th>
+                                <th>Cerrada</th>
+                                <th>Carpetas</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var closedBox in Model.ClosedBoxes)
+                        {
+                            var count = Model.BoxCounts.GetValueOrDefault(closedBox.Id, 0);
+                            <tr>
+                                <td><strong>@closedBox.Code</strong></td>
+                                <td>@closedBox.ClosedAt.LocalDateTime.ToString("dd-MM-yyyy HH:mm")</td>
+                                <td style="text-align:center;">
+                                    <span class="badge" style="background:rgba(59,130,246,0.12); color:#93c5fd; border:1px solid rgba(59,130,246,0.3);">@count carpeta(s)</span>
+                                </td>
+                                <td>
+                                    <a asp-page="/Caja" asp-route-boxId="@closedBox.Id" class="box-link">Ver listado / imprimir</a>
+                                    <form method="post" asp-page-handler="ReopenBox" style="display:inline; margin-left:12px;"
+                                          onsubmit="return confirm('¿Reabrir la Caja @closedBox.Code? Sus @count carpetas volverán a la cola abierta para que puedas corregirlas.');">
+                                        <input type="hidden" name="boxId" value="@closedBox.Id" />
+                                        <button type="submit" class="btn-action btn-action--sin-carpeta" title="Deshacer el cierre: las carpetas vuelven a la cola" aria-label="Reabrir caja">
+                                            <partial name="_ActionIcon" model="@("revert")" /><span>Reabrir</span>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    }
+    </main>
+</body>
+</html>

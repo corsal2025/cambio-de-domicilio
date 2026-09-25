@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CambioDeDomicilio.Configuration;
@@ -22,18 +21,29 @@ public class IndexModel(
     public IReadOnlyList<ComunaContact> ComunaOptions { get; private set; } = [];
     public int NeedsReviewCount { get; private set; }
     public int DiscardedCount { get; private set; }
+
+    /// <summary>Confirmed cases whose confirmation email bounced (see <see cref="PersonRequest.ConfirmationBouncedAt"/>).</summary>
+    public int BouncedCount { get; private set; }
     public string? StatusFilter { get; set; }
     public bool OnlyNeedsReview { get; set; }
+    public bool OnlyBounced { get; set; }
     public string? SearchQuery { get; set; }
+
+    /// <summary>Number of matching cases found in F8 for this search query.</summary>
+    public int F8MatchCount { get; private set; }
+    public long? F8FirstMatchId { get; private set; }
+    public int CajaMatchCount { get; private set; }
+    public string? CajaMatchBoxCode { get; private set; }
     public string? Message { get; set; }
     public bool MessageIsError { get; set; }
     public int PlazoDiasHabiles => options.PlazoDiasHabiles;
     public bool AllVisibleMarked => Cases.Count > 0 && Cases.All(c => c.Marked);
 
-    public void OnGet(string? status, bool needsReview = false, string? search = null)
+    public void OnGet(string? status, bool needsReview = false, string? search = null, bool bounced = false)
     {
         StatusFilter = status;
         OnlyNeedsReview = needsReview;
+        OnlyBounced = bounced;
         SearchQuery = search;
         Load();
     }
@@ -44,7 +54,7 @@ public class IndexModel(
         if (string.IsNullOrWhiteSpace(fecha))
         {
             repository.ClearFechaUltimaCarpeta(id);
-            return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview });
+            return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
         }
 
         if (!SpanishDate.TryParse(fecha, out var parsed))
@@ -56,7 +66,7 @@ public class IndexModel(
         }
 
         repository.SetFechaUltimaCarpeta(id, parsed);
-        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview });
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
     }
 
     public IActionResult OnPostSetPersonData(long id, string nombre, string rut)
@@ -265,6 +275,32 @@ public class IndexModel(
     /// <summary>Operator-confirmed move to F8: the case disappears from Casos and starts showing
     /// in the F8 page. Ticking the F8 checkbox alone (<see cref="OnPostToggleFolderNotFound"/>)
     /// does not do this by itself — it only marks the case as an F8 candidate.</summary>
+    /// <summary>"Caja": sends an uploaded/confirmed case, or an F8-reverted (SoloCaja) case, to the
+    /// Caja queue without sending any email. The case leaves Casos.</summary>
+    public IActionResult OnPostSubirACaja(long id)
+    {
+        var request = repository.FindById(id);
+        if (request is null)
+        {
+            Message = "El caso no existe.";
+            MessageIsError = true;
+            Load();
+            return Page();
+        }
+
+        if (request.SoloCaja && request.FechaUltimaCarpeta is null && !request.SinCarpeta)
+        {
+            Message = "Debe ingresar la fecha de última carpeta antes de subir la carpeta a Caja.";
+            MessageIsError = true;
+            Load();
+            return Page();
+        }
+
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+        Message = $"Carpeta de {request.FullName} enviada a Caja (sin enviar correo).";
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
+    }
+
     public IActionResult OnPostTransferToF8(long id)
     {
         // F8's "Fecha penúltima carpeta" is a distinct date from Casos' última carpeta — carrying
@@ -272,14 +308,6 @@ public class IndexModel(
         // operator fills it in fresh on the F8 screen.
         repository.ClearFechaUltimaCarpeta(id);
         repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
-        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
-    }
-
-    /// <summary>Operator-confirmed move to Certificado: the case disappears from Casos and starts
-    /// showing in the Certificado page, where the "Avisar certificado" batch email flow lives.</summary>
-    public IActionResult OnPostTransferToCertificado(long id)
-    {
-        repository.SetDestination(id, CaseDestination.Certificado, DateTimeOffset.UtcNow);
         return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery });
     }
 
@@ -302,20 +330,34 @@ public class IndexModel(
 
     public async Task<IActionResult> OnPostSyncNowAsync()
     {
-        var ran = await routerWorker.RunCycleAsync(HttpContext.RequestAborted);
-        Message = ran
-            ? "Sincronización completada."
-            : "Ya hay una sincronización en curso, intente en unos segundos.";
-        MessageIsError = !ran;
+        // Not HttpContext.RequestAborted: a slow cycle (many inbox messages during the bounce
+        // check) can outlive the browser request. Tying it to the request token meant a closed
+        // tab or proxy timeout aborted the EWS calls mid-cycle, so the sync appeared to silently
+        // fail even though nothing was actually broken.
+        var result = await routerWorker.RunCycleAsync(CancellationToken.None);
+        if (result.AlreadyRunning)
+        {
+            Message = "Ya hay una sincronización en curso, intente en unos segundos.";
+            MessageIsError = true;
+        }
+        else if (!result.Success)
+        {
+            Message = result.ErrorMessage ?? "Error al sincronizar con el servidor de correo.";
+            MessageIsError = true;
+        }
+        else
+        {
+            Message = "Sincronización completada.";
+            MessageIsError = false;
+        }
         Load();
         return Page();
     }
 
     public async Task<IActionResult> OnPostConfirmAsync(long id)
     {
-        var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var contacts = routingService.LoadDirectory();
-        var result = await routingService.SendConfirmationAsync(id, userId, contacts, HttpContext.RequestAborted);
+        var result = await routingService.SendConfirmationAsync(id, contacts, HttpContext.RequestAborted);
 
         Message = result.Reason;
         MessageIsError = !result.Sent;
@@ -327,9 +369,8 @@ public class IndexModel(
     /// sends the confirmation, in one step (see AddressChangeRoutingService.MarkUploadedAndConfirmAsync).</summary>
     public async Task<IActionResult> OnPostMarkUploadedAndConfirmAsync(long id)
     {
-        var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var contacts = routingService.LoadDirectory();
-        var result = await routingService.MarkUploadedAndConfirmAsync(id, userId, contacts, HttpContext.RequestAborted);
+        var result = await routingService.MarkUploadedAndConfirmAsync(id, contacts, HttpContext.RequestAborted);
 
         Message = result.Reason;
         MessageIsError = !result.Sent;
@@ -341,14 +382,22 @@ public class IndexModel(
     /// comuna and reverts the case to Pending — see AddressChangeRoutingService.RectifyConfirmationAsync.</summary>
     public async Task<IActionResult> OnPostRectifyConfirmationAsync(long id)
     {
-        var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var contacts = routingService.LoadDirectory();
-        var result = await routingService.RectifyConfirmationAsync(id, userId, contacts, HttpContext.RequestAborted);
+        var result = await routingService.RectifyConfirmationAsync(id, contacts, HttpContext.RequestAborted);
 
         Message = result.Reason;
         MessageIsError = !result.Sent;
         Load();
         return Page();
+    }
+
+    /// <summary>Operator "Marcar resuelto" on a bounced confirmation: clears the bounce flag once
+    /// they have re-sent the confirmation or handled the non-delivery another way.</summary>
+    public IActionResult OnPostResolveBounce(long id)
+    {
+        repository.ClearConfirmationBounced(id);
+        Message = "Rebote marcado como resuelto.";
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
     }
 
     /// <summary>Business days remaining until the legal upload deadline for this case, from today.</summary>
@@ -363,6 +412,7 @@ public class IndexModel(
     {
         var everything = repository.GetAll();
         NeedsReviewCount = everything.Count(c => c.NeedsReview);
+        BouncedCount = everything.Count(c => c.ConfirmationBouncedAt is not null);
         DiscardedCount = discardedRepository.GetAll().Count;
         ComunaOptions = routingService.LoadDirectory()
             .DistinctBy(c => c.Comuna, StringComparer.OrdinalIgnoreCase)
@@ -371,9 +421,8 @@ public class IndexModel(
 
         var all = everything.AsEnumerable();
 
-        // Cases already transferred to F8 or Certificado (see OnPostTransferToF8 /
-        // OnPostTransferToCertificado) live in their own dedicated page instead — ticking the F8
-        // checkbox alone does not remove a case from here.
+        // Cases already transferred to F8 (see OnPostTransferToF8) live on the dedicated F8 page
+        // instead — ticking the F8 checkbox alone does not remove a case from here.
         all = all.Where(c => c.TransferredAt is null);
 
         if (!string.IsNullOrEmpty(StatusFilter) && Enum.TryParse<RequestStatus>(StatusFilter, out var status))
@@ -386,15 +435,28 @@ public class IndexModel(
             all = all.Where(c => c.NeedsReview);
         }
 
+        if (OnlyBounced)
+        {
+            all = all.Where(c => c.ConfirmationBouncedAt is not null);
+        }
+
         // Search by name or RUT (case-insensitive, partial match)
         if (!string.IsNullOrWhiteSpace(SearchQuery))
         {
             var query = SearchQuery.Trim().ToUpperInvariant();
-            all = all.Where(c => 
-                (c.FullName ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                (c.Rut ?? string.Empty).Replace(".", string.Empty).Replace("-", string.Empty)
-                    .Contains(query.Replace(".", string.Empty).Replace("-", string.Empty), StringComparison.OrdinalIgnoreCase)
-            );
+            all = all.Where(c => MatchesQuery(c, query));
+
+            // Cross-screen matches: transferred cases are hidden from Casos, so the banners
+            // tell the operator where the person actually is.
+            var f8Matches = everything.Where(c => c.Destination == CaseDestination.F8 && MatchesQuery(c, query)).ToList();
+            F8MatchCount = f8Matches.Count;
+            F8FirstMatchId = f8Matches.FirstOrDefault()?.Id;
+
+            var cajaMatches = everything.Where(c => c.Destination == CaseDestination.Caja && MatchesQuery(c, query)).ToList();
+            CajaMatchCount = cajaMatches.Count;
+            CajaMatchBoxCode = cajaMatches.FirstOrDefault()?.BoxId is { } boxId
+                ? repository.FindBoxById(boxId)?.Code
+                : cajaMatches.Count > 0 ? "cola de Caja" : null;
         }
 
         // Marked cases (checkbox "Marcar") float to the very top, ordered by MarkedAt ascending —
@@ -408,11 +470,21 @@ public class IndexModel(
         // back to Pending) must stay in its original position instead of jumping to the top just
         // because its database row is newer.
         Cases = all
-            .OrderByDescending(c => c.Marked)
+            .OrderBy(c => c.Status == RequestStatus.Confirmed)
+            .ThenByDescending(c => c.Marked && c.SectorPdfGeneratedAt is null)
+            .ThenByDescending(c => c.Marked)
             .ThenBy(c => c.MarkedAt)
-            .ThenBy(c => c.Status == RequestStatus.Confirmed)
+            .ThenBy(c => c.FechaUltimaCarpeta is not null)
             .ThenBy(c => c.ConfirmedAt)
             .ThenByDescending(c => c.ReceivedAt)
             .ToList();
+    }
+
+    private static bool MatchesQuery(PersonRequest c, string query)
+    {
+        var queryClean = query.Replace(".", string.Empty).Replace("-", string.Empty);
+        var rutClean = (c.Rut ?? string.Empty).Replace(".", string.Empty).Replace("-", string.Empty);
+        return (c.FullName ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase) ||
+               rutClean.Contains(queryClean, StringComparison.OrdinalIgnoreCase);
     }
 }

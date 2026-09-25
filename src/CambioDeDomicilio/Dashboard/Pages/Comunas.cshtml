@@ -12,46 +12,64 @@
 <body>
     <header class="app-header">
         <div class="brand">
-            CambioDeDomicilio
-            <small>Municipalidad de Valparaíso — Directorio de comunas</small>
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                CambioDeDomicilio
+                <small>Municipalidad de Valparaíso</small>
+                <small>Directorio de comunas</small>
+            </span>
         </div>
         <nav class="app-nav">
-            <a asp-page="/Index" class="nav-casos">Cambio de Domicilio</a>
-            <a asp-page="/Comunas" class="active">Comunas</a>
-            <a asp-page="/Discarded">Descartados</a>
+            <div class="nav-group">
+                <a asp-page="/Index"><partial name="_NavIcon" model="@("back")" /><span>Volver a Casos</span></a>
+                <a asp-page="/Comunas" class="active"><partial name="_NavIcon" model="@("map")" /><span>Comunas</span></a>
+                <a asp-page="/Discarded"><partial name="_NavIcon" model="@("discarded")" /><span>Descartados</span></a>
+            </div>
         </nav>
     </header>
     <div class="app-subnav">
-        <span class="app-subnav-label">Otros sistemas</span>
-        <a asp-page="/F8" class="nav-f8">F8</a>
-        <a asp-page="/Certificado" class="nav-certificado">Certificado</a>
-        <a asp-page="/Estadisticas" class="nav-estadisticas">Estadísticas</a>
+        <div class="app-subnav-main">
+            <span class="app-subnav-label">Sistemas</span>
+            <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
+        </div>
+        <div class="app-subnav-docs">
+            <span class="app-subnav-label">Documentos</span>
+            <a asp-page="/Sector" asp-route-sector="Archivo" class="nav-pdf-archivo" title="Generar listado para Archivo">
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Archivo</span>
+            </a>
+            <a asp-page="/Sector" asp-route-sector="Oficina43" class="nav-pdf-oficina43" title="Generar listado para Oficina 43">
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Oficina 43</span>
+            </a>
+        </div>
     </div>
 
     <main>
         @if (Model.Message is not null)
         {
-            <p class="message-banner" style="@(Model.MessageIsError ? "background:#fbe4e8;border-color:#a11d33;color:#a11d33;" : "")">@Model.Message</p>
+            <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
         }
 
-        <div class="card" style="padding: 20px 24px; margin-bottom: 16px;">
-            <form method="post" asp-page-handler="AddContact" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-                <div>
+        <div class="card card-form">
+            <form method="post" asp-page-handler="AddContact" class="manual-entry-form">
+                <div class="form-group">
                     <label class="form-label" for="new-comuna">Comuna</label>
                     <input type="text" name="comuna" id="new-comuna" required placeholder="ej: Villa Alemana"
-                           style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem;" />
+                           class="form-control" />
                 </div>
-                <div>
+                <div class="form-group">
                     <label class="form-label" for="new-domain">Dominio del correo</label>
                     <input type="text" name="domain" id="new-domain" required placeholder="ej: villaalemana.cl"
-                           style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem;" />
+                           class="form-control" />
                 </div>
-                <div>
+                <div class="form-group">
                     <label class="form-label" for="new-email">Correo de contacto</label>
                     <input type="email" name="email" id="new-email" required placeholder="ej: contacto@villaalemana.cl"
-                           style="border:1px solid var(--color-border); border-radius:4px; padding:6px 8px; font-size:0.85rem; min-width:260px;" />
+                           class="form-control" style="min-width:260px;" />
                 </div>
-                <button type="submit" class="btn-primary" style="padding:8px 16px;">Agregar comuna</button>
+                <button type="submit" class="btn-primary">Agregar comuna</button>
             </form>
         </div>
 
@@ -68,14 +86,28 @@
                 <tbody>
                 @foreach (var contact in Model.Contacts)
                 {
+                    var rowId = $"{contact.Comuna}-{contact.Domain}".Replace(" ", "-").Replace(".", "-");
                     <tr>
                         <td>@contact.Comuna</td>
-                        <td>@contact.Domain</td>
-                        <td colspan="2">
-                            <form method="post" asp-page-handler="UpdateEmail" style="display:flex; gap:8px; align-items:center;">
+                        <td>
+                            <input type="text" name="newDomain" form="edit-@rowId" value="@contact.Domain" required
+                                   style="width:140px; border:1px solid var(--color-border); border-radius:4px; padding:4px 6px; font-size:0.85rem;" />
+                        </td>
+                        <td>
+                            <input type="email" name="email" form="edit-@rowId" value="@contact.ContactEmail" required
+                                   style="width:100%; min-width:240px; border:1px solid var(--color-border); border-radius:4px; padding:4px 6px; font-size:0.85rem;" />
+                        </td>
+                        <td style="display:flex; gap:8px;">
+                            <form id="edit-@rowId" method="post" asp-page-handler="UpdateContact">
                                 <input type="hidden" name="comuna" value="@contact.Comuna" />
-                                <input type="email" name="email" value="@contact.ContactEmail" required style="flex:1; min-width:280px; border:1px solid var(--color-border); border-radius:4px; padding:4px 6px; font-size:0.85rem;" />
+                                <input type="hidden" name="domain" value="@contact.Domain" />
                                 <button type="submit" class="btn-primary">Guardar</button>
+                            </form>
+                            <form method="post" asp-page-handler="DeleteContact"
+                                  onsubmit="return confirm('¿Eliminar @contact.Comuna (@contact.Domain) del directorio?');">
+                                <input type="hidden" name="comuna" value="@contact.Comuna" />
+                                <input type="hidden" name="domain" value="@contact.Domain" />
+                                <button type="submit" class="btn-danger" title="Eliminar del directorio" aria-label="Eliminar comuna">Eliminar</button>
                             </form>
                         </td>
                     </tr>

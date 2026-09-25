@@ -24,12 +24,7 @@ public sealed class CsvReportWriter : ICsvReportWriter
         foreach (var request in requests)
         {
             var requiresReview = request.NeedsReview ? "Sí" : "No";
-            var sector = request.Sector switch
-            {
-                FolderSector.Archivo => "Archivo",
-                FolderSector.Oficina43 => "Oficina 43",
-                _ => string.Empty
-            };
+            var sector = request.Sector is { } folderSector ? folderSector.ToDisplayName() : string.Empty;
             builder.AppendLine(string.Join(',',
                 Escape(request.FullName),
                 Escape(request.Rut),
