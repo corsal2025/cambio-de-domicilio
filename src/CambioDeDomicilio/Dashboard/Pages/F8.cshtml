@@ -415,5 +415,17 @@
             }
         })();
     </script>
+    <script>
+        (function () {
+            // After "load" (and a beat later) so fonts/layout are final and scroll-preserve.js,
+            // which restores the previous scroll position, doesn't undo it.
+            window.addEventListener('load', function () {
+                setTimeout(function () {
+                    var target = document.querySelector('tr.row-highlight-target');
+                    if (target) target.scrollIntoView({ block: 'center' });
+                }, 150);
+            });
+        })();
+    </script>
 </body>
 </html>

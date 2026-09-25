@@ -188,7 +188,7 @@
                         @foreach (var item in Model.SelectedBoxCases)
                         {
                             correlativo++;
-                            <tr>
+                            <tr id="case-@item.Id" class="@(item.Id == Model.HighlightId ? "row-highlight-target" : "")">
                                 <td>@correlativo</td>
                                 <td style="text-align:left; font-weight:600;">@item.FullName</td>
                                 <td style="text-align:center;">@item.Rut</td>
@@ -256,7 +256,7 @@
                         @foreach (var item in Model.Queue)
                         {
                             correlativoQueue++;
-                            <tr>
+                            <tr id="case-@item.Id" class="@(item.Id == Model.HighlightId ? "row-highlight-target" : "")">
                                 <td style="text-align:center;">
                                     <input type="checkbox" class="queue-check" value="@item.Id" onchange="updateQueueSelection()" />
                                 </td>
@@ -390,5 +390,18 @@
         </div>
     }
     </main>
+    <script>
+        // Opened from the Casos search: bring the searched folder's row to the middle of the screen.
+        (function () {
+            // After "load" (and a beat later) so fonts/layout are final and scroll-preserve.js,
+            // which restores the previous scroll position, doesn't undo it.
+            window.addEventListener('load', function () {
+                setTimeout(function () {
+                    var target = document.querySelector('tr.row-highlight-target');
+                    if (target) target.scrollIntoView({ block: 'center' });
+                }, 150);
+            });
+        })();
+    </script>
 </body>
 </html>
