@@ -13,4 +13,4 @@
 
 - [x] 3.1 Full `dotnet test`
 - [x] 3.2 Live check (read-only): search a boxed RUT, open the link, confirm the highlighted row and N°
-- [ ] 3.3 Deploy with DB backup; PR; merge
+- [x] 3.3 Deploy with DB backup; PR; merge
