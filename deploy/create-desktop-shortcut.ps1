@@ -72,7 +72,7 @@ $shortcut.Arguments = "`"$vbsPath`""
 $shortcut.WorkingDirectory = $PublishPath
 $shortcut.Description = "Abrir el dashboard de CambioDeDomicilio"
 # The app's own Cambio de Domicilio icon first; the municipal logo only as a fallback.
-$iconPath = Join-Path $PublishPath "wwwroot\imgpp-icon.ico"
+$iconPath = Join-Path $PublishPath "wwwroot\img\app-icon.ico"
 if (-not (Test-Path $iconPath)) {
     $iconPath = Join-Path $PublishPath "wwwroot\img\logo-municipalidad.ico"
 }
