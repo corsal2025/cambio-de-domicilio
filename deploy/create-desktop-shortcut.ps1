@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Crea un acceso directo en el Escritorio que abre el dashboard de
     CambioDeDomicilio en el navegador, iniciando el proceso si no está corriendo.
@@ -71,7 +71,11 @@ $shortcut.TargetPath = "wscript.exe"
 $shortcut.Arguments = "`"$vbsPath`""
 $shortcut.WorkingDirectory = $PublishPath
 $shortcut.Description = "Abrir el dashboard de CambioDeDomicilio"
-$iconPath = Join-Path $PublishPath "wwwroot\img\logo-municipalidad.ico"
+# The app's own Cambio de Domicilio icon first; the municipal logo only as a fallback.
+$iconPath = Join-Path $PublishPath "wwwroot\imgpp-icon.ico"
+if (-not (Test-Path $iconPath)) {
+    $iconPath = Join-Path $PublishPath "wwwroot\img\logo-municipalidad.ico"
+}
 if (-not (Test-Path $iconPath)) {
     $iconPath = Join-Path $PSScriptRoot "logo-municipalidad.ico"
 }
