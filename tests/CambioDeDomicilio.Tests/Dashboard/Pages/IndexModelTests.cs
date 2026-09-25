@@ -22,6 +22,7 @@ public class IndexModelTests : IDisposable
     private readonly IPersonRequestRepository repository;
     private readonly AddressChangeRoutingService routingService;
     private readonly IndexModel model;
+    private readonly Func<IndexModel> newModel;
 
     public IndexModelTests()
     {
@@ -60,13 +61,14 @@ public class IndexModelTests : IDisposable
             options,
             NullLogger<RouterWorker>.Instance);
 
-        model = new IndexModel(repository, discardedRepository, routingService, routerWorker, options, NullLogger<IndexModel>.Instance)
+        newModel = () => new IndexModel(repository, discardedRepository, routingService, routerWorker, options, NullLogger<IndexModel>.Instance)
         {
             PageContext = new PageContext
             {
                 HttpContext = new DefaultHttpContext()
             }
         };
+        model = newModel();
     }
 
     [Fact]
@@ -763,6 +765,86 @@ public class IndexModelTests : IDisposable
         model.OnGet(status: null);
 
         Assert.Contains(model.Cases, c => c.Id == id && c.ClosedWithoutFolderAt is not null);
+    }
+
+    [Theory]
+    [InlineData(nameof(IndexModel.StatusFilter), "status")]
+    [InlineData(nameof(IndexModel.OnlyNeedsReview), "needsReview")]
+    [InlineData(nameof(IndexModel.OnlyBounced), "bounced")]
+    [InlineData(nameof(IndexModel.SearchQuery), "search")]
+    public void ListStateProperties_AreBoundOnGetAndPost(string propertyName, string fieldName)
+    {
+        var bind = typeof(IndexModel).GetProperty(propertyName)!
+            .GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.BindPropertyAttribute), false)
+            .Cast<Microsoft.AspNetCore.Mvc.BindPropertyAttribute>()
+            .SingleOrDefault();
+
+        Assert.NotNull(bind);
+        Assert.True(bind!.SupportsGet);
+        Assert.Equal(fieldName, bind.Name);
+    }
+
+    [Fact]
+    public void Message_OnRedirect_IsStoredOnceInTempDataAndShownOnNextGet()
+    {
+        var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(new DefaultHttpContext(), new InMemoryTempDataProvider());
+        model.TempData = tempData;
+        model.Message = "Carpeta enviada a Caja.";
+
+        model.PersistMessageForRedirect(new Microsoft.AspNetCore.Mvc.RedirectToPageResult("/Index"));
+        tempData.Save(); // end of the POST request
+
+        var next = NewModelSharingTempData(tempData);
+        next.OnGet(status: null);
+        Assert.Equal("Carpeta enviada a Caja.", next.Message);
+        tempData.Save(); // end of the GET request: read values are dropped
+
+        var afterThat = NewModelSharingTempData(tempData);
+        afterThat.OnGet(status: null);
+        Assert.Null(afterThat.Message);
+    }
+
+    [Fact]
+    public void Message_OnSamePageResponse_IsNotRepeatedOnNextGet()
+    {
+        var tempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(new DefaultHttpContext(), new InMemoryTempDataProvider());
+        model.TempData = tempData;
+        model.Message = "Fecha no reconocida.";
+
+        model.PersistMessageForRedirect(new Microsoft.AspNetCore.Mvc.RazorPages.PageResult());
+        tempData.Save();
+
+        var next = NewModelSharingTempData(tempData);
+        next.OnGet(status: null);
+        Assert.Null(next.Message);
+    }
+
+    private IndexModel NewModelSharingTempData(Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataDictionary tempData)
+    {
+        var next = newModel();
+        next.TempData = tempData;
+        return next;
+    }
+
+    private sealed class InMemoryTempDataProvider : Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider
+    {
+        private IDictionary<string, object> store = new Dictionary<string, object>();
+        public IDictionary<string, object> LoadTempData(HttpContext context) => store;
+        public void SaveTempData(HttpContext context, IDictionary<string, object> values) => store = new Dictionary<string, object>(values);
+    }
+
+    [Fact]
+    public void OnPostSubirACaja_RedirectsWithCurrentListState()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        model.SearchQuery = "18.785.387-7";
+        model.StatusFilter = "Uploaded";
+
+        var result = Assert.IsType<Microsoft.AspNetCore.Mvc.RedirectToPageResult>(model.OnPostSubirACaja(id));
+
+        Assert.Equal("18.785.387-7", result.RouteValues!["search"]);
+        Assert.Equal("Uploaded", result.RouteValues["status"]);
     }
 
     private static PersonRequest NewRequest(string sourceMessageId) => new()

@@ -925,6 +925,7 @@ public class PersonRequestRepositoryTests : IDisposable
     public void CloseWithoutFolder_F8Case_ClosesAndReturnsToCasos()
     {
         var id = repository.Insert(NewRequest("msg-f8"));
+        repository.SetFolderNotFound(id, true);
         repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
         var closedAt = new DateTimeOffset(2026, 9, 24, 10, 0, 0, TimeSpan.Zero);
 
@@ -932,6 +933,7 @@ public class PersonRequestRepositoryTests : IDisposable
 
         var stored = repository.FindById(id)!;
         Assert.Equal(closedAt, stored.ClosedWithoutFolderAt);
+        Assert.False(stored.FolderNotFound);
         Assert.Equal(CaseDestination.None, stored.Destination);
         Assert.Null(stored.TransferredAt);
     }

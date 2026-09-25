@@ -537,6 +537,26 @@
     </script>
     <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
     <script>
+        // Every POST form carries the current list state (filter + search) as hidden fields, so
+        // the handler's redirect lands on the same filtered list. Injected up front (not on
+        // "submit") because several forms are submitted via form.submit(), which skips that event.
+        (function () {
+            var params = new URLSearchParams(window.location.search);
+            var stateNames = ['status', 'needsReview', 'bounced', 'search'];
+            document.querySelectorAll('form[method="post"]').forEach(function (form) {
+                stateNames.forEach(function (name) {
+                    var value = params.get(name);
+                    if (value === null || value === '' || form.querySelector('[name="' + name + '"]')) return;
+                    var hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = name;
+                    hidden.value = value;
+                    form.appendChild(hidden);
+                });
+            });
+        })();
+    </script>
+    <script>
         // Auto-formats a RUT typed as raw digits (e.g. "135516122") into the standard
         // "13.551.612-2" shape as the operator types. Only kicks in when the field is all
         // digits (plus an optional trailing K check digit) — a name search is left untouched.
