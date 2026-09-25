@@ -1,0 +1,33 @@
+{
+  // Development run from VS Code. It coexists with the production app (desktop shortcut):
+  // own ports (5100/5101/5102), own single-instance mutex (Development), a COPY of the
+  // production database (data/router.dev.db) and the mailbox disabled, so nothing it does
+  // touches real cases or real emails. Env vars below override appsettings and user-secrets.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "CambioDeDomicilio (desarrollo, https://localhost:5101)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "prepare-dev",
+      "program": "${workspaceFolder}/src/CambioDeDomicilio/bin/Debug/net10.0/CambioDeDomicilio.dll",
+      "cwd": "${workspaceFolder}/src/CambioDeDomicilio",
+      "console": "integratedTerminal",
+      "stopAtEntry": false,
+      "env": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Kestrel__Endpoints__Http__Url": "http://127.0.0.1:5100",
+        "Kestrel__Endpoints__Https__Url": "https://127.0.0.1:5101",
+        "Kestrel__Endpoints__TunnelHttp__Url": "http://127.0.0.1:5102",
+        "DashboardUrl": "https://localhost:5101",
+        "Router__SqliteDbPath": "${workspaceFolder}/data/router.dev.db",
+        "Router__ReportCsvPath": "${workspaceFolder}/data/reporte.dev.csv",
+        "Router__ComunaDirectoryCsvPath": "${workspaceFolder}/data/comunas.csv",
+        "Router__Ews__Url": "https://ews-disabled-in-development.invalid/EWS/Exchange.asmx",
+        "Router__PollIntervalMinutes": "100000",
+        "Router__ToastNotificationsEnabled": "false"
+      }
+    }
+  ]
+}

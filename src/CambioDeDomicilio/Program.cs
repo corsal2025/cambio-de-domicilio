@@ -13,7 +13,15 @@ using CambioDeDomicilio.Routing;
 // Task Scheduler fires both an AtLogOn and an AtStartup trigger, and also auto-restarts the
 // process on crash — any of those can overlap with a second copy already running. Bail out
 // immediately if another instance already holds the mutex instead of racing it.
-using var singleInstanceMutex = new Mutex(initiallyOwned: true, name: "Global\\CambioDeDomicilio.SingleInstance", createdNew: out var isFirstInstance);
+// The mutex is per environment: a Development run from VS Code (its own ports, DB copy and no
+// mailbox, see .vscode/launch.json) must be able to coexist with the production instance.
+var hostEnvironment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+    ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+    ?? "Production";
+var mutexName = hostEnvironment == "Production"
+    ? "Global\\CambioDeDomicilio.SingleInstance"
+    : $"Global\\CambioDeDomicilio.SingleInstance.{hostEnvironment}";
+using var singleInstanceMutex = new Mutex(initiallyOwned: true, name: mutexName, createdNew: out var isFirstInstance);
 if (!isFirstInstance)
 {
     Console.WriteLine("CambioDeDomicilio ya está corriendo. Cerrando esta instancia duplicada.");
@@ -86,14 +94,14 @@ _ = Task.Run(async () =>
     {
         // Small delay to let the server bind before opening the browser
         await Task.Delay(2000);
-        var url = "https://localhost:5001";
+        var url = app.Configuration["DashboardUrl"] ?? "https://localhost:5001";
         Console.WriteLine($"Abriendo dashboard: {url}");
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
     catch (Exception ex)
     {
         Console.WriteLine($"No se pudo abrir el navegador automáticamente: {ex.Message}");
-        Console.WriteLine("Abre https://localhost:5001 manualmente en tu navegador.");
+        Console.WriteLine($"Abre {app.Configuration["DashboardUrl"] ?? "https://localhost:5001"} manualmente en tu navegador.");
     }
 });
 

@@ -1,0 +1,41 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["build", "${workspaceFolder}/src/CambioDeDomicilio/CambioDeDomicilio.csproj"],
+      "problemMatcher": "$msCompile",
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      // First run only: copies the production DB into data/router.dev.db so development has
+      // real-looking data. Never writes to publish/data. Use "refresh-dev-db" to re-copy.
+      "label": "ensure-dev-db",
+      "type": "process",
+      "command": "powershell",
+      "args": [
+        "-NoProfile", "-Command",
+        "$dev = '${workspaceFolder}/data/router.dev.db'; $prod = '${workspaceFolder}/publish/data/router.db'; New-Item -ItemType Directory -Force (Split-Path $dev) | Out-Null; if (-not (Test-Path $dev) -and (Test-Path $prod)) { Copy-Item $prod $dev; Write-Host 'Copia de desarrollo creada desde produccion.' } else { Write-Host 'Usando data/router.dev.db existente.' }"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "refresh-dev-db",
+      "type": "process",
+      "command": "powershell",
+      "args": [
+        "-NoProfile", "-Command",
+        "Copy-Item '${workspaceFolder}/publish/data/router.db' '${workspaceFolder}/data/router.dev.db' -Force; Write-Host 'data/router.dev.db actualizada desde produccion.'"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "prepare-dev",
+      "dependsOrder": "sequence",
+      "dependsOn": ["ensure-dev-db", "build"],
+      "problemMatcher": []
+    }
+  ]
+}
