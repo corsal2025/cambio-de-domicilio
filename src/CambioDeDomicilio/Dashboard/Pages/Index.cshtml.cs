@@ -43,12 +43,27 @@ public class IndexModel(
     public long? F8FirstMatchId { get; private set; }
     public int CajaMatchCount { get; private set; }
     public string? CajaMatchBoxCode { get; private set; }
-    /// <summary>Result of the last action; TempData so it survives the post-redirect-get.</summary>
-    [TempData]
+    /// <summary>Result of the last action. Carried across a redirect through TempData (see
+    /// <see cref="PersistMessageForRedirect"/>) and read once in OnGet.</summary>
     public string? Message { get; set; }
-
-    [TempData]
     public bool MessageIsError { get; set; }
+
+    private const string MessageKey = "Index.Message";
+    private const string MessageIsErrorKey = "Index.MessageIsError";
+
+    /// <summary>Only a redirect needs the message stored for the next request; a same-request
+    /// Page() already renders it, and storing it too would show it again on the next load.</summary>
+    public void PersistMessageForRedirect(IActionResult? result)
+    {
+        if (result is RedirectToPageResult && Message is not null && TempData is not null)
+        {
+            TempData[MessageKey] = Message;
+            TempData[MessageIsErrorKey] = MessageIsError;
+        }
+    }
+
+    public override void OnPageHandlerExecuted(Microsoft.AspNetCore.Mvc.Filters.PageHandlerExecutedContext context) =>
+        PersistMessageForRedirect(context.Result);
     public int PlazoDiasHabiles => options.PlazoDiasHabiles;
     public bool AllVisibleMarked => Cases.Count > 0 && Cases.All(c => c.Marked);
 
@@ -58,6 +73,8 @@ public class IndexModel(
         OnlyNeedsReview = needsReview;
         OnlyBounced = bounced;
         SearchQuery = search;
+        Message ??= TempData?[MessageKey] as string;
+        if (TempData?[MessageIsErrorKey] is bool isError) MessageIsError = isError;
         Load();
     }
 
