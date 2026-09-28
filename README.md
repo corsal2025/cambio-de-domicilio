@@ -1,5 +1,7 @@
 # CambioDeDomicilio
 
+> Modelo de dominio y sistema creados por **Raúl Salazar** (Municipalidad de Valparaíso, Dirección de Tránsito). Ver [Autoría](#autoría).
+
 Servicio en segundo plano (.NET 10, `BackgroundService`) que ayuda a tramitar las solicitudes de carpeta de contribuyentes que otras comunas le hacen a Valparaíso, ligadas a Conaset. El flujo de negocio completo está diagramado en [`docs/flujo-proceso.md`](docs/flujo-proceso.md) — acá el resumen técnico:
 
 1. Cada 30 minutos (configurable) revisa la carpeta **"CARP. PARA PEDIR"** del buzón `cambiodedomicilio@munivalpo.cl` en Exchange on-premise (vía EWS). El operador clasifica manualmente los correos entrantes moviéndolos a esa carpeta — el sistema no escanea la bandeja de entrada completa.
@@ -113,3 +115,11 @@ src/CambioDeDomicilio/
   RouterWorker.cs      # BackgroundService: orquesta el ciclo de sondeo de ambas carpetas
 tests/CambioDeDomicilio.Tests/
 ```
+
+## Autoría
+
+El modelo de dominio y el sistema Cambio de Domicilio fueron creados por **Raúl Salazar**.
+
+- Diagrama interactivo del modelo: [`docs/modelo-dominio.html`](docs/modelo-dominio.html). Se abre en cualquier navegador, incluso sin internet.
+- Presentación del modelo (fuentes de las diapositivas): [`docs/presentacion/`](docs/presentacion/).
+- Detalle de autoría: [`AUTHORS.md`](AUTHORS.md).

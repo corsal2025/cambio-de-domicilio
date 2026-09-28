@@ -1,9 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Authors>Raúl Salazar</Authors>
+    <Company>Municipalidad de Valparaíso</Company>
+    <Product>Cambio de Domicilio</Product>
+    <Copyright>© 2026 Raúl Salazar</Copyright>
     <UserSecretsId>dotnet-CambioDeDomicilio-30bac738-f30f-4169-b3aa-2a5d381585d8</UserSecretsId>
   </PropertyGroup>
 

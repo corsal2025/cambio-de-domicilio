@@ -1,0 +1,18 @@
+{
+  "v": 4,
+  "createdOnFiles": { "v": 1, "at": "2026-09-28T14:03:58Z" },
+  "title": "Modelo de Dominio — Cambio de Domicilio",
+  "order": ["cover", "problema", "proceso", "entidades", "caso", "estados", "destinos", "reglas", "caja", "busqueda", "garantias", "autoria"],
+  "sections": {
+    "s1": { "description": "Qué problema resuelve el sistema y cómo es el proceso", "start": "cover" },
+    "s2": { "description": "Las entidades del modelo y sus atributos", "start": "entidades" },
+    "s3": { "description": "Cómo se mueve un caso: estados, destinos y reglas", "start": "estados" },
+    "s4": { "description": "La caja física y la ubicación exacta de cada carpeta", "start": "caja" },
+    "s5": { "description": "Cómo se asegura la calidad y quién creó el modelo", "start": "garantias" }
+  },
+  "faces": {
+    "libre-baskerville": { "family": "Libre Baskerville", "href": "https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Public+Sans:wght@400;600;700&display=swap" },
+    "public-sans": { "family": "Public Sans", "href": "https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Public+Sans:wght@400;600;700&display=swap" }
+  },
+  "designSystems": []
+}
