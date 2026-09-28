@@ -72,12 +72,12 @@ public class F8Model(
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
-    /// <summary>The single F8 "Revertir": clears every F8 datum (whether or not the F8 was already
-    /// uploaded) and returns the case to Casos with only the "Caja" action. No email is sent.</summary>
+    /// <summary>The single F8 "Revertir": clears the F8 status (whether or not the F8 was already
+    /// uploaded), keeping the typed data, and returns the case to Casos with only the "Caja" action. No email is sent.</summary>
     public IActionResult OnPostRevertToCasos(long id)
     {
         repository.RevertF8AndReturnToCasos(id);
-        Message = "Caso revertido a Cambio de Domicilio: datos F8 borrados, listo para enviar a Caja (sin enviar correo).";
+        Message = "Caso revertido a Cambio de Domicilio: datos ingresados conservados, listo para enviar a Caja (sin enviar correo).";
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 

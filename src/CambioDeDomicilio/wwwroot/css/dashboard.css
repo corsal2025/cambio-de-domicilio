@@ -54,11 +54,11 @@
     --color-f8-border: #d1d5db;
 
     /* Resaltados de fila en tabla (Suaves y armónicos) */
-    --row-marked-bg: #ecfdf5;
-    --row-marked-border: #a7f3d0;
-    --row-pendiente-bg: #fefce8;
-    --row-pendiente-border: #fde047;
-    --row-confirmed-bg: #f0fdf4;
+    --row-marked-bg: #fef9c3;
+    --row-marked-border: #fde047;
+    --row-pendiente-bg: #ede9fe;
+    --row-pendiente-border: #c4b5fd;
+    --row-done-bg: #f0fdf4;
     --row-review-bg: #fff1f2;
     --row-bounced-bg: #ffe4e6;
     --row-f8-bg: #f3f4f6;
@@ -814,7 +814,7 @@ table.cases tbody tr {
 
 /* Intercalado de filas neutro */
 table.cases-index tbody tr.row-alt {
-    background: #f8fafc;
+    background: #ffffff;
 }
 
 table.cases tbody tr:hover {
@@ -822,11 +822,11 @@ table.cases tbody tr:hover {
 }
 
 /* Estados de fila sutiles y profesionales (en lugar de colores fosforescentes) */
-table.cases-index tbody tr.row-confirmed {
-    background: var(--row-confirmed-bg) !important;
+table.cases-index tbody tr.row-done {
+    background: var(--row-done-bg) !important;
 }
-table.cases-index tbody tr.row-confirmed:hover {
-    background: #dcfce7 !important;
+table.cases-index tbody tr.row-done:hover {
+    background: #d1d5db !important;
 }
 
 table.cases-index tbody tr.row-needs-review {
@@ -848,14 +848,14 @@ table.cases-index tbody tr:has(input[name="markedValue"]:checked) {
     background: var(--row-marked-bg) !important;
 }
 table.cases-index tbody tr:has(input[name="markedValue"]:checked):hover {
-    background: #bbf7d0 !important;
+    background: #fef08a !important;
 }
 
 table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked) {
-    background: #fefce8 !important;
+    background: var(--row-pendiente-bg) !important;
 }
 table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover {
-    background: #fef9c3 !important;
+    background: #ddd6fe !important;
 }
 
 table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) {
@@ -919,18 +919,18 @@ table.cases-index thead tr.header-cols > :nth-child(2) {
 
 /* Solid backgrounds on the frozen cells so scrolled content never shows through. */
 table.cases-index tbody tr td:nth-child(-n+2) { background-color: #ffffff; }
-table.cases-index tbody tr.row-alt td:nth-child(-n+2) { background-color: #f8fafc; }
+table.cases-index tbody tr.row-alt td:nth-child(-n+2) { background-color: #ffffff; }
 table.cases-index tbody tr:hover td:nth-child(-n+2) { background-color: #f1f5f9; }
-table.cases-index tbody tr.row-confirmed td:nth-child(-n+2) { background-color: var(--row-confirmed-bg) !important; }
-table.cases-index tbody tr.row-confirmed:hover td:nth-child(-n+2) { background-color: #dcfce7 !important; }
+table.cases-index tbody tr.row-done td:nth-child(-n+2) { background-color: var(--row-done-bg) !important; }
+table.cases-index tbody tr.row-done:hover td:nth-child(-n+2) { background-color: #d1d5db !important; }
 table.cases-index tbody tr.row-needs-review td:nth-child(-n+2) { background-color: var(--row-review-bg) !important; }
 table.cases-index tbody tr.row-needs-review:hover td:nth-child(-n+2) { background-color: #ffe4e6 !important; }
 table.cases-index tbody tr.row-bounced td:nth-child(-n+2) { background-color: var(--row-bounced-bg) !important; }
 table.cases-index tbody tr.row-bounced:hover td:nth-child(-n+2) { background-color: #fecdd3 !important; }
 table.cases-index tbody tr:has(input[name="markedValue"]:checked) td:nth-child(-n+2) { background-color: var(--row-marked-bg) !important; }
-table.cases-index tbody tr:has(input[name="markedValue"]:checked):hover td:nth-child(-n+2) { background-color: #bbf7d0 !important; }
-table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked) td:nth-child(-n+2) { background-color: #fefce8 !important; }
-table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover td:nth-child(-n+2) { background-color: #fef9c3 !important; }
+table.cases-index tbody tr:has(input[name="markedValue"]:checked):hover td:nth-child(-n+2) { background-color: #fef08a !important; }
+table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked) td:nth-child(-n+2) { background-color: var(--row-pendiente-bg) !important; }
+table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover td:nth-child(-n+2) { background-color: #ddd6fe !important; }
 table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td:nth-child(-n+2) { background-color: #fff7ed !important; }
 table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover td:nth-child(-n+2) { background-color: #ffedd5 !important; }
 

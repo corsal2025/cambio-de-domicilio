@@ -254,7 +254,7 @@
                             </div>
                         </th>
                         <th title="Marca un caso cuya carpeta física no fue posible localizar (solo fichas sin fecha o anteriores a 2000)">F8</th>
-                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en amarillo">Pendiente<br />Carpeta</th>
+                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en morado">Pendiente<br />Carpeta</th>
                         <th>Comuna</th>
                         <th>Recibido</th>
                         <th>Plazo<br /><span class="th-subtext">(15 días hábiles)</span></th>
@@ -265,18 +265,15 @@
                     </tr>
                 </thead>
                 <tbody>
-                @{ var rowIndex = 0; }
                 @foreach (var item in Model.Cases)
                 {
-                    var rowClass = rowIndex % 2 == 1 ? "row-alt" : "";
-                    var statusRowClass = item.Status == RequestStatus.Confirmed
-                        ? "row-confirmed"
-                        : (item.NeedsReview ? "row-needs-review" : "");
+                    var statusRowClass = item.NeedsReview
+                        ? "row-needs-review"
+                        : (item.IsActionCompleted ? "row-done" : "");
                     var f8PendingClass = item.FolderNotFound ? "row-f8-pending" : "";
                     var pendienteCarpetaClass = item.PendienteCarpeta ? "row-pendiente-carpeta" : "";
                     var bouncedClass = item.ConfirmationBouncedAt is not null ? "row-bounced" : "";
-                    rowIndex++;
-                    <tr class="@rowClass @statusRowClass @f8PendingClass @pendienteCarpetaClass @bouncedClass">
+                    <tr class="@statusRowClass @f8PendingClass @pendienteCarpetaClass @bouncedClass">
                         <td class="name-cell">
                             <form method="post" asp-page-handler="SetPersonData" id="person-form-@item.Id">
                                 <input type="hidden" name="id" value="@item.Id" />

@@ -31,10 +31,11 @@ public interface IPersonRequestRepository
     /// <summary>Undoes a transfer: the case goes back to Casos (Index).</summary>
     void ClearDestination(long id);
 
-    /// <summary>Unified F8 revert: whether or not the F8 was already uploaded, clears every F8 datum
-    /// (CodigoF8, FolderNotFound, Destination, TransferredAt, UploadedAt, ConfirmedAt, bounce, marks)
-    /// and returns the case to Casos as Pending with SoloCaja set, so its only action is "Caja".
-    /// No email is sent.</summary>
+    /// <summary>Unified F8 revert: whether or not the F8 was already uploaded, clears the F8 status
+    /// (FolderNotFound, Destination, TransferredAt, UploadedAt, ConfirmedAt, bounce, marks) and returns
+    /// the case to Casos as Pending with SoloCaja set, so its only action is "Caja". Data the operator
+    /// already typed (FullName, Rut, CodigoF8, FechaUltimaCarpeta, SinCarpeta) is kept, so undoing a
+    /// wrong decision never forces retyping. No email is sent.</summary>
     void RevertF8AndReturnToCasos(long id);
 
     /// <summary>"Sin carpeta" on an F8 case: records ClosedWithoutFolderAt, clears the F8 flag and
@@ -685,9 +686,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 Status = 'Pending',
                 SoloCaja = 1,
                 FolderNotFound = 0,
-                CodigoF8 = NULL,
                 UploadedAt = NULL,
-                SinCarpeta = 0,
                 TransferredAt = NULL,
                 ConfirmedAt = NULL,
                 ConfirmationBouncedAt = NULL,

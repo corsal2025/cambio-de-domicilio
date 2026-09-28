@@ -17,6 +17,11 @@
     var savedTableY = table ? sessionStorage.getItem(tableScrollYKey) : null;
     var messageBanner = document.querySelector('.message-banner');
 
+    // Lets page scripts that jump to a highlighted row (search result) skip that jump when the
+    // page is only reloading after an action — otherwise the jump overrides the restored position
+    // and the table leaps sideways/away from where the operator was working.
+    window.scrollPositionRestored = savedScroll !== null || savedTableX !== null || savedTableY !== null;
+
     // Restoring here is a no-op if the window is minimized: the browser hasn't laid out the
     // page (table.scrollWidth is still 0), so scrollLeft/scrollTop assignments get clamped back
     // to 0 and the values are lost since we already removed them from storage. Keep the saved

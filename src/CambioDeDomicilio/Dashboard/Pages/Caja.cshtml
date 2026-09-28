@@ -398,11 +398,14 @@
             window.addEventListener('load', function () {
                 setTimeout(function () {
                     var target = document.querySelector('tr.row-highlight-target');
-                    if (target) target.scrollIntoView({ block: 'center' });
+                    if (target && !window.scrollPositionRestored) {
+                        target.scrollIntoView({ block: 'center', inline: 'nearest' });
+                    }
                 }, 150);
             });
         })();
     </script>
+    <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
     <partial name="_AuthorFooter" />
 </body>
 </html>

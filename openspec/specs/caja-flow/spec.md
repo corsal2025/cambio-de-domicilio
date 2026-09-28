@@ -38,7 +38,7 @@ The system SHALL offer a "Sin carpeta" action on the F8 screen. Executing it SHA
 - **THEN** the case is not changed
 
 ### Requirement: Unified F8 revert
-The F8 screen SHALL expose a single "Revertir" action. Regardless of whether the F8 was already uploaded, it SHALL clear all F8 data (`CodigoF8`, `FolderNotFound`, `Destination`, `TransferredAt`, confirmation data) and return the case to Casos as `Pending` with `SoloCaja = true`. No email SHALL be sent.
+The F8 screen SHALL expose a single "Revertir" action. Regardless of whether the F8 was already uploaded, it SHALL clear the F8 status (`FolderNotFound`, `Destination`, `TransferredAt`, confirmation data, marks) while keeping the data the operator already typed (`FullName`, `Rut`, `CodigoF8`, `FechaUltimaCarpeta`, `SinCarpeta`) and return the case to Casos as `Pending` with `SoloCaja = true`. No email SHALL be sent.
 
 #### Scenario: Revert F8 not yet uploaded
 - **WHEN** the operator presses "Revertir" on an F8 case with `CodigoF8 = null`
@@ -46,7 +46,7 @@ The F8 screen SHALL expose a single "Revertir" action. Regardless of whether the
 
 #### Scenario: Revert F8 already uploaded
 - **WHEN** the operator presses "Revertir" on an F8 case with `CodigoF8 = "F8-123"` and `Status = Confirmed`
-- **THEN** the case has `CodigoF8 = null`, `ConfirmedAt = null`, `Status = Pending`, `SoloCaja = true`, `Destination = None`
+- **THEN** the case keeps `CodigoF8 = "F8-123"` and has `ConfirmedAt = null`, `Status = Pending`, `SoloCaja = true`, `Destination = None`
 - **AND** in Casos it shows only the "Caja" action
 
 #### Scenario: Reverted case sent to Caja

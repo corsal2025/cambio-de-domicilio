@@ -118,6 +118,14 @@ public sealed class PersonRequest
     /// date). The case shows in Casos as "Cerrado sin carpeta", with no actions, and can never
     /// enter Caja. Null means not closed.</summary>
     public DateTimeOffset? ClosedWithoutFolderAt { get; set; }
+
+    /// <summary>True once the operator finished working this case (folder uploaded, confirmation
+    /// sent, sent to Caja or closed without folder). The dashboard greys these rows out so the
+    /// untouched (white) ones stand out.</summary>
+    public bool IsActionCompleted =>
+        Status is RequestStatus.Uploaded or RequestStatus.Confirmed
+        || Destination == CaseDestination.Caja
+        || ClosedWithoutFolderAt is not null;
 }
 
 public enum CaseDestination
