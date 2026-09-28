@@ -1,6 +1,8 @@
 import json, pathlib, re
 
-root = pathlib.Path(r'C:\Users\raul.salazar\Desktop\CambioDeDomicilio\docs')
+# Regenerates docs/presentacion-modelo-dominio.html from the slide sources in docs/presentacion/project.
+# Run from anywhere: python docs/presentacion/build_deck.py
+root = pathlib.Path(__file__).resolve().parent.parent
 deck = json.loads((root / 'presentacion' / 'project' / 'deck.json').read_text(encoding='utf-8'))
 
 arrow = ('<svg width="96" height="48" viewBox="0 0 96 48" aria-hidden="true" style="flex:none">'

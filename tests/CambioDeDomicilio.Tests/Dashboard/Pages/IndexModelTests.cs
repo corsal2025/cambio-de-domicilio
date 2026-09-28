@@ -508,6 +508,33 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
+    public void OnPostAddManualCases_OldFoldersDirectToCaja_QueuesThemInOrderWithoutConfirmation()
+    {
+        model.OnPostAddManualCases(
+            "Catemu",
+            ["Gustavo Peña Castro", "Ana María Soto"],
+            ["18785387-7", "9098162-5"],
+            directToCaja: true);
+
+        var queue = repository.GetCajaQueue();
+        Assert.Equal(["GUSTAVO PEÑA CASTRO", "ANA MARÍA SOTO"], queue.Select(c => c.FullName));
+        Assert.All(queue, c => Assert.Null(c.ConfirmedAt)); // no confirmation email went out
+        model.OnGet(status: null);
+        Assert.Empty(model.Cases);
+        Assert.False(model.MessageIsError);
+    }
+
+    [Fact]
+    public void OnPostAddManualCases_WithoutDirectToCaja_StaysPendingInCasos()
+    {
+        model.OnPostAddManualCases("Catemu", ["Gustavo Peña Castro"], ["18785387-7"]);
+
+        var stored = Assert.Single(repository.GetAll());
+        Assert.Equal(RequestStatus.Pending, stored.Status);
+        Assert.Equal(CaseDestination.None, stored.Destination);
+    }
+
+    [Fact]
     public void OnPostAddManualCases_ValidRows_InsertsAllUnderSameComuna()
     {
         model.OnPostAddManualCases(

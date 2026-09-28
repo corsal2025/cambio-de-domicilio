@@ -121,5 +121,5 @@ tests/CambioDeDomicilio.Tests/
 El modelo de dominio y el sistema Cambio de Domicilio fueron creados por **Raúl Salazar**.
 
 - Diagrama interactivo del modelo: [`docs/modelo-dominio.html`](docs/modelo-dominio.html). Se abre en cualquier navegador, incluso sin internet.
-- Presentación del modelo (fuentes de las diapositivas): [`docs/presentacion/`](docs/presentacion/).
+- Presentación del modelo: [`docs/presentacion-modelo-dominio.html`](docs/presentacion-modelo-dominio.html). Se abre en cualquier navegador; se avanza con las flechas y F pone pantalla completa. Fuentes y generador en [`docs/presentacion/`](docs/presentacion/).
 - Detalle de autoría: [`AUTHORS.md`](AUTHORS.md).
