@@ -185,7 +185,10 @@ public class IndexModel(
     /// rows are validated first; if any row fails, nothing is inserted — an all-or-nothing batch,
     /// same as if the operator had submitted <see cref="OnPostAddManualCase"/> once per row but
     /// without leaving partial data behind on a mid-batch mistake.</summary>
-    public IActionResult OnPostAddManualCases(string comuna, List<string> nombre, List<string> rut)
+    /// <param name="directToCaja">Old physical folders that were never registered: each row is
+    /// stored as uploaded and sent straight to the Caja queue in entry order. No email is sent —
+    /// those requests were settled with the comuna long ago.</param>
+    public IActionResult OnPostAddManualCases(string comuna, List<string> nombre, List<string> rut, bool directToCaja = false)
     {
         var matchedComuna = routingService.LoadDirectory()
             .FirstOrDefault(c => string.Equals(c.Comuna, comuna, StringComparison.OrdinalIgnoreCase));
@@ -238,7 +241,9 @@ public class IndexModel(
                 Rut = normalizedRut,
                 Comuna = matchedComuna.Comuna,
                 SourceMessageId = $"manual-{Guid.NewGuid()}",
-                SourceSubject = "Ingresado manualmente por el operador",
+                SourceSubject = directToCaja
+                    ? "Carpeta antigua ingresada manualmente (sin correo)"
+                    : "Ingresado manualmente por el operador",
                 SourceSender = User.Identity?.Name ?? "operador",
                 NeedsReview = false,
                 Status = RequestStatus.Pending,
@@ -254,9 +259,21 @@ public class IndexModel(
             return Page();
         }
 
-        foreach (var request in toInsert)
+        var insertedIds = toInsert.Select(repository.Insert).ToList();
+
+        if (directToCaja)
         {
-            repository.Insert(request);
+            var now = DateTimeOffset.UtcNow;
+            foreach (var id in insertedIds)
+            {
+                repository.MarkUploaded(id, now);
+            }
+            repository.SendToCaja(insertedIds, now);
+            Message = insertedIds.Count == 1
+                ? "Carpeta antigua enviada directo a la cola de Caja (sin correo)."
+                : $"{insertedIds.Count} carpetas antiguas enviadas directo a la cola de Caja (sin correo).";
+            Load();
+            return Page();
         }
 
         Message = toInsert.Count == 1

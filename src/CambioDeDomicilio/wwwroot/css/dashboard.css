@@ -1882,3 +1882,25 @@ table.cases-index .codigo-f8-input {
         display: none !important;
     }
 }
+
+/* Manual entry: old folders go straight to Caja without emailing the comuna. */
+.legacy-caja-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px dashed #16a34a;
+    border-radius: 8px;
+    background: #f0fdf4;
+    color: #14532d;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    align-self: flex-end;
+}
+
+.legacy-caja-option input {
+    width: 16px;
+    height: 16px;
+    accent-color: #16a34a;
+}
