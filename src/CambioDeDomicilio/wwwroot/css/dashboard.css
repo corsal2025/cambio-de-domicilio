@@ -1858,3 +1858,27 @@ table.cases-index .codigo-f8-input {
 .caja-location-item .btn-action {
     text-decoration: none;
 }
+
+/* ── Authorship footer (every screen, never printed) ───────────────────────── */
+.author-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 24px;
+    padding: 14px 24px;
+    margin-top: 24px;
+    border-top: 1px solid var(--color-border, #dde3e8);
+    font-size: 0.8rem;
+    color: var(--color-text-muted, #5b6b7a);
+}
+
+.author-footer strong {
+    color: var(--color-primary, #0f2a44);
+}
+
+@media print {
+    .no-print,
+    .author-footer {
+        display: none !important;
+    }
+}

@@ -1,0 +1,289 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Modelo de Dominio Cambio de Domicilio</title>
+<meta name="author" content="Raúl Salazar">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Public+Sans:wght@400;600;700&display=swap">
+<style>
+  :root {
+    --paper: #F5F7F6; --surface: #FFFFFF; --ink: #1B2B3A; --muted: #5B6B7A; --line: #D5DDE3;
+    --navy: #0F2A44; --caja: #16803C; --f8: #B45309; --upload: #0369A1; --closed: #6B7785;
+    --edge: #8A99A8; --focus: #2563EB;
+    --display: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
+    --body: 'Public Sans', 'Segoe UI', Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --paper: #0D1824; --surface: #14222F; --ink: #E6EDF2; --muted: #9FB0BF; --line: #2A3B4B;
+      --navy: #9CC3E6; --caja: #4ADE80; --f8: #F59E0B; --upload: #38BDF8; --closed: #A5B1BD; --edge: #6B7D8E; --focus: #93C5FD;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper: #0D1824; --surface: #14222F; --ink: #E6EDF2; --muted: #9FB0BF; --line: #2A3B4B;
+    --navy: #9CC3E6; --caja: #4ADE80; --f8: #F59E0B; --upload: #38BDF8; --closed: #A5B1BD; --edge: #6B7D8E; --focus: #93C5FD;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 48px; display: flex; flex-direction: column; gap: 24px; }
+  header { display: flex; flex-direction: column; gap: 6px; }
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--caja); margin: 0; }
+  h1 { font-family: var(--display); font-size: clamp(26px, 4vw, 38px); line-height: 1.15; margin: 0; color: var(--navy); text-wrap: balance; }
+  .lede { margin: 0; color: var(--muted); max-width: 68ch; }
+  .author { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+  .author strong { color: var(--ink); }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+  .tab { font: 600 15px var(--body); color: var(--muted); background: none; border: 0; border-bottom: 3px solid transparent; padding: 10px 14px; cursor: pointer; }
+  .tab[aria-selected="true"] { color: var(--navy); border-bottom-color: var(--navy); }
+  .tab:focus-visible, .node:focus-visible, .edge-hit:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .stage { grid-template-columns: 1fr; } }
+  .canvas { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+  svg { display: block; width: 100%; min-width: 640px; height: auto; }
+  .node rect { fill: var(--surface); stroke-width: 2; }
+  .node text { font-family: var(--body); fill: var(--ink); }
+  .node .t { font-weight: 700; font-size: 15px; }
+  .node .s { font-size: 12px; fill: var(--muted); }
+  .node { cursor: pointer; }
+  .node.active rect { stroke-width: 4; }
+  .edge path { fill: none; stroke: var(--edge); stroke-width: 2; }
+  .edge.active path { stroke: var(--navy); stroke-width: 3.5; }
+  .edge .lbl { font: 600 12px var(--body); fill: var(--ink); }
+  .edge .lblbg { fill: var(--paper); stroke: var(--line); }
+  .edge.mail .lblbg { stroke: var(--upload); }
+  .edge-hit { fill: none; stroke: transparent; stroke-width: 18; cursor: pointer; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px; position: sticky; top: env(safe-area-inset-top, 0px); }
+  .panel h2 { font-family: var(--display); font-size: 20px; margin: 0; color: var(--navy); }
+  .panel p { margin: 0; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 14px; margin: 0; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; font-weight: 600; }
+  .pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; border: 1px solid currentColor; }
+  .hint { font-size: 13px; color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+  .legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 2px solid var(--c); }
+  .entities { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+  .entity { background: var(--surface); border: 1px solid var(--line); border-top: 5px solid var(--c); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+  .entity h3 { margin: 0; font-family: var(--display); font-size: 18px; color: var(--navy); }
+  .entity ul { margin: 0; padding-left: 18px; font-size: 14px; }
+  .entity .rel { font-size: 13px; color: var(--muted); }
+  footer { border-top: 1px solid var(--line); padding-top: 16px; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+  @media (prefers-reduced-motion: no-preference) { .edge path, .node rect { transition: stroke-width .15s ease, stroke .15s ease; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Municipalidad de Valparaíso · Dirección de Tránsito</p>
+    <h1>Modelo de Dominio — Cambio de Domicilio</h1>
+    <p class="lede">Cómo el sistema sigue cada solicitud de carpeta desde el correo de otra comuna hasta la caja física. Haz clic en un recuadro o en una flecha para ver la regla que aplica.</p>
+    <p class="author">Modelo creado por <strong>Raúl Salazar</strong> · 2026</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Vistas del modelo">
+    <button class="tab" role="tab" id="tab-destinos" aria-selected="true" aria-controls="view-diagram" data-view="destinos">Destinos del caso</button>
+    <button class="tab" role="tab" id="tab-estados" aria-selected="false" aria-controls="view-diagram" data-view="estados">Estados del trámite</button>
+    <button class="tab" role="tab" id="tab-entidades" aria-selected="false" aria-controls="view-entities" data-view="entidades">Entidades</button>
+  </div>
+
+  <section id="view-diagram" class="stage" role="tabpanel">
+    <div class="canvas"><svg id="diagram" viewBox="0 0 900 560" aria-label="Diagrama del modelo"></svg></div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </section>
+
+  <section id="view-entities" role="tabpanel" hidden>
+    <div class="entities" id="entities"></div>
+  </section>
+
+  <div class="legend" id="legend"></div>
+
+  <footer>
+    <span>Modelo de dominio del sistema Cambio de Domicilio · Autor: <strong>Raúl Salazar</strong></span>
+    <span>Fuente: especificaciones OpenSpec del proyecto (septiembre 2026)</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var C = { navy: 'var(--navy)', caja: 'var(--caja)', f8: 'var(--f8)', upload: 'var(--upload)', closed: 'var(--closed)', muted: 'var(--muted)' };
+
+  var views = {
+    destinos: {
+      intro: { title: 'Destinos del caso', text: 'El destino dice en qué pantalla y en qué lugar físico está el caso. Es independiente del estado del trámite. Ninguna de estas acciones envía correos.' },
+      legend: [['Casos', C.navy], ['F8', C.f8], ['Caja', C.caja], ['Cerrado', C.closed]],
+      nodes: [
+        { id: 'correo', x: 20, y: 250, w: 140, t: 'Correo', s: 'CARP. PARA PEDIR', c: C.muted, info: 'Correo de otra municipalidad. El sistema lo revisa cada 30 minutos y extrae nombre, RUT y comuna. Si no es una solicitud válida, queda en Correos descartados con su motivo.' },
+        { id: 'casos', x: 230, y: 250, w: 160, t: 'Casos', s: 'pantalla principal', c: C.navy, info: 'Todo caso nuevo nace aquí como Pendiente. Aquí se digita la fecha de última carpeta, que define el sector: antes de julio 2023 es Archivo; desde entonces, Oficina 43.' },
+        { id: 'f8', x: 480, y: 60, w: 150, t: 'F8', s: 'carpeta no encontrada', c: C.f8, info: 'Casos cuya carpeta física no aparece. Se gestionan con su propio código F8 y fecha de penúltima carpeta.' },
+        { id: 'cola', x: 475, y: 250, w: 160, t: 'Cola de Caja', s: 'orden de llegada', c: C.caja, info: 'Carpetas físicas esperando ser empacadas, en el orden en que se enviaron. Cada una ya tiene su N° provisorio.' },
+        { id: 'caja', x: 475, y: 450, w: 160, t: 'Caja cerrada', s: 'listado A1-CD', c: C.caja, info: 'Listado congelado con rótulo y fecha de cierre. El N° de cada carpeta es su posición física en la caja. Varios cierres pueden compartir rótulo si van a la misma caja física.' },
+        { id: 'cerrado', x: 730, y: 60, w: 150, t: 'Cerrado', s: 'sin carpeta', c: C.closed, info: 'El proceso terminó sin carpeta física. El caso sigue visible en Casos, sin acciones, y nunca puede entrar a Caja.' },
+        { id: 'descartado', x: 20, y: 450, w: 140, t: 'Descartados', s: 'correo inválido', c: C.closed, info: 'Correos que no son solicitudes (dominio desconocido, formato inesperado). Se guardan con el motivo para revisión.' }
+      ],
+      edges: [
+        { from: 'correo', to: 'casos', label: 'Extraer', info: 'Automático. Una fila por persona y comuna; sin duplicados.', mail: false },
+        { from: 'correo', to: 'descartado', label: 'Descartar', info: 'Automático cuando el correo no corresponde a una comuna del directorio o no trae datos extraíbles.' },
+        { from: 'casos', to: 'f8', label: 'Traspaso a F8', info: 'Solo si la casilla F8 está marcada. Borra la fecha de última carpeta: en F8 se usa la penúltima.', bend: -40 },
+        { from: 'f8', to: 'casos', label: 'Revertir', info: 'Para un F8 pedido por error. Borra todos los datos F8, incluido el código, esté subido o no. El caso vuelve con una sola acción: Caja. Sin correo.', bend: -40 },
+        { from: 'casos', to: 'cola', label: 'Caja', info: 'Para casos Subidos o Confirmados, o revertidos desde F8. Sin correo. El caso sale de Casos.' },
+        { from: 'f8', to: 'cola', label: 'Caja', info: 'La carpeta apareció. Va directo a la cola de Caja como Confirmado. Sin correo.' },
+        { from: 'cola', to: 'casos', label: 'Devolver', info: 'Corrige un envío por error: el caso vuelve a Casos con su botón Caja.', bend: 60 },
+        { from: 'cola', to: 'caja', label: 'Cerrar Caja', info: 'Congela la cola en un listado con rótulo. Se puede reabrir para corregir; las carpetas vuelven a la cola sin perder su orden.' },
+        { from: 'f8', to: 'cerrado', label: 'Sin carpeta', info: 'Cierra el proceso sin carpeta física y limpia la marca F8. El caso vuelve a Casos como "Cerrado sin carpeta".' }
+      ]
+    },
+    estados: {
+      intro: { title: 'Estados del trámite', text: 'El estado describe el trámite ante la comuna. Solo avanza con un clic del operador, y Confirmado siempre significa que salió un correo real.' },
+      legend: [['Pendiente', C.muted], ['Subido', C.upload], ['Confirmado', C.caja]],
+      nodes: [
+        { id: 'pend', x: 20, y: 240, w: 170, t: 'Pendiente', s: 'extraído del correo', c: C.muted, info: 'Caso registrado desde CARP. PARA PEDIR. Corre el plazo legal de 15 días hábiles desde la recepción del correo.' },
+        { id: 'sub', x: 365, y: 240, w: 170, t: 'Subido', s: 'carpeta en Conaset', c: C.upload, info: 'La carpeta se escaneó y subió a Conaset; el correo se movió a CARP. YA SUBIDAS. Aún no se avisa a la comuna.' },
+        { id: 'conf', x: 710, y: 240, w: 170, t: 'Confirmado', s: 'correo enviado', c: C.caja, info: 'Se envió la confirmación estándar a la comuna. Si el correo rebota, el caso queda marcado como Rebotó hasta que el operador lo resuelva.' }
+      ],
+      edges: [
+        { from: 'pend', to: 'sub', label: 'Marcar subida', info: 'El operador marca la carpeta como subida. En la pantalla principal esto también envía la confirmación.', mail: true, bend: -70 },
+        { from: 'sub', to: 'conf', label: 'Confirmar', info: 'Envía el correo estándar a la comuna: "ya se subió la carpeta de [Nombre], RUT [X]". Nada se envía sin este clic.', mail: true, bend: -70 },
+        { from: 'conf', to: 'pend', label: 'Rectificar', info: 'Confirmación hecha por error: envía un correo de rectificación a la comuna y vuelve el caso a Pendiente. Pide doble confirmación.', mail: true, bend: 120 },
+        { from: 'sub', to: 'pend', label: 'Correo reaparece', info: 'Automático: si el correo original vuelve a CARP. PARA PEDIR, se deshace la subida. Nunca toca casos Confirmados.', bend: -70 }
+      ]
+    }
+  };
+
+  var entities = [
+    { t: 'Caso', c: C.navy, attrs: ['Nombre, RUT, comuna', 'Recibido y plazo (15 días hábiles)', 'Fecha última carpeta y sector derivado', 'Estado: Pendiente · Subido · Confirmado', 'Destino: Casos · F8 · Caja', 'Marcas: Marcar, Pendiente carpeta, Solo Caja, Cerrado sin carpeta'], rel: 'Pertenece a una Comuna. Puede estar en una Caja (0 o 1).' },
+    { t: 'Caja', c: C.caja, attrs: ['Número correlativo interno', 'Rótulo (ej. A1-CD), puede repetirse', 'Fecha de cierre', 'Casos en orden de llegada, con N°'], rel: 'Agrupa muchos Casos. Se puede reabrir.' },
+    { t: 'Comuna', c: C.f8, attrs: ['Nombre', 'Correo de contacto', 'Dominio de correo'], rel: 'Recibe las confirmaciones de sus Casos.' },
+    { t: 'Correo descartado', c: C.closed, attrs: ['Identificador del correo', 'Asunto y remitente', 'Motivo del descarte'], rel: 'Trazabilidad de lo que no se convirtió en Caso.' }
+  ];
+
+  var svg = document.getElementById('diagram');
+  var panel = document.getElementById('panel');
+  var legend = document.getElementById('legend');
+  var NS = 'http://www.w3.org/2000/svg';
+  var H = 56;
+  var current = 'destinos';
+
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]; }); }
+
+  function showPanel(title, text, extra) {
+    panel.innerHTML = '<h2>' + esc(title) + '</h2><p>' + esc(text) + '</p>' + (extra || '') +
+      '<p class="hint">Haz clic en otro recuadro o flecha para ver su regla.</p>';
+  }
+
+  function center(n) { return { x: n.x + n.w / 2, y: n.y + H / 2 }; }
+
+  function anchor(n, toward) {
+    var c = center(n), dx = toward.x - c.x, dy = toward.y - c.y;
+    var sx = Math.abs(dx) > 0 ? (n.w / 2) / Math.abs(dx) : Infinity;
+    var sy = Math.abs(dy) > 0 ? (H / 2) / Math.abs(dy) : Infinity;
+    var s = Math.min(sx, sy);
+    return { x: c.x + dx * s, y: c.y + dy * s };
+  }
+
+  function render(viewName) {
+    var v = views[viewName];
+    svg.innerHTML = '';
+    var defs = el('defs', {}, svg);
+    var m = el('marker', { id: 'arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse' }, defs);
+    el('path', { d: 'M0,0 L10,5 L0,10 z', fill: 'var(--edge)' }, m);
+    var ma = el('marker', { id: 'arrow-active', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse' }, defs);
+    el('path', { d: 'M0,0 L10,5 L0,10 z', fill: 'var(--navy)' }, ma);
+
+    var byId = {};
+    v.nodes.forEach(function (n) { byId[n.id] = n; });
+    var edgeLayer = el('g', {}, svg);
+    var nodeLayer = el('g', {}, svg);
+    var labelLayer = el('g', {}, svg);
+    var edgeEls = [], nodeEls = [];
+
+    v.edges.forEach(function (e, i) {
+      var a = byId[e.from], b = byId[e.to];
+      var ca = center(a), cb = center(b);
+      var mx = (ca.x + cb.x) / 2, my = (ca.y + cb.y) / 2;
+      var bend = e.bend || 0;
+      var len = Math.hypot(cb.x - ca.x, cb.y - ca.y) || 1;
+      var nx = -(cb.y - ca.y) / len, ny = (cb.x - ca.x) / len;
+      var qx = mx + nx * bend, qy = my + ny * bend;
+      var p1 = anchor(a, { x: qx, y: qy }), p2 = anchor(b, { x: qx, y: qy });
+      var d = 'M' + p1.x + ',' + p1.y + ' Q' + qx + ',' + qy + ' ' + p2.x + ',' + p2.y;
+      var g = el('g', { class: 'edge' + (e.mail ? ' mail' : '') }, edgeLayer);
+      el('path', { d: d, 'marker-end': 'url(#arrow)' }, g);
+      var hit = el('path', { d: d, class: 'edge-hit', tabindex: 0, role: 'button', 'aria-label': e.label + ': ' + a.t + ' a ' + b.t }, g);
+      var lx = 0.25 * p1.x + 0.5 * qx + 0.25 * p2.x, ly = 0.25 * p1.y + 0.5 * qy + 0.25 * p2.y;
+      var lg = el('g', { class: 'edge' + (e.mail ? ' mail' : '') }, labelLayer);
+      var text = e.label + (e.mail ? ' ✉' : '');
+      var tw = text.length * 7 + 16;
+      el('rect', { class: 'lblbg', x: lx - tw / 2, y: ly - 11, width: tw, height: 22, rx: 11 }, lg);
+      var t = el('text', { class: 'lbl', x: lx, y: ly + 4, 'text-anchor': 'middle' }, lg);
+      t.textContent = text;
+      lg.style.cursor = 'pointer';
+      function pick() {
+        edgeEls.forEach(function (x) { x.g.classList.remove('active'); x.g.querySelector('path').setAttribute('marker-end', 'url(#arrow)'); });
+        nodeEls.forEach(function (x) { x.classList.remove('active'); });
+        g.classList.add('active');
+        g.querySelector('path').setAttribute('marker-end', 'url(#arrow-active)');
+        showPanel(e.label, e.info,
+          '<dl class="kv"><dt>Desde</dt><dd>' + esc(a.t) + '</dd><dt>Hacia</dt><dd>' + esc(b.t) + '</dd><dt>Correo</dt><dd>' + (e.mail ? 'Sí, envía un correo real' : 'No envía correo') + '</dd></dl>');
+      }
+      hit.addEventListener('click', pick);
+      lg.addEventListener('click', pick);
+      hit.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); } });
+      edgeEls.push({ g: g });
+    });
+
+    v.nodes.forEach(function (n) {
+      var g = el('g', { class: 'node', tabindex: 0, role: 'button', 'aria-label': n.t + ', ' + n.s }, nodeLayer);
+      el('rect', { x: n.x, y: n.y, width: n.w, height: H, rx: 10, stroke: n.c }, g);
+      var t1 = el('text', { class: 't', x: n.x + n.w / 2, y: n.y + 24, 'text-anchor': 'middle' }, g); t1.textContent = n.t;
+      var t2 = el('text', { class: 's', x: n.x + n.w / 2, y: n.y + 42, 'text-anchor': 'middle' }, g); t2.textContent = n.s;
+      function pick() {
+        nodeEls.forEach(function (x) { x.classList.remove('active'); });
+        edgeEls.forEach(function (x) { x.g.classList.remove('active'); x.g.querySelector('path').setAttribute('marker-end', 'url(#arrow)'); });
+        g.classList.add('active');
+        var outs = v.edges.filter(function (e) { return e.from === n.id; }).map(function (e) { return esc(e.label) + ' → ' + esc(byId[e.to].t); });
+        showPanel(n.t, n.info, outs.length ? '<p><span class="pill" style="color:' + n.c + '">Acciones</span></p><p>' + outs.join('<br>') + '</p>' : '');
+      }
+      g.addEventListener('click', pick);
+      g.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(); } });
+      nodeEls.push(g);
+    });
+
+    showPanel(v.intro.title, v.intro.text, '<p class="hint">✉ marca las acciones que envían un correo real a la comuna.</p>');
+    legend.innerHTML = v.legend.map(function (l) { return '<span style="--c:' + l[1] + '">' + esc(l[0]) + '</span>'; }).join('');
+  }
+
+  function renderEntities() {
+    document.getElementById('entities').innerHTML = entities.map(function (e) {
+      return '<article class="entity" style="--c:' + e.c + '"><h3>' + esc(e.t) + '</h3><ul>' +
+        e.attrs.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') +
+        '</ul><p class="rel">' + esc(e.rel) + '</p></article>';
+    }).join('');
+    legend.innerHTML = '';
+  }
+
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  function select(view) {
+    current = view;
+    tabs.forEach(function (t) { t.setAttribute('aria-selected', t.dataset.view === view ? 'true' : 'false'); });
+    var isEntities = view === 'entidades';
+    document.getElementById('view-diagram').hidden = isEntities;
+    document.getElementById('view-entities').hidden = !isEntities;
+    if (isEntities) renderEntities(); else render(view);
+    try { localStorage.setItem('modelo-vista', view); } catch (e) {}
+  }
+  tabs.forEach(function (t) { t.addEventListener('click', function () { select(t.dataset.view); }); });
+
+  var start = 'destinos';
+  try { var saved = localStorage.getItem('modelo-vista'); if (saved && (views[saved] || saved === 'entidades')) start = saved; } catch (e) {}
+  var hash = (location.hash || '').replace('#', '');
+  if (views[hash] || hash === 'entidades') start = hash;
+  select(start);
+})();
+</script>
