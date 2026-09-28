@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Raúl Salazar">
+<title>Modelo de Dominio — Cambio de Domicilio (presentación)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Public+Sans:wght@400;600;700&display=swap">
+<style>
+  html, body { margin: 0; height: 100%; background: #0B1723; overflow: hidden; }
+  body { font-family: 'Public Sans', 'Segoe UI', Arial, sans-serif; }
+  #stage { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform-origin: center center; }
+  .slide { position: absolute; inset: 0; width: 1920px; height: 1080px; box-sizing: border-box; }
+  .slide:not(.current) { display: none !important; }
+  .slide h1, .slide h2, .slide h3, .slide p, .slide ul, .slide table { margin: 0; }
+  .slide table { border-collapse: collapse; width: 100%; }
+  .slide th, .slide td { padding: 14px 18px; border-bottom: 1px solid #DDE3E8; text-align: left; }
+  .slide th { font-weight: 700; }
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center;
+         padding: 8px 16px; color: #C9D6E3; font-size: 13px; background: rgba(11, 23, 35, .85); }
+  #bar button { font: inherit; color: #F6F7F4; background: #1F3A55; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+  #bar button:focus-visible { outline: 2px solid #7DD3A8; }
+  #notes { max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  body.clean #bar { display: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+<section class="slide" data-notes="Presentación del modelo de dominio del sistema Cambio de Domicilio. Autor del modelo: Raúl Salazar." id="cover" data-transition="fade" style="background:#0F2A44; color:#F6F7F4; font-family:'Public Sans', Arial, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; justify-content:center; gap:40px">
+<p style="font-size:28px; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:#7DD3A8">Municipalidad de Valparaíso · Dirección de Tránsito</p>
+<h1 style="font-family:'Libre Baskerville', Georgia, serif; font-size:112px; font-weight:700; line-height:1.1; color:#F6F7F4">Modelo de Dominio<br>Cambio de Domicilio</h1>
+<p style="font-size:40px; line-height:1.4; color:#C9D6E3; width:1300px">Cómo el sistema sigue cada solicitud de carpeta, desde el correo de la comuna hasta la caja física.</p>
+<div style="display:flex; gap:24px; align-items:center">
+<p style="font-size:32px; font-weight:700; color:#F6F7F4; background:#16A34A; padding:12px 28px; border-radius:999px">Creado por Raúl Salazar</p>
+<p style="font-size:28px; color:#C9D6E3">Septiembre 2026</p>
+</div>
+
+</section>
+<section class="slide" data-notes="El modelo nace de un proceso manual con plazo legal: 15 días hábiles desde que llega el correo." id="problema" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:56px">
+<p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#16803C">El problema</p>
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#0F2A44">Otra comuna pide una carpeta y hay 15 días hábiles para subirla</h2>
+<div style="display:flex; gap:32px">
+<div style="flex:1; display:flex; flex-direction:column; gap:16px; background:#FFFFFF; padding:40px; border:1px solid #DDE3E8; border-radius:16px">
+<h3 style="font-size:36px; font-weight:700; color:#0F2A44">Llega por correo</h3>
+<p style="font-size:30px; line-height:1.45; color:#4A5A6A">Cada solicitud es un correo de otra municipalidad con el nombre y RUT del contribuyente.</p>
+</div>
+<div style="flex:1; display:flex; flex-direction:column; gap:16px; background:#FFFFFF; padding:40px; border:1px solid #DDE3E8; border-radius:16px">
+<h3 style="font-size:36px; font-weight:700; color:#0F2A44">Hay que ubicar la carpeta</h3>
+<p style="font-size:30px; line-height:1.45; color:#4A5A6A">La carpeta física está en Archivo u Oficina 43, o no aparece y pasa a F8.</p>
+</div>
+<div style="flex:1; display:flex; flex-direction:column; gap:16px; background:#FFFFFF; padding:40px; border:1px solid #DDE3E8; border-radius:16px">
+<h3 style="font-size:36px; font-weight:700; color:#0F2A44">Y guardarla después</h3>
+<p style="font-size:30px; line-height:1.45; color:#4A5A6A">Una vez subida a Conaset, la carpeta va a una caja rotulada y hay que saber dónde quedó.</p>
+</div>
+</div>
+
+</section>
+<section class="slide" data-notes="Este es el proceso acordado con el operador. Ningún correo sale sin un clic del operador." id="proceso" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:56px">
+<p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#16803C">El proceso</p>
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#0F2A44">De correo a caja en siete pasos</h2>
+<table style="font-family:'Public Sans', Arial, sans-serif; font-size:28px; color:#1B2B3A">
+<tr><th style="width:10%; text-align:left">Paso</th><th style="width:40%; text-align:left">Qué pasa</th><th style="width:22%; text-align:left">Quién</th><th style="width:28%; text-align:left">Resultado</th></tr>
+<tr><td>1–2</td><td>Llega el correo y se clasifica</td><td>Operador</td><td>CARP. PARA PEDIR</td></tr>
+<tr style="background:#EEF2F0"><td>3</td><td>Se extrae nombre, RUT y comuna</td><td>Sistema</td><td>Caso Pendiente</td></tr>
+<tr><td>4</td><td>Se digita la fecha de última carpeta</td><td>Operador</td><td>Sector calculado</td></tr>
+<tr style="background:#EEF2F0"><td>5</td><td>PDF por sector para pedir carpetas</td><td>Sistema</td><td>Listado impreso</td></tr>
+<tr><td>6</td><td>Se escanea y sube a Conaset</td><td>Operador</td><td>Caso Subido</td></tr>
+<tr style="background:#EEF2F0"><td>7</td><td>Confirmación a la comuna y envío a Caja</td><td>Operador + sistema</td><td>Confirmado, en Caja</td></tr>
+</table>
+
+</section>
+<section class="slide" data-notes="El Caso es la raíz del agregado; la Caja agrupa casos; la Comuna es un catálogo; el Correo descartado es trazabilidad." id="entidades" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:56px">
+<p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#16803C">Las entidades</p>
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#0F2A44">Cuatro piezas sostienen el modelo</h2>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:32px">
+<div style="display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:36px 40px; border-left:8px solid #0F2A44; border-radius:12px">
+<h3 style="font-size:36px; font-weight:700; color:#0F2A44">Caso</h3>
+<p style="font-size:28px; line-height:1.4; color:#4A5A6A">Una solicitud de carpeta de un contribuyente, pedida por una comuna. El centro del modelo.</p>
+</div>
+<div style="display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:36px 40px; border-left:8px solid #16A34A; border-radius:12px">
+<h3 style="font-size:36px; font-weight:700; color:#0F2A44">Caja</h3>
+<p style="font-size:28px; line-height:1.4; color:#4A5A6A">Un listado cerrado de carpetas físicas, con rótulo (A1-CD) y fecha de cierre.</p>
+</div>
+<div style="display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:36px 40px; border-left:8px solid #D97706; border-radius:12px">
+<h3 style="font-size:36px; font-weight:700; color:#0F2A44">Comuna</h3>
+<p style="font-size:28px; line-height:1.4; color:#4A5A6A">La municipalidad que pide: nombre, correo de contacto y dominio.</p>
+</div>
+<div style="display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:36px 40px; border-left:8px solid #8A99A8; border-radius:12px">
+<h3 style="font-size:36px; font-weight:700; color:#0F2A44">Correo descartado</h3>
+<p style="font-size:28px; line-height:1.4; color:#4A5A6A">Un correo que no es una solicitud válida, guardado con el motivo del descarte.</p>
+</div>
+</div>
+
+</section>
+<section class="slide" data-notes="Estado y Destino son dos ejes independientes: el estado es el trámite ante la comuna; el destino es en qué pantalla y lugar físico está el caso." id="caso" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:48px">
+<p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#16803C">El Caso por dentro</p>
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#0F2A44">Cinco grupos de datos por solicitud</h2>
+<div style="display:flex; gap:24px">
+<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:32px; border:1px solid #DDE3E8; border-radius:14px">
+<h3 style="font-size:32px; font-weight:700; color:#0F2A44">Identidad</h3>
+<p style="font-size:26px; line-height:1.5; color:#4A5A6A">Nombre<br>RUT<br>Comuna</p>
+</div>
+<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:32px; border:1px solid #DDE3E8; border-radius:14px">
+<h3 style="font-size:32px; font-weight:700; color:#0F2A44">Plazo</h3>
+<p style="font-size:26px; line-height:1.5; color:#4A5A6A">Recibido<br>15 días hábiles<br>Rebote</p>
+</div>
+<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:32px; border:1px solid #DDE3E8; border-radius:14px">
+<h3 style="font-size:32px; font-weight:700; color:#0F2A44">Carpeta</h3>
+<p style="font-size:26px; line-height:1.5; color:#4A5A6A">Fecha última<br>Sector<br>S/C</p>
+</div>
+<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:32px; border:1px solid #DDE3E8; border-radius:14px">
+<h3 style="font-size:32px; font-weight:700; color:#0F2A44">Estado</h3>
+<p style="font-size:26px; line-height:1.5; color:#4A5A6A">Pendiente<br>Subido<br>Confirmado</p>
+</div>
+<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:32px; border:1px solid #DDE3E8; border-radius:14px">
+<h3 style="font-size:32px; font-weight:700; color:#0F2A44">Destino</h3>
+<p style="font-size:26px; line-height:1.5; color:#4A5A6A">Casos<br>F8<br>Caja</p>
+</div>
+</div>
+<p style="font-size:28px; line-height:1.45; color:#4A5A6A">Además, marcas de trabajo del operador: Marcar, Pendiente carpeta, Solo Caja y Cerrado sin carpeta.</p>
+
+</section>
+<section class="slide" data-notes="Nada se envía a una comuna sin que el operador presione el botón. El estado Confirmado siempre implica un correo real enviado." id="estados" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:64px">
+<p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#16803C">Ciclo de vida</p>
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#0F2A44">El estado avanza solo con un clic del operador</h2>
+<div style="display:flex; align-items:center; gap:24px">
+<div style="flex:1; display:flex; flex-direction:column; gap:8px; background:#FFFFFF; padding:36px; border:2px solid #8A99A8; border-radius:16px">
+<h3 style="font-size:40px; font-weight:700; color:#0F2A44">Pendiente</h3>
+<p style="font-size:26px; color:#4A5A6A">Extraído del correo</p>
+</div>
+<svg width="96" height="48" viewBox="0 0 96 48" aria-hidden="true" style="flex:none"><path d="M0 16 H58 V0 L96 24 L58 48 V32 H0 Z" fill="#0F2A44"/></svg>
+<div style="flex:1; display:flex; flex-direction:column; gap:8px; background:#FFFFFF; padding:36px; border:2px solid #0284C7; border-radius:16px">
+<h3 style="font-size:40px; font-weight:700; color:#0F2A44">Subido</h3>
+<p style="font-size:26px; color:#4A5A6A">Carpeta en Conaset</p>
+</div>
+<svg width="96" height="48" viewBox="0 0 96 48" aria-hidden="true" style="flex:none"><path d="M0 16 H58 V0 L96 24 L58 48 V32 H0 Z" fill="#0F2A44"/></svg>
+<div style="flex:1; display:flex; flex-direction:column; gap:8px; background:#FFFFFF; padding:36px; border:2px solid #16A34A; border-radius:16px">
+<h3 style="font-size:40px; font-weight:700; color:#0F2A44">Confirmado</h3>
+<p style="font-size:26px; color:#4A5A6A">Correo enviado a la comuna</p>
+</div>
+</div>
+<p style="font-size:30px; line-height:1.45; color:#4A5A6A">Si se confirmó por error, <b>Rectificar</b> envía un correo de corrección y devuelve el caso a Pendiente.</p>
+
+</section>
+<section class="slide" data-notes="Ninguna de estas acciones envía correos. El caso cerrado sin carpeta nunca puede entrar a Caja." id="destinos" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:48px">
+<p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#16803C">Destinos</p>
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#0F2A44">Cada acción mueve el caso a un lugar concreto</h2>
+<table style="font-family:'Public Sans', Arial, sans-serif; font-size:28px; color:#1B2B3A">
+<tr><th style="width:18%; text-align:left">Desde</th><th style="width:24%; text-align:left">Acción</th><th style="width:22%; text-align:left">Hacia</th><th style="width:36%; text-align:left">Efecto</th></tr>
+<tr><td>Casos</td><td>Traspaso a F8</td><td>F8</td><td>Carpeta no encontrada</td></tr>
+<tr style="background:#EEF2F0"><td>Casos</td><td>Caja</td><td>Cola de Caja</td><td>Subido o confirmado; sin correo</td></tr>
+<tr><td>F8</td><td>Caja</td><td>Cola de Caja</td><td>Apareció la carpeta</td></tr>
+<tr style="background:#EEF2F0"><td>F8</td><td>Sin carpeta</td><td>Casos (cerrado)</td><td>Proceso termina sin carpeta</td></tr>
+<tr><td>F8</td><td>Revertir</td><td>Casos (solo Caja)</td><td>Borra todos los datos F8</td></tr>
+<tr style="background:#EEF2F0"><td>Cola de Caja</td><td>Devolver a casos</td><td>Casos</td><td>Corrige un envío por error</td></tr>
+<tr><td>Cola de Caja</td><td>Cerrar Caja</td><td>Caja cerrada</td><td>Listado numerado e imprimible</td></tr>
+</table>
+
+</section>
+<section class="slide" data-notes="Cada regla está cubierta por pruebas automáticas y documentada en las especificaciones OpenSpec del proyecto." id="reglas" data-transition="fade" style="background:#0F2A44; color:#F6F7F4; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:48px">
+<p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#7DD3A8">Reglas de negocio</p>
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#F6F7F4">Seis reglas que el sistema hace cumplir</h2>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px 48px">
+<p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Sector por fecha.</b> Antes de julio 2023 va a Archivo; desde entonces, a Oficina 43.</p>
+<p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Plazo legal.</b> 15 días hábiles desde que llega el correo.</p>
+<p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Sin clic, sin correo.</b> Ningún aviso sale a una comuna de forma automática.</p>
+<p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Una fila por persona.</b> Sin duplicados por persona y comuna.</p>
+<p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Orden de ingreso.</b> La caja lista las carpetas en el orden en que llegaron.</p>
+<p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Rótulo compartido.</b> Varios cierres pueden ir a la misma caja física.</p>
+</div>
+
+</section>
+<section class="slide" data-notes="El número de cada carpeta en el listado es su posición física dentro de la caja." id="caja" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:56px">
+<p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#16803C">La caja física</p>
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#0F2A44">De la cola a un listado numerado</h2>
+<div style="display:flex; align-items:stretch; gap:24px">
+<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:40px; border-top:8px solid #16A34A; border-radius:14px">
+<h3 style="font-size:36px; font-weight:700; color:#0F2A44">1 · Cola</h3>
+<p style="font-size:28px; line-height:1.45; color:#4A5A6A">Cada carpeta enviada a Caja espera aquí, en orden de llegada.</p>
+</div>
+<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:40px; border-top:8px solid #16A34A; border-radius:14px">
+<h3 style="font-size:36px; font-weight:700; color:#0F2A44">2 · Cerrar caja</h3>
+<p style="font-size:28px; line-height:1.45; color:#4A5A6A">El operador elige el rótulo; la cola se congela como un listado.</p>
+</div>
+<div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:40px; border-top:8px solid #16A34A; border-radius:14px">
+<h3 style="font-size:36px; font-weight:700; color:#0F2A44">3 · Listado</h3>
+<p style="font-size:28px; line-height:1.45; color:#4A5A6A">Cada carpeta recibe su N°, el mismo del papel que va en la caja.</p>
+</div>
+</div>
+<p style="font-size:30px; line-height:1.45; color:#4A5A6A">Una caja cerrada se puede reabrir para corregirla; sus carpetas vuelven a la cola sin perder el orden.</p>
+
+</section>
+<section class="slide" data-notes="Ejemplo real de la pantalla de búsqueda. Como varios listados pueden compartir rótulo, el sistema identifica el listado por su fecha de cierre y la carpeta por su número." id="busqueda" data-transition="fade" style="background:#16A34A; color:#F6F7F4; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; justify-content:center; gap:48px">
+<p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#DCFCE7">Ubicación exacta</p>
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:80px; font-weight:700; line-height:1.15; color:#FFFFFF">Un RUT basta para encontrar la carpeta física</h2>
+<div style="display:flex; flex-direction:column; gap:16px; background:#FFFFFF; padding:40px 48px; border-radius:16px">
+<p style="font-size:34px; font-weight:700; color:#14532D">RODRIGO A. FERNÁNDEZ · Caja A1-CD · listado del 24-09-2026 11:40 · N° 5</p>
+<p style="font-size:28px; color:#3F6B4F">El buscador indica el listado exacto y el número, y abre la fila resaltada.</p>
+</div>
+
+</section>
+<section class="slide" data-notes="365 pruebas al 25-09-2026. Metodología: desarrollo guiado por pruebas y especificaciones OpenSpec." id="garantias" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:56px">
+<p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#16803C">Garantías</p>
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#0F2A44">Un modelo verificado, no solo dibujado</h2>
+<div style="display:flex; gap:32px">
+<div style="flex:1; display:flex; flex-direction:column; gap:8px">
+<p style="font-family:'Libre Baskerville', Georgia, serif; font-size:120px; font-weight:700; color:#16803C; line-height:1.1">365</p>
+<p style="font-size:30px; line-height:1.4; color:#4A5A6A">pruebas automáticas que validan cada regla</p>
+</div>
+<div style="flex:1; display:flex; flex-direction:column; gap:8px">
+<p style="font-family:'Libre Baskerville', Georgia, serif; font-size:120px; font-weight:700; color:#16803C; line-height:1.1">Specs</p>
+<p style="font-size:30px; line-height:1.4; color:#4A5A6A">cada regla escrita en OpenSpec antes de programarla</p>
+</div>
+<div style="flex:1; display:flex; flex-direction:column; gap:8px">
+<p style="font-family:'Libre Baskerville', Georgia, serif; font-size:120px; font-weight:700; color:#16803C; line-height:1.1">0</p>
+<p style="font-size:30px; line-height:1.4; color:#4A5A6A">correos enviados sin la decisión del operador</p>
+</div>
+</div>
+<p style="font-size:28px; line-height:1.45; color:#4A5A6A">Base de datos local respaldada antes de cada actualización; historial completo en GitHub.</p>
+
+</section>
+<section class="slide" data-notes="Cierre de la presentación. Espacio para preguntas." id="autoria" data-transition="fade" style="background:#0F2A44; color:#F6F7F4; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; justify-content:center; gap:40px">
+<p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#7DD3A8">Autoría</p>
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:96px; font-weight:700; line-height:1.1; color:#F6F7F4">Raúl Salazar</h2>
+<p style="font-size:40px; line-height:1.4; color:#C9D6E3; width:1300px">Creador del modelo de dominio y del sistema Cambio de Domicilio.</p>
+<p style="font-size:30px; color:#C9D6E3">Municipalidad de Valparaíso · Dirección de Tránsito · 2026</p>
+
+</section>
+</div>
+<div id="bar">
+  <div><button id="prev" aria-label="Diapositiva anterior">←</button> <button id="next" aria-label="Diapositiva siguiente">→</button> <span id="count"></span></div>
+  <span id="notes"></span>
+  <span>Autor: Raúl Salazar · F pantalla completa · H oculta esta barra</span>
+</div>
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var stage = document.getElementById('stage');
+  var i = 0;
+  var fromHash = parseInt((location.hash || '').replace('#', ''), 10);
+  if (fromHash >= 1 && fromHash <= slides.length) i = fromHash - 1;
+  function fit() {
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+  }
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (sl, k) { sl.classList.toggle('current', k === i); });
+    document.getElementById('count').textContent = (i + 1) + ' / ' + slides.length;
+    document.getElementById('notes').textContent = slides[i].getAttribute('data-notes') || '';
+    history.replaceState(null, '', '#' + (i + 1));
+  }
+  document.getElementById('prev').onclick = function () { show(i - 1); };
+  document.getElementById('next').onclick = function () { show(i + 1); };
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+    if (e.key === 'f' || e.key === 'F') { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function () {}); else document.exitFullscreen(); }
+    if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('clean');
+  });
+  document.getElementById('stage').addEventListener('click', function () { show(i + 1); });
+  window.addEventListener('resize', fit);
+  fit(); show(i);
+})();
+</script>
+</body>
+</html>
