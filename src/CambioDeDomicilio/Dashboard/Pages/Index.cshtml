@@ -375,10 +375,10 @@
                                        placeholder="ej: 15/03/2024"
                                        title="Formatos aceptados: 15/03/2024 o 15 marzo 2024"
                                        value="@(item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")"
-                                       onchange="this.form.submit()" />
+                                       onchange="submitFechaInline(this)" />
                             </form>
                         </td>
-                        <td class="text-cell">@item.Sector.ToDisplayName()</td>
+                        <td class="text-cell sector-cell">@item.Sector.ToDisplayName()</td>
                         <td>
                             <div class="action-group">
                             @if (item.ClosedWithoutFolderAt is not null)
@@ -495,13 +495,121 @@
         // as soon as it loses focus (e.g. tabbing into rut) — before rut has been typed — which
         // sends the request with rut still blank/stale and trips "RUT no válido". Deferring one
         // tick lets focus land on rut first; only submit once focus has actually left the form.
+        function flashCellFeedback(input, success) {
+            var cls = success ? 'input-inline-success' : 'input-inline-error';
+            input.classList.remove('input-inline-success', 'input-inline-error');
+            // Force reflow
+            void input.offsetWidth;
+            input.classList.add(cls);
+            setTimeout(function () {
+                input.classList.remove(cls);
+            }, 1200);
+        }
+
+        function submitFechaInline(input) {
+            var form = input.form;
+            var id = form.querySelector('input[name="id"]').value;
+            var tokenInput = form.querySelector('input[name="__RequestVerificationToken"]');
+            var token = tokenInput ? tokenInput.value : '';
+            var val = input.value;
+            var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&id=' + encodeURIComponent(id) + '&fecha=' + encodeURIComponent(val);
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: body
+            })
+            .then(function (res) {
+                if (!res.ok) {
+                    return res.json().then(function (err) { throw err; });
+                }
+                return res.json();
+            })
+            .then(function (data) {
+                flashCellFeedback(input, true);
+                if (data && data.fecha !== undefined && data.fecha !== null && data.fecha !== '') {
+                    input.value = data.fecha;
+                }
+                var tr = input.closest('tr');
+                if (tr) {
+                    var sectorTd = tr.querySelector('.sector-cell');
+                    if (sectorTd && data && data.sector !== undefined) {
+                        sectorTd.textContent = data.sector;
+                    }
+                }
+            })
+            .catch(function (err) {
+                flashCellFeedback(input, false);
+                if (err && err.message) {
+                    alert(err.message);
+                }
+            });
+        }
+
+        // nombre and rut are two separate inputs sharing one form (person-form-ID), each
+        // autosaving independently on change. Submitting via fetch() prevents full page reloads
+        // and scroll jumps. Deferring one tick lets focus land on rut first if tabbing.
         function savePersonFieldIfDoneEditing(input) {
             var form = input.form;
+            if (!form) return;
+            var tr = input.closest('tr');
+            if (!tr) return;
+
             setTimeout(function () {
                 if (document.activeElement && document.activeElement.form === form) {
                     return;
                 }
-                form.submit();
+                var nombreInput = tr.querySelector('input[name="nombre"]');
+                var rutInput = tr.querySelector('input[name="rut"]');
+                var nombreVal = (nombreInput ? nombreInput.value : '').trim();
+                var rutVal = (rutInput ? rutInput.value : '').trim();
+                if (nombreVal === '' || rutVal === '') return;
+
+                var id = form.querySelector('input[name="id"]').value;
+                var tokenInput = form.querySelector('input[name="__RequestVerificationToken"]');
+                var token = tokenInput ? tokenInput.value : '';
+                var body = '__RequestVerificationToken=' + encodeURIComponent(token) +
+                           '&id=' + encodeURIComponent(id) +
+                           '&nombre=' + encodeURIComponent(nombreVal) +
+                           '&rut=' + encodeURIComponent(rutVal);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: body
+                })
+                .then(function (res) {
+                    if (!res.ok) {
+                        return res.json().then(function (err) { throw err; });
+                    }
+                    return res.json();
+                })
+                .then(function (data) {
+                    if (nombreInput) flashCellFeedback(nombreInput, true);
+                    if (rutInput) flashCellFeedback(rutInput, true);
+                    if (data && data.rut && rutInput) {
+                        rutInput.value = data.rut;
+                    }
+                    var reviewAlert = tr.querySelector('.review-alert');
+                    if (reviewAlert) {
+                        reviewAlert.remove();
+                    }
+                })
+                .catch(function (err) {
+                    if (nombreInput) flashCellFeedback(nombreInput, false);
+                    if (rutInput) flashCellFeedback(rutInput, false);
+                    if (err && err.message) {
+                        alert(err.message);
+                    }
+                });
             }, 0);
         }
 

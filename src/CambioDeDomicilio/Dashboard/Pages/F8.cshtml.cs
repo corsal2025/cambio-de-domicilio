@@ -42,20 +42,35 @@ public class F8Model(
 
     public IActionResult OnPostSetFecha(long id, string fecha)
     {
+        var isAjax = string.Equals(HttpContext?.Request?.Headers?.XRequestedWith.ToString(), "XMLHttpRequest", StringComparison.OrdinalIgnoreCase)
+                     || (HttpContext?.Request?.Headers?.Accept.ToString()?.Contains("application/json") ?? false);
+
         if (string.IsNullOrWhiteSpace(fecha))
         {
             repository.ClearFechaUltimaCarpeta(id);
+            if (isAjax)
+            {
+                return new JsonResult(new { success = true, fecha = "", sector = "—" });
+            }
             return RedirectToPage(new { search = Search, highlightId = HighlightId });
         }
 
         if (fecha.Trim().Equals("S/C", StringComparison.OrdinalIgnoreCase))
         {
             repository.SetSinCarpeta(id);
+            if (isAjax)
+            {
+                return new JsonResult(new { success = true, fecha = "S/C", sector = "—" });
+            }
             return RedirectToPage(new { search = Search, highlightId = HighlightId });
         }
 
         if (!SpanishDate.TryParse(fecha, out var parsed))
         {
+            if (isAjax)
+            {
+                return new JsonResult(new { success = false, message = "Fecha no reconocida. Formatos aceptados: 15/03/2024 o 15 marzo 2024." }) { StatusCode = 400 };
+            }
             Message = "Fecha no reconocida. Formatos aceptados: 15/03/2024 o 15 marzo 2024.";
             MessageIsError = true;
             Load();
@@ -63,12 +78,25 @@ public class F8Model(
         }
 
         repository.SetFechaUltimaCarpeta(id, parsed);
+        if (isAjax)
+        {
+            var sector = parsed < new DateOnly(2023, 7, 1) ? "Archivo" : "Oficina 43";
+            return new JsonResult(new { success = true, fecha = SpanishDate.Format(parsed), sector });
+        }
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
     public IActionResult OnPostSetCodigoF8(long id, string? codigoF8)
     {
-        repository.SetCodigoF8(id, string.IsNullOrWhiteSpace(codigoF8) ? null : codigoF8.Trim());
+        var isAjax = string.Equals(HttpContext?.Request?.Headers?.XRequestedWith.ToString(), "XMLHttpRequest", StringComparison.OrdinalIgnoreCase)
+                     || (HttpContext?.Request?.Headers?.Accept.ToString()?.Contains("application/json") ?? false);
+
+        var clean = string.IsNullOrWhiteSpace(codigoF8) ? null : codigoF8.Trim();
+        repository.SetCodigoF8(id, clean);
+        if (isAjax)
+        {
+            return new JsonResult(new { success = true, codigoF8 = clean ?? "" });
+        }
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
@@ -99,20 +127,34 @@ public class F8Model(
 
     public IActionResult OnPostSetPersonData(long id, string nombre, string rut)
     {
+        var isAjax = string.Equals(HttpContext?.Request?.Headers?.XRequestedWith.ToString(), "XMLHttpRequest", StringComparison.OrdinalIgnoreCase)
+                     || (HttpContext?.Request?.Headers?.Accept.ToString()?.Contains("application/json") ?? false);
+
         var normalizedRut = RutValidator.NormalizeAndValidate(rut);
         nombre = (nombre ?? string.Empty).Trim().ToUpperInvariant();
 
         if (normalizedRut is null || nombre.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length < 2)
         {
-            Message = normalizedRut is null
+            var errorMsg = normalizedRut is null
                 ? "El RUT ingresado no es válido (revise el dígito verificador)."
                 : "Ingrese el nombre completo (al menos nombre y apellido).";
+
+            if (isAjax)
+            {
+                return new JsonResult(new { success = false, message = errorMsg }) { StatusCode = 400 };
+            }
+
+            Message = errorMsg;
             MessageIsError = true;
             Load();
             return Page();
         }
 
         repository.SetPersonData(id, nombre, normalizedRut);
+        if (isAjax)
+        {
+            return new JsonResult(new { success = true, nombre, rut = normalizedRut });
+        }
         Message = "Datos guardados. El caso ya no requiere revisión.";
         Load();
         return Page();

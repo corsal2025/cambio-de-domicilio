@@ -197,7 +197,7 @@
                                 <input type="text" name="codigoF8" class="input-inline codigo-f8-input" size="12"
                                        placeholder="ej: F8-1234"
                                        value="@item.CodigoF8"
-                                       onchange="this.form.submit()" />
+                                       onchange="submitCodigoF8Inline(this)" />
                             </form>
                         </td>
                         <td>
@@ -207,10 +207,10 @@
                                        placeholder="ej: 15/03/2024 o S/C"
                                        title="Formatos aceptados: 15/03/2024, 15 marzo 2024, o S/C (sin carpeta)"
                                        value="@(item.SinCarpeta ? "S/C" : item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")"
-                                       onchange="this.form.submit()" />
+                                       onchange="submitFechaInline(this)" />
                             </form>
                         </td>
-                        <td class="text-cell">@item.Sector.ToDisplayName()</td>
+                        <td class="text-cell sector-cell">@item.Sector.ToDisplayName()</td>
                         <td>
                             <div class="action-group">
                             @if (item.Status == RequestStatus.Pending && !item.NeedsReview)
@@ -334,36 +334,155 @@
             });
         }
 
+        function flashCellFeedback(input, success) {
+            var cls = success ? 'input-inline-success' : 'input-inline-error';
+            input.classList.remove('input-inline-success', 'input-inline-error');
+            void input.offsetWidth;
+            input.classList.add(cls);
+            setTimeout(function () {
+                input.classList.remove(cls);
+            }, 1200);
+        }
+
+        function submitCodigoF8Inline(input) {
+            var form = input.form;
+            var id = form.querySelector('input[name="id"]').value;
+            var tokenInput = form.querySelector('input[name="__RequestVerificationToken"]');
+            var token = tokenInput ? tokenInput.value : '';
+            var val = input.value;
+            var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&id=' + encodeURIComponent(id) + '&codigoF8=' + encodeURIComponent(val);
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: body
+            })
+            .then(function (res) {
+                if (!res.ok) {
+                    return res.json().then(function (err) { throw err; });
+                }
+                return res.json();
+            })
+            .then(function (data) {
+                flashCellFeedback(input, true);
+                if (data && data.codigoF8 !== undefined) {
+                    input.value = data.codigoF8;
+                }
+            })
+            .catch(function (err) {
+                flashCellFeedback(input, false);
+                if (err && err.message) {
+                    alert(err.message);
+                }
+            });
+        }
+
+        function submitFechaInline(input) {
+            var form = input.form;
+            var id = form.querySelector('input[name="id"]').value;
+            var tokenInput = form.querySelector('input[name="__RequestVerificationToken"]');
+            var token = tokenInput ? tokenInput.value : '';
+            var val = input.value;
+            var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&id=' + encodeURIComponent(id) + '&fecha=' + encodeURIComponent(val);
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: body
+            })
+            .then(function (res) {
+                if (!res.ok) {
+                    return res.json().then(function (err) { throw err; });
+                }
+                return res.json();
+            })
+            .then(function (data) {
+                flashCellFeedback(input, true);
+                if (data && data.fecha !== undefined && data.fecha !== null && data.fecha !== '') {
+                    input.value = data.fecha;
+                }
+                var tr = input.closest('tr');
+                if (tr) {
+                    var sectorTd = tr.querySelector('.sector-cell');
+                    if (sectorTd && data && data.sector !== undefined) {
+                        sectorTd.textContent = data.sector;
+                    }
+                }
+            })
+            .catch(function (err) {
+                flashCellFeedback(input, false);
+                if (err && err.message) {
+                    alert(err.message);
+                }
+            });
+        }
+
         function savePersonFieldIfDoneEditing(input) {
             var form = input.form;
             if (!form) return;
             var tr = input.closest('tr');
             if (!tr) return;
-            var nombreInput = tr.querySelector('input[name="nombre"]');
-            var rutInput = tr.querySelector('input[name="rut"]');
-            var nombreVal = (nombreInput ? nombreInput.value : '').trim();
-            var rutVal = (rutInput ? rutInput.value : '').trim();
-            if (nombreVal !== '' && rutVal !== '') {
-                var hiddenNombre = form.querySelector('input[name="nombre"]');
-                if (!hiddenNombre) {
-                    hiddenNombre = document.createElement('input');
-                    hiddenNombre.type = 'hidden';
-                    hiddenNombre.name = 'nombre';
-                    form.appendChild(hiddenNombre);
-                }
-                hiddenNombre.value = nombreVal;
 
-                var hiddenRut = form.querySelector('input[name="rut"]');
-                if (!hiddenRut) {
-                    hiddenRut = document.createElement('input');
-                    hiddenRut.type = 'hidden';
-                    hiddenRut.name = 'rut';
-                    form.appendChild(hiddenRut);
+            setTimeout(function () {
+                if (document.activeElement && document.activeElement.form === form) {
+                    return;
                 }
-                hiddenRut.value = rutVal;
+                var nombreInput = tr.querySelector('input[name="nombre"]');
+                var rutInput = tr.querySelector('input[name="rut"]');
+                var nombreVal = (nombreInput ? nombreInput.value : '').trim();
+                var rutVal = (rutInput ? rutInput.value : '').trim();
+                if (nombreVal === '' || rutVal === '') return;
 
-                form.submit();
-            }
+                var id = form.querySelector('input[name="id"]').value;
+                var tokenInput = form.querySelector('input[name="__RequestVerificationToken"]');
+                var token = tokenInput ? tokenInput.value : '';
+                var body = '__RequestVerificationToken=' + encodeURIComponent(token) +
+                           '&id=' + encodeURIComponent(id) +
+                           '&nombre=' + encodeURIComponent(nombreVal) +
+                           '&rut=' + encodeURIComponent(rutVal);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: body
+                })
+                .then(function (res) {
+                    if (!res.ok) {
+                        return res.json().then(function (err) { throw err; });
+                    }
+                    return res.json();
+                })
+                .then(function (data) {
+                    if (nombreInput) flashCellFeedback(nombreInput, true);
+                    if (rutInput) flashCellFeedback(rutInput, true);
+                    if (data && data.rut && rutInput) {
+                        rutInput.value = data.rut;
+                    }
+                    var reviewAlert = tr.querySelector('.review-alert');
+                    if (reviewAlert) {
+                        reviewAlert.remove();
+                    }
+                })
+                .catch(function (err) {
+                    if (nombreInput) flashCellFeedback(nombreInput, false);
+                    if (rutInput) flashCellFeedback(rutInput, false);
+                    if (err && err.message) {
+                        alert(err.message);
+                    }
+                });
+            }, 0);
         }
 
         // Asegura que todos los forms POST lleven el parámetro search actual para no perder el filtro ni la posición

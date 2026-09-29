@@ -84,15 +84,26 @@ public class IndexModel(
 
     public IActionResult OnPostSetFecha(long id, string fecha)
     {
+        var isAjax = string.Equals(HttpContext?.Request?.Headers?.XRequestedWith.ToString(), "XMLHttpRequest", StringComparison.OrdinalIgnoreCase)
+                     || (HttpContext?.Request?.Headers?.Accept.ToString()?.Contains("application/json") ?? false);
+
         logger.LogInformation("OnPostSetFecha caso={Id} valorRecibido='{Fecha}'", id, fecha);
         if (string.IsNullOrWhiteSpace(fecha))
         {
             repository.ClearFechaUltimaCarpeta(id);
+            if (isAjax)
+            {
+                return new JsonResult(new { success = true, fecha = "", sector = "—" });
+            }
             return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
         }
 
         if (!SpanishDate.TryParse(fecha, out var parsed))
         {
+            if (isAjax)
+            {
+                return new JsonResult(new { success = false, message = "Fecha no reconocida. Formatos aceptados: 15/03/2024 o 15 marzo 2024." }) { StatusCode = 400 };
+            }
             Message = "Fecha no reconocida. Formatos aceptados: 15/03/2024 o 15 marzo 2024.";
             MessageIsError = true;
             Load();
@@ -100,11 +111,19 @@ public class IndexModel(
         }
 
         repository.SetFechaUltimaCarpeta(id, parsed);
+        if (isAjax)
+        {
+            var sector = parsed < new DateOnly(2023, 7, 1) ? "Archivo" : "Oficina 43";
+            return new JsonResult(new { success = true, fecha = SpanishDate.Format(parsed), sector });
+        }
         return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
     }
 
     public IActionResult OnPostSetPersonData(long id, string nombre, string rut)
     {
+        var isAjax = string.Equals(HttpContext?.Request?.Headers?.XRequestedWith.ToString(), "XMLHttpRequest", StringComparison.OrdinalIgnoreCase)
+                     || (HttpContext?.Request?.Headers?.Accept.ToString()?.Contains("application/json") ?? false);
+
         var normalizedRut = RutValidator.NormalizeAndValidate(rut);
         // Uppercase to match the casing PersonDataExtractor already uses for auto-extracted names,
         // so manually-corrected cases don't end up in a different case than the rest of the report.
@@ -112,15 +131,26 @@ public class IndexModel(
 
         if (normalizedRut is null || nombre.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length < 2)
         {
-            Message = normalizedRut is null
+            var errorMsg = normalizedRut is null
                 ? "El RUT ingresado no es válido (revise el dígito verificador)."
                 : "Ingrese el nombre completo (al menos nombre y apellido).";
+
+            if (isAjax)
+            {
+                return new JsonResult(new { success = false, message = errorMsg }) { StatusCode = 400 };
+            }
+
+            Message = errorMsg;
             MessageIsError = true;
             Load();
             return Page();
         }
 
         repository.SetPersonData(id, nombre, normalizedRut);
+        if (isAjax)
+        {
+            return new JsonResult(new { success = true, nombre, rut = normalizedRut });
+        }
         Message = "Datos guardados. El caso ya no requiere revisión.";
         Load();
         return Page();

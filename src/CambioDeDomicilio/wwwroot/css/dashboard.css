@@ -992,6 +992,18 @@ table.cases-index .input-inline:focus {
     box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
 }
 
+table.cases-index .input-inline.input-inline-success {
+    border-color: var(--color-confirmed) !important;
+    background: var(--color-confirmed-bg) !important;
+    transition: background-color 0.4s ease, border-color 0.4s ease;
+}
+
+table.cases-index .input-inline.input-inline-error {
+    border-color: var(--color-review) !important;
+    background: var(--color-review-bg) !important;
+    transition: background-color 0.4s ease, border-color 0.4s ease;
+}
+
 table.cases-index td.name-cell {
     text-align: left;
 }
