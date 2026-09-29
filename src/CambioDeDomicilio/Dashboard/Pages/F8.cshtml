@@ -117,12 +117,13 @@
                     var statusRowClass = item.NeedsReview
                         ? "row-needs-review"
                         : (item.IsActionCompleted ? "row-done" : "");
+                    var markedClass = item.Marked ? "row-marked" : "";
                     var pendienteCarpetaClass = item.PendienteCarpeta ? "row-pendiente-carpeta" : "";
                     var bouncedClass = item.ConfirmationBouncedAt is not null ? "row-bounced" : "";
                     var isTarget = (Model.HighlightId.HasValue && item.Id == Model.HighlightId.Value) ||
                                    (!string.IsNullOrWhiteSpace(Model.Search) && Model.Cases.Count == 1);
                     var targetClass = isTarget ? "row-highlight-target" : "";
-                    <tr class="@statusRowClass @pendienteCarpetaClass @bouncedClass @targetClass" id="case-row-@item.Id">
+                    <tr class="@statusRowClass @markedClass @pendienteCarpetaClass @bouncedClass @targetClass" id="case-row-@item.Id">
                         <td class="name-cell">
                             <form method="post" asp-page-handler="SetPersonData" id="person-form-@item.Id">
                                 <input type="hidden" name="id" value="@item.Id" />

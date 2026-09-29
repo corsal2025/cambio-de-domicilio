@@ -270,10 +270,11 @@
                     var statusRowClass = item.NeedsReview
                         ? "row-needs-review"
                         : (item.IsActionCompleted ? "row-done" : "");
+                    var markedClass = item.Marked ? "row-marked" : "";
                     var f8PendingClass = item.FolderNotFound ? "row-f8-pending" : "";
                     var pendienteCarpetaClass = item.PendienteCarpeta ? "row-pendiente-carpeta" : "";
                     var bouncedClass = item.ConfirmationBouncedAt is not null ? "row-bounced" : "";
-                    <tr class="@statusRowClass @f8PendingClass @pendienteCarpetaClass @bouncedClass">
+                    <tr class="@statusRowClass @markedClass @f8PendingClass @pendienteCarpetaClass @bouncedClass">
                         <td class="name-cell">
                             <form method="post" asp-page-handler="SetPersonData" id="person-form-@item.Id">
                                 <input type="hidden" name="id" value="@item.Id" />
