@@ -116,7 +116,7 @@ public class F8ModelTests : IDisposable
     }
 
     [Fact]
-    public void OnPostRevertToCasos_ClearsF8DataAndReturnsAsSoloCaja()
+    public void OnPostRevertToCasos_KeepsTypedDataAndReturnsAsSoloCaja()
     {
         var id = repository.Insert(NewRequest("msg-1", "Persona F8 traspasada"));
         repository.SetFolderNotFound(id, true);
@@ -128,7 +128,7 @@ public class F8ModelTests : IDisposable
         var stored = repository.FindById(id)!;
         Assert.Equal(CaseDestination.None, stored.Destination);
         Assert.Null(stored.TransferredAt);
-        Assert.Null(stored.CodigoF8);
+        Assert.Equal("F8-99", stored.CodigoF8);
         Assert.True(stored.SoloCaja);
     }
 

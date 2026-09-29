@@ -100,7 +100,7 @@
                         <th>Nombre</th>
                         <th>RUT</th>
                         <th title="Selecciona los casos que deben incluirse en el próximo PDF Archivo/Oficina 43">Marcar</th>
-                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en amarillo">Pendiente<br />Carpeta</th>
+                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en morado">Pendiente<br />Carpeta</th>
                         <th>Comuna</th>
                         <th>Recibido</th>
                         <th>Plazo<br /><span class="th-subtext">(15 días hábiles)</span></th>
@@ -112,20 +112,18 @@
                     </tr>
                 </thead>
                 <tbody>
-                @{ var rowIndex = 0; }
                 @foreach (var item in Model.Cases)
                 {
-                    var rowClass = rowIndex % 2 == 1 ? "row-alt" : "";
-                    var statusRowClass = item.Status == RequestStatus.Confirmed
-                        ? "row-confirmed"
-                        : (item.NeedsReview ? "row-needs-review" : "");
+                    var statusRowClass = item.NeedsReview
+                        ? "row-needs-review"
+                        : (item.IsActionCompleted ? "row-done" : "");
+                    var markedClass = item.Marked ? "row-marked" : "";
                     var pendienteCarpetaClass = item.PendienteCarpeta ? "row-pendiente-carpeta" : "";
                     var bouncedClass = item.ConfirmationBouncedAt is not null ? "row-bounced" : "";
                     var isTarget = (Model.HighlightId.HasValue && item.Id == Model.HighlightId.Value) ||
                                    (!string.IsNullOrWhiteSpace(Model.Search) && Model.Cases.Count == 1);
                     var targetClass = isTarget ? "row-highlight-target" : "";
-                    rowIndex++;
-                    <tr class="@rowClass @statusRowClass @pendienteCarpetaClass @bouncedClass @targetClass" id="case-row-@item.Id">
+                    <tr class="@statusRowClass @markedClass @pendienteCarpetaClass @bouncedClass @targetClass" id="case-row-@item.Id">
                         <td class="name-cell">
                             <form method="post" asp-page-handler="SetPersonData" id="person-form-@item.Id">
                                 <input type="hidden" name="id" value="@item.Id" />
@@ -422,11 +420,14 @@
             window.addEventListener('load', function () {
                 setTimeout(function () {
                     var target = document.querySelector('tr.row-highlight-target');
-                    if (target) target.scrollIntoView({ block: 'center' });
+                    if (target && !window.scrollPositionRestored) {
+                        target.scrollIntoView({ block: 'center', inline: 'nearest' });
+                    }
                 }, 150);
             });
         })();
     </script>
+    <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
     <partial name="_AuthorFooter" />
 </body>
 </html>

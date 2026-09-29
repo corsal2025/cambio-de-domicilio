@@ -976,19 +976,23 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void RevertF8AndReturnToCasos_UploadedF8_ClearsAllF8Data()
+    public void RevertF8AndReturnToCasos_UploadedF8_KeepsTypedDataAndClearsStatus()
     {
         var id = repository.Insert(NewRequest("msg-f8"));
         repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
         repository.SetFolderNotFound(id, true);
         repository.SetCodigoF8(id, "F8-123");
+        repository.SetFechaUltimaCarpeta(id, new DateOnly(2024, 3, 15));
         repository.MarkUploaded(id, DateTimeOffset.UtcNow);
         repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
 
         repository.RevertF8AndReturnToCasos(id);
 
         var stored = repository.FindById(id)!;
-        Assert.Null(stored.CodigoF8);
+        Assert.Equal("F8-123", stored.CodigoF8);
+        Assert.Equal(new DateOnly(2024, 3, 15), stored.FechaUltimaCarpeta);
+        Assert.Equal("GUSTAVO ANDRÉS PEÑA CASTRO", stored.FullName);
+        Assert.Equal("18.785.387-7", stored.Rut);
         Assert.Null(stored.ConfirmedAt);
         Assert.Null(stored.UploadedAt);
         Assert.Equal(RequestStatus.Pending, stored.Status);
@@ -1002,11 +1006,13 @@ public class PersonRequestRepositoryTests : IDisposable
         var id = repository.Insert(NewRequest("msg-f8"));
         repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
         repository.SetFolderNotFound(id, true);
+        repository.SetSinCarpeta(id);
 
         repository.RevertF8AndReturnToCasos(id);
 
         var stored = repository.FindById(id)!;
         Assert.Null(stored.CodigoF8);
+        Assert.True(stored.SinCarpeta);
         Assert.Equal(RequestStatus.Pending, stored.Status);
         Assert.True(stored.SoloCaja);
         Assert.False(stored.FolderNotFound);
