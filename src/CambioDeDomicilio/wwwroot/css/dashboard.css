@@ -148,11 +148,11 @@ header.app-header .brand {
 }
 
 header.app-header .brand-logo {
-    height: 72px;
+    height: 95px;
     width: auto;
     border-radius: var(--radius-sm);
     background: #ffffff;
-    padding: 3px 6px;
+    padding: 4px 8px;
     box-shadow: var(--shadow-sm);
     object-fit: contain;
 }
@@ -1442,7 +1442,7 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no
     }
 
     header.app-header .brand-logo {
-        height: 58px;
+        height: 75px;
     }
 
     header.app-header .brand {
@@ -1475,7 +1475,7 @@ table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no
     }
 
     header.app-header .brand-logo {
-        height: 46px;
+        height: 58px;
     }
 
     header.app-header .brand {
