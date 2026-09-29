@@ -41,6 +41,7 @@
             <span class="app-subnav-label">Sistemas</span>
             <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
             <a asp-page="/F8" class="nav-f8 active"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
             <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
             <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
         </div>
@@ -90,7 +91,7 @@
                 <thead>
                     <tr class="header-groups">
                         <th colspan="2" class="th-group th-group-frozen th-group-1 th-group-frozen-end">Contribuyente</th>
-                        <th colspan="2" class="th-group">Marcado</th>
+                        <th class="th-group">Marcado</th>
                         <th class="th-group">Destino</th>
                         <th colspan="3" class="th-group">Plazos y Estado</th>
                         <th colspan="3" class="th-group">Carpeta física</th>
@@ -100,7 +101,6 @@
                         <th>Nombre</th>
                         <th>RUT</th>
                         <th title="Selecciona los casos que deben incluirse en el próximo PDF Archivo/Oficina 43">Marcar</th>
-                        <th title="Marca la carpeta como pendiente de retiro — resalta la fila en morado">Pendiente<br />Carpeta</th>
                         <th>Comuna</th>
                         <th>Recibido</th>
                         <th>Plazo<br /><span class="th-subtext">(15 días hábiles)</span></th>
@@ -153,16 +153,8 @@
                             <form method="post" asp-page-handler="ToggleMarked" class="marked-form">
                                 <input type="hidden" name="id" value="@item.Id" />
                                 <input type="checkbox" name="markedValue" class="marked-checkbox"
-                                       @(item.Marked ? "checked" : "") onchange="toggleMutuallyExclusive(this, 'markedValue', 'pendienteCarpetaValue')"
+                                       @(item.Marked ? "checked" : "") onchange="submitCheckboxToggle(this, 'markedValue')"
                                        title="@(item.Marked ? "Desmarcar caso" : "Marcar caso")" />
-                            </form>
-                        </td>
-                        <td class="marked-cell">
-                            <form method="post" asp-page-handler="TogglePendienteCarpeta" class="marked-form">
-                                <input type="hidden" name="id" value="@item.Id" />
-                                <input type="checkbox" name="pendienteCarpetaValue" class="marked-checkbox"
-                                       @(item.PendienteCarpeta ? "checked" : "") onchange="toggleMutuallyExclusive(this, 'pendienteCarpetaValue', 'markedValue')"
-                                       title="@(item.PendienteCarpeta ? "Desmarcar pendiente carpeta" : "Marcar pendiente carpeta")" />
                             </form>
                         </td>
                         <td class="text-cell">@item.Comuna</td>
@@ -254,11 +246,11 @@
                                     </button>
                                 </form>
                                 <form method="post" asp-page-handler="CloseWithoutFolder"
-                                      onsubmit="return confirm('Esto cierra el proceso SIN carpeta. El caso vuelve a Casos como \'Cerrado sin carpeta\' y sin acciones. ¿Confirmar?');">
+                                      onsubmit="return confirm('Esto traslada el caso a la sección \'Sin Carpetas\' (cerrado sin carpeta física). ¿Confirmar?');">
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <input type="hidden" name="search" value="@Model.Search" />
                                     <input type="hidden" name="highlightId" value="@Model.HighlightId" />
-                                    <button type="submit" class="btn-action btn-action--sin-carpeta" title="Cerrar el proceso sin carpeta física" aria-label="Sin carpeta">
+                                    <button type="submit" class="btn-action btn-action--sin-carpeta" title="Cerrar el proceso sin carpeta física y trasladar a Sin Carpetas" aria-label="Sin carpeta">
                                         <partial name="_ActionIcon" model="@("sin-carpeta")" /><span>Sin carpeta</span>
                                     </button>
                                 </form>
@@ -326,18 +318,20 @@
             input.dataset.hadValue = input.value !== '' ? 'true' : 'false';
         }
 
-        function toggleMutuallyExclusive(checkbox, thisName, otherName) {
+        function submitCheckboxToggle(checkbox, fieldName) {
+            var form = checkbox.form;
+            var id = form.querySelector('input[name="id"]').value;
+            var tokenInput = form.querySelector('input[name="__RequestVerificationToken"]');
+            var token = tokenInput ? tokenInput.value : '';
+            var body = '__RequestVerificationToken=' + encodeURIComponent(token) + '&id=' + encodeURIComponent(id);
             if (checkbox.checked) {
-                var row = checkbox.closest('tr');
-                var otherCheckbox = row.querySelector('input[name="' + otherName + '"]');
-                if (otherCheckbox && otherCheckbox.checked) {
-                    otherCheckbox.checked = false;
-                    var otherForm = otherCheckbox.closest('form');
-                    if (otherForm) otherForm.submit();
-                }
+                body += '&' + fieldName + '=on';
             }
-            var form = checkbox.closest('form');
-            if (form) form.submit();
+            fetch(form.action, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body
+            });
         }
 
         function savePersonFieldIfDoneEditing(input) {
@@ -371,6 +365,23 @@
                 form.submit();
             }
         }
+
+        // Asegura que todos los forms POST lleven el parámetro search actual para no perder el filtro ni la posición
+        (function () {
+            var params = new URLSearchParams(window.location.search);
+            var searchVal = params.get('search');
+            if (searchVal) {
+                document.querySelectorAll('form[method="post"]').forEach(function (form) {
+                    if (!form.querySelector('[name="search"]')) {
+                        var hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'search';
+                        hidden.value = searchVal;
+                        form.appendChild(hidden);
+                    }
+                });
+            }
+        })();
     </script>
     <script>
         (function () {
@@ -411,20 +422,6 @@
                     resizeTimer = setTimeout(setFreezeOffsets, 100);
                 });
             }
-        })();
-    </script>
-    <script>
-        (function () {
-            // After "load" (and a beat later) so fonts/layout are final and scroll-preserve.js,
-            // which restores the previous scroll position, doesn't undo it.
-            window.addEventListener('load', function () {
-                setTimeout(function () {
-                    var target = document.querySelector('tr.row-highlight-target');
-                    if (target && !window.scrollPositionRestored) {
-                        target.scrollIntoView({ block: 'center', inline: 'nearest' });
-                    }
-                }, 150);
-            });
         })();
     </script>
     <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>

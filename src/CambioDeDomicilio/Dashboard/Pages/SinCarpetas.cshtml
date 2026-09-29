@@ -1,0 +1,342 @@
+@page
+@model CambioDeDomicilio.Dashboard.Pages.SinCarpetasModel
+@using CambioDeDomicilio.Domain
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sin Carpetas — CambioDeDomicilio</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <style>
+        .doc-sheet {
+            background: #fff;
+            padding: 24px;
+            border-radius: var(--radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+        }
+
+        .doc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 3px solid var(--color-primary);
+            padding-bottom: 14px;
+            margin-bottom: 0;
+            position: relative;
+        }
+
+        .doc-header::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -6px;
+            height: 2px;
+            background: var(--color-accent);
+        }
+
+        .doc-header .doc-seal {
+            height: 64px;
+            width: auto;
+            flex: none;
+            object-fit: contain;
+        }
+
+        .doc-header .doc-title-block {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .doc-header .doc-org {
+            margin: 0;
+            font-size: 0.82rem;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 700;
+        }
+
+        .doc-header h2 {
+            margin: 4px 0 0;
+            color: var(--color-primary);
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+
+        .doc-header .doc-meta {
+            text-align: right;
+            font-size: 0.88rem;
+            color: var(--color-text-muted);
+            white-space: nowrap;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: 8px 16px;
+            line-height: 1.5;
+        }
+
+        .doc-header .doc-meta strong {
+            color: var(--color-primary);
+            font-size: 1.02rem;
+        }
+
+        .doc-subheader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 16px 0 14px;
+            padding: 6px 12px;
+            background: var(--color-bg);
+            border-left: 3px solid var(--color-accent);
+            border-radius: 0 4px 4px 0;
+            font-size: 0.78rem;
+            color: var(--color-text-muted);
+        }
+
+        .doc-subheader span:last-child {
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .sin-carpetas-toolbar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .sin-carpetas-toolbar-left {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .sin-carpetas-toolbar-right {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+        }
+
+        @@media print {
+            .no-print, .app-header, .app-subnav, .sin-carpetas-toolbar, .btn-action, .author-footer, .nav-search {
+                display: none !important;
+            }
+            body {
+                background: #fff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .doc-sheet {
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            table.cases th {
+                background: #eef2f6 !important;
+                color: #000 !important;
+                font-size: 0.88rem !important;
+                padding: 6px 8px !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            table.cases td {
+                border: 1px solid #888 !important;
+                color: #000 !important;
+                font-size: 0.88rem !important;
+                padding: 6px 8px !important;
+            }
+            tbody tr { break-inside: avoid; }
+        }
+    </style>
+    <style id="page-size-style">
+        @@page {
+            size: A4;
+            margin: 12mm;
+        }
+    </style>
+</head>
+<body class="cases-page">
+    <header class="app-header no-print">
+        <div class="brand">
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                CambioDeDomicilio
+                <small>Municipalidad de Valparaíso</small>
+                <small>Casos Sin Carpeta</small>
+            </span>
+        </div>
+        <nav class="app-nav">
+            <div class="nav-group nav-group-filters">
+                <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            </div>
+            <div class="nav-group nav-group-end">
+                <form method="get" class="nav-search">
+                    <input type="text" name="search" id="search-input" placeholder="Buscar por RUT o nombre..." value="@Model.Search" data-had-value="@(!string.IsNullOrEmpty(Model.Search) ? "true" : "false")" oninput="formatSearchRut(this); clearSearchIfEmpty(this)" />
+                    <button type="submit" class="nav-pill"><partial name="_NavIcon" model="@("search")" /><span>Buscar</span></button>
+                    @if (!string.IsNullOrEmpty(Model.Search))
+                    {
+                        <a asp-page="/SinCarpetas" class="nav-search-clear"><partial name="_NavIcon" model="@("clear")" /><span>Limpiar</span></a>
+                    }
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="app-subnav no-print">
+        <div class="app-subnav-main">
+            <span class="app-subnav-label">Sistemas</span>
+            <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/SinCarpetas" class="nav-sin-carpetas active"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
+            <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
+        </div>
+        <div class="app-subnav-docs">
+            <span class="app-subnav-label">Documentos</span>
+            <a asp-page="/Sector" asp-route-sector="Archivo" class="nav-pdf-archivo" title="Generar listado para Archivo">
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Archivo</span>
+            </a>
+            <a asp-page="/Sector" asp-route-sector="Oficina43" class="nav-pdf-oficina43" title="Generar listado para Oficina 43">
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Oficina 43</span>
+            </a>
+        </div>
+    </div>
+
+    <main>
+        @if (Model.Message is not null)
+        {
+            <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
+        }
+
+        <div class="sin-carpetas-toolbar no-print">
+            <div class="sin-carpetas-toolbar-left">
+                <button type="button" class="btn-primary" onclick="window.print()">
+                    <partial name="_NavIcon" model="@("pdf")" /><span>Imprimir / Guardar como PDF</span>
+                </button>
+                <span style="display:flex; gap:6px; align-items:center; margin-left:8px;">
+                    <label class="form-label" for="page-size-select" style="margin:0;">Tamaño de hoja</label>
+                    <select id="page-size-select" onchange="updatePageSize()"
+                            style="border:1px solid var(--color-border); border-radius:4px; padding:5px 8px; font-size:0.85rem;">
+                        <option value="A4">A4</option>
+                        <option value="letter">Carta</option>
+                        <option value="legal">Oficio</option>
+                    </select>
+                </span>
+            </div>
+            <div class="sin-carpetas-toolbar-right">
+                Total archivados sin carpeta física: <strong>@Model.TotalCount</strong>
+                @if (!string.IsNullOrWhiteSpace(Model.Search))
+                {
+                    <span> · Mostrando <strong>@Model.Cases.Count</strong> resultado(s) para "<strong>@Model.Search</strong>"</span>
+                }
+            </div>
+        </div>
+
+        <div class="doc-sheet">
+            <div class="doc-header">
+                <div class="doc-title-block">
+                    <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="doc-seal" />
+                    <div>
+                        <p class="doc-org">Municipalidad de Valparaíso — Dirección de Tránsito</p>
+                        <h2>Listado de Solicitudes Cerradas Sin Carpeta Física</h2>
+                    </div>
+                </div>
+                <div class="doc-meta">
+                    <div>Folio: <strong>SC-@DateTimeOffset.Now.ToString("yyyyMMdd-HHmm")</strong></div>
+                    <div>Generado: <strong>@DateTimeOffset.Now.ToString("dd-MM-yyyy HH:mm")</strong></div>
+                </div>
+            </div>
+            <div class="doc-subheader">
+                <span>Casos en los que no se halló carpeta física precedente (gestionados vía F8 / sin carpeta)</span>
+                <span>@Model.Cases.Count caso(s) en este listado</span>
+            </div>
+
+            @if (Model.Cases.Count == 0)
+            {
+                <div class="empty-state" style="padding: 32px 16px; text-align: center; color: var(--color-text-muted);">
+                    No hay casos registrados sin carpeta física actualmente.
+                </div>
+            }
+            else
+            {
+                <div class="card table-card" style="box-shadow:none; border:none; margin:0;">
+                    <table class="cases cases-index">
+                        <thead>
+                            <tr class="header-cols">
+                                <th style="width: 45px; text-align: center;">N°</th>
+                                <th>Nombre completo</th>
+                                <th>RUT</th>
+                                <th>Comuna</th>
+                                <th>Fecha de ingreso</th>
+                                <th>Código F8</th>
+                                <th>Fecha cierre S/C</th>
+                                <th class="no-print">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @for (var i = 0; i < Model.Cases.Count; i++)
+                        {
+                            var item = Model.Cases[i];
+                            <tr>
+                                <td style="text-align: center; font-weight: 600; color: var(--color-text-muted);">@(i + 1)</td>
+                                <td class="text-cell" style="font-weight: 600;">@item.FullName</td>
+                                <td class="text-cell">@item.Rut</td>
+                                <td class="text-cell">@item.Comuna</td>
+                                <td class="text-cell">@item.ReceivedAt.LocalDateTime.ToString("dd-MM-yyyy")</td>
+                                <td class="text-cell">@(string.IsNullOrWhiteSpace(item.CodigoF8) ? "—" : item.CodigoF8)</td>
+                                <td class="text-cell">
+                                    @(item.ClosedWithoutFolderAt is { } closedAt ? closedAt.LocalDateTime.ToString("dd-MM-yyyy HH:mm") : "—")
+                                </td>
+                                <td class="no-print">
+                                    <form method="post" asp-page-handler="Revert"
+                                          onsubmit="return confirm('¿Desea restaurar este caso a la sección F8?');">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <input type="hidden" name="search" value="@Model.Search" />
+                                        <button type="submit" class="btn-action" title="Restaurar a la pantalla de F8" aria-label="Restaurar a F8">
+                                            <partial name="_ActionIcon" model="@("rectify")" /><span>Revertir a F8</span>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </main>
+
+    <script>
+        function updatePageSize() {
+            var val = document.getElementById('page-size-select').value;
+            document.getElementById('page-size-style').textContent = '@@page { size: ' + val + '; margin: 12mm; }';
+        }
+
+        function formatSearchRut(input) {
+            var raw = input.value;
+            if (!/^\d+[kK]?$/.test(raw.replace(/[.\-]/g, ''))) return;
+            var clean = raw.replace(/[.\-]/g, '');
+            if (clean.length < 2) return;
+            var body = clean.slice(0, -1);
+            var dv = clean.slice(-1).toUpperCase();
+            var formattedBody = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            input.value = formattedBody + '-' + dv;
+        }
+
+        function clearSearchIfEmpty(input) {
+            if (input.value === '' && input.dataset.hadValue === 'true') {
+                input.form.submit();
+            }
+            input.dataset.hadValue = input.value !== '' ? 'true' : 'false';
+        }
+    </script>
+    <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
+    <partial name="_AuthorFooter" />
+</body>
+</html>

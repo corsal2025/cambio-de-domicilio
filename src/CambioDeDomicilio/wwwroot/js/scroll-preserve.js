@@ -34,9 +34,7 @@
     // edit "revert" with no visible explanation. Feedback wins over scroll restoration that one
     // time; the table's own internal scroll still gets restored below either way.
     function applyRestore() {
-        if (messageBanner) {
-            messageBanner.scrollIntoView({ block: 'start' });
-        } else if (savedScroll !== null) {
+        if (savedScroll !== null) {
             window.scrollTo(0, parseInt(savedScroll, 10));
         }
         if (table) {
@@ -68,11 +66,22 @@
         clearSaved();
     }
 
-    window.addEventListener('beforeunload', function () {
+    function savePositions() {
         sessionStorage.setItem(scrollKey, window.scrollY);
         if (table) {
             sessionStorage.setItem(tableScrollXKey, table.scrollLeft);
             sessionStorage.setItem(tableScrollYKey, table.scrollTop);
         }
+    }
+
+    window.addEventListener('beforeunload', savePositions);
+    window.addEventListener('pagehide', savePositions);
+    document.addEventListener('submit', savePositions, true);
+
+    // Reintentar restauración tras la carga completa y layout de fuentes para evitar desajustes
+    window.addEventListener('DOMContentLoaded', applyRestore);
+    window.addEventListener('load', function () {
+        setTimeout(applyRestore, 50);
+        setTimeout(clearSaved, 300);
     });
 })();

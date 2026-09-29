@@ -554,7 +554,7 @@ body.cases-page main {
     flex-direction: column;
     max-width: none;
     width: 100%;
-    padding: 8px 16px 10px;
+    padding: 4px 8px 6px;
     min-height: 0;
     height: 0;
     min-width: 0;
@@ -1879,11 +1879,11 @@ table.cases-index .codigo-f8-input {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    gap: 8px 24px;
-    padding: 14px 24px;
-    margin-top: 24px;
+    gap: 6px 16px;
+    padding: 6px 12px;
+    margin-top: 6px;
     border-top: 1px solid var(--color-border, #dde3e8);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--color-text-muted, #5b6b7a);
 }
 

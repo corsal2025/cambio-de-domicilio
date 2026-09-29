@@ -1,4 +1,4 @@
-﻿@page "{boxId:long?}"
+@page "{boxId:long?}"
 @model CambioDeDomicilio.Dashboard.Pages.CajaModel
 @using CambioDeDomicilio.Domain
 <!DOCTYPE html>
@@ -119,6 +119,7 @@
             <span class="app-subnav-label">Sistemas</span>
             <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
             <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
             <a asp-page="/Caja" class="nav-caja active"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
             <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
         </div>
@@ -398,8 +399,8 @@
             window.addEventListener('load', function () {
                 setTimeout(function () {
                     var target = document.querySelector('tr.row-highlight-target');
-                    if (target && !window.scrollPositionRestored) {
-                        target.scrollIntoView({ block: 'center', inline: 'nearest' });
+                    if (target && !window.scrollPositionRestored && !sessionStorage.getItem('scrollY:' + location.pathname)) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
                     }
                 }, 150);
             });

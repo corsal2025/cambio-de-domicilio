@@ -89,12 +89,11 @@ public class F8Model(
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
-    /// <summary>"Sin carpeta": closes the process without a folder. The case returns to Casos as
-    /// "Cerrado sin carpeta", with no actions. No email is sent.</summary>
+    /// <summary>"Sin carpeta": closes the process without a folder. The case moves to the Sin Carpetas screen.</summary>
     public IActionResult OnPostCloseWithoutFolder(long id)
     {
         repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
-        Message = "Caso cerrado sin carpeta.";
+        Message = "Caso cerrado sin carpeta física y trasladado a la sección 'Sin Carpetas'.";
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 

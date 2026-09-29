@@ -1,4 +1,4 @@
-﻿@page "{sector?}"
+@page "{sector?}"
 @model CambioDeDomicilio.Dashboard.Pages.SectorModel
 <!DOCTYPE html>
 <html lang="es">
@@ -207,6 +207,7 @@
     <div class="app-subnav no-print">
         <span class="app-subnav-label">Otros sistemas</span>
         <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+        <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
     </div>
 
     <main>
