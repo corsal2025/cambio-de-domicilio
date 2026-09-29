@@ -402,6 +402,14 @@ a.nav-f8 {
 a.nav-f8:hover { background: rgba(251, 191, 36, 0.22); color: #ffffff; }
 a.nav-f8.active { background: #d97706; color: #ffffff; border-color: #fbbf24; font-weight: 700; }
 
+a.nav-sin-carpetas {
+    background: rgba(239, 68, 68, 0.14);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.35);
+}
+a.nav-sin-carpetas:hover { background: rgba(239, 68, 68, 0.25); color: #ffffff; }
+a.nav-sin-carpetas.active { background: #dc2626; color: #ffffff; border-color: #f87171; font-weight: 700; }
+
 a.nav-caja {
     background: rgba(34, 197, 94, 0.14);
     color: #bbf7d0;
