@@ -663,7 +663,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
-        command.CommandText = "UPDATE PersonRequest SET Destination = $destination, TransferredAt = $transferredAt WHERE Id = $id";
+        command.CommandText = "UPDATE PersonRequest SET Destination = $destination, TransferredAt = $transferredAt, SoloCaja = CASE WHEN $destination = 'F8' THEN 0 ELSE SoloCaja END WHERE Id = $id";
         command.Parameters.AddWithValue("$destination", destination.ToString());
         command.Parameters.AddWithValue("$transferredAt", transferredAt.ToString("O"));
         command.Parameters.AddWithValue("$id", id);

@@ -385,9 +385,9 @@
                             {
                                 @* Closed without folder: process finished, no actions except delete. *@
                             }
-                            else if (item.SoloCaja)
+                            else if (item.SoloCaja && !item.FolderNotFound)
                             {
-                                @* Reincorporated from F8 (folder found): only Caja, never upload/confirm/email. *@
+                                @* Reincorporated from F8: Caja by default; an explicit F8 mark opts back into the F8 transfer flow. *@
                                 <form method="post" asp-page-handler="SubirACaja">
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <button type="submit" class="btn-action btn-action--caja" title="Enviar la carpeta a la cola de Caja (sin enviar correo)" aria-label="Enviar a Caja">
@@ -636,17 +636,23 @@
         // Marcar, F8 y Pendiente Carpeta son mutuamente excluyentes en la misma fila:
         // marcar una desmarca automáticamente las otras dos en la interfaz y en el servidor.
         function toggleRowCheckbox(checkbox, fieldName) {
+            var row = checkbox.closest('tr');
             if (checkbox.checked) {
                 if (fieldName === 'markedValue' && checkbox.dataset.pdfGeneratedAt) {
                     alert('Ya se había generado un PDF para esta persona el ' + checkbox.dataset.pdfGeneratedAt + '. Se incluirá de nuevo en el próximo PDF.');
                 }
-                var row = checkbox.closest('tr');
                 if (row) {
                     row.querySelectorAll('.marked-checkbox').forEach(function (other) {
                         if (other !== checkbox) {
                             other.checked = false;
                         }
                     });
+                }
+            }
+            if (row) {
+                var f8Checkbox = row.querySelector('input[name="folderNotFoundValue"]');
+                if (f8Checkbox) {
+                    row.classList.toggle('row-f8-pending', f8Checkbox.checked);
                 }
             }
             submitCheckboxToggle(checkbox, fieldName);

@@ -110,7 +110,8 @@ public sealed class PersonRequest
     public long? BoxId { get; set; }
 
     /// <summary>Flag set when an F8 case whose physical folder was found is reincorporated into Casos.
-    /// It must only be sent to Caja - never re-confirmed or emailed to the comuna again.</summary>
+    /// By default it can only be sent to Caja, never re-confirmed or emailed to the comuna. An
+    /// explicit F8 mark opts it back into the F8 transfer flow.</summary>
     public bool SoloCaja { get; set; }
 
     /// <summary>When the operator pressed "Sin carpeta" on an F8 case: the process is closed without
