@@ -690,6 +690,21 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
+    public void OnPostTransferToF8_ClearsSoloCajaOnExplicitF8Return()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.RevertF8AndReturnToCasos(id);
+        repository.SetFolderNotFound(id, true);
+
+        model.OnPostTransferToF8(id);
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.F8, stored.Destination);
+        Assert.False(stored.SoloCaja);
+    }
+
+    [Fact]
     public void OnPostResolveBounce_ClearsTheBounceFlag()
     {
         var id = repository.Insert(NewRequest("msg-1"));

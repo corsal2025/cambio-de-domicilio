@@ -38,6 +38,11 @@ The dashboard SHALL show tracked cases (`PersonRequest`) with their current stat
 - **WHEN** a case has `SoloCaja = true`
 - **THEN** its action column shows only the "Caja" action (and delete), never "Marcar subida" nor confirmation actions
 
+#### Scenario: Reincorporated F8 case explicitly marked for F8 again
+- **WHEN** a case has `SoloCaja = true` and the operator ticks its F8 checkbox
+- **THEN** its action column shows "Traspaso a F8" (and delete), not "Caja", "Marcar subida" or confirmation actions
+- **AND** transferring it to F8 clears `SoloCaja`
+
 #### Scenario: Action button presentation
 - **WHEN** any action button is rendered in Casos, F8 or Caja
 - **THEN** it shows an inline SVG icon, a color by action type (upload blue, Caja green, Sin carpeta amber, delete red on hover), and a `title` and `aria-label`

@@ -49,6 +49,11 @@ The F8 screen SHALL expose a single "Revertir" action. Regardless of whether the
 - **THEN** the case keeps `CodigoF8 = "F8-123"` and has `ConfirmedAt = null`, `Status = Pending`, `SoloCaja = true`, `Destination = None`
 - **AND** in Casos it shows only the "Caja" action
 
+#### Scenario: Reverted case explicitly marked for F8 again
+- **WHEN** the operator ticks the F8 checkbox on a case with `SoloCaja = true` in Casos
+- **THEN** the action column offers "Traspaso a F8" instead of "Caja"
+- **AND** the transfer clears `SoloCaja` without sending email
+
 #### Scenario: Reverted case sent to Caja
 - **WHEN** the operator presses "Caja" in Casos on a case with `SoloCaja = true`
 - **THEN** the case moves to the Caja open queue and `SoloCaja` becomes false

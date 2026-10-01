@@ -1210,11 +1210,11 @@ table.cases-index td .f8-only {
     display: none;
 }
 
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .f8-only {
+table.cases-index tbody tr.row-f8-pending td .f8-only {
     display: flex !important;
 }
 
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td .no-f8-only {
+table.cases-index tbody tr.row-f8-pending td .no-f8-only {
     display: none !important;
 }
 
@@ -1800,11 +1800,11 @@ table.cases-index td:last-child form.f8-only {
     display: none;
 }
 
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td:last-child form.f8-only {
+table.cases-index tbody tr.row-f8-pending td:last-child form.f8-only {
     display: inline-flex !important;
 }
 
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td:last-child form.no-f8-only {
+table.cases-index tbody tr.row-f8-pending td:last-child form.no-f8-only {
     display: none !important;
 }
 
