@@ -333,15 +333,15 @@ public class AddressChangeRoutingServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task MarkUploadedAndConfirmAsync_LeavesDestinationNoneUntilExplicitlySentToCaja()
+    public async Task MarkUploadedAndConfirmAsync_MovesToSubidasDestinationUntilExplicitlySentToCaja()
     {
         var id = InsertPending();
 
         await sut.MarkUploadedAndConfirmAsync(id, Contacts, CancellationToken.None);
 
         var stored = repository.FindById(id)!;
-        Assert.Equal(CaseDestination.None, stored.Destination);
-        Assert.Null(stored.TransferredAt);
+        Assert.Equal(CaseDestination.Subidas, stored.Destination);
+        Assert.NotNull(stored.TransferredAt);
         Assert.Empty(repository.GetCajaQueue());
 
         repository.SendToCaja([id], DateTimeOffset.UtcNow);

@@ -43,6 +43,7 @@ public class IndexModel(
     public long? F8FirstMatchId { get; private set; }
     public int CajaMatchCount { get; private set; }
     public string? CajaMatchBoxCode { get; private set; }
+    public int SubidasMatchCount { get; private set; }
 
     /// <summary>Exact physical location of every searched case that is in Caja: which listing
     /// (box Id — codes can repeat), its close date, and the N° it has in that printed listing.</summary>
@@ -453,7 +454,9 @@ public class IndexModel(
         var contacts = routingService.LoadDirectory();
         var result = await routingService.MarkUploadedAndConfirmAsync(id, contacts, HttpContext.RequestAborted);
 
-        Message = result.Reason;
+        Message = result.Sent
+            ? $"{result.Reason} El caso fue trasladado a 'Subidas a Sistema' para asignar Caja o Sin Carpeta."
+            : result.Reason;
         MessageIsError = !result.Sent;
         Load();
         return Page();
@@ -532,6 +535,9 @@ public class IndexModel(
             var f8Matches = everything.Where(c => c.Destination == CaseDestination.F8 && MatchesQuery(c, query)).ToList();
             F8MatchCount = f8Matches.Count;
             F8FirstMatchId = f8Matches.FirstOrDefault()?.Id;
+
+            var subidasMatches = everything.Where(c => c.Destination == CaseDestination.Subidas && MatchesQuery(c, query)).ToList();
+            SubidasMatchCount = subidasMatches.Count;
 
             var cajaMatches = everything.Where(c => c.Destination == CaseDestination.Caja && MatchesQuery(c, query)).ToList();
             CajaMatches = cajaMatches.Select(LocateInCaja).ToList();

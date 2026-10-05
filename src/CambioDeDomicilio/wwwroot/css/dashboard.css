@@ -365,9 +365,11 @@ div.app-subnav span.app-subnav-label {
 
 a.nav-casos,
 a.nav-f8,
+a.nav-subidas,
 a.nav-sin-carpetas,
 a.nav-caja,
 a.nav-estadisticas,
+a.nav-manual,
 a.nav-pdf-archivo,
 a.nav-pdf-oficina43 {
     font-weight: 600;
@@ -400,6 +402,14 @@ a.nav-f8 {
 a.nav-f8:hover { background: rgba(251, 191, 36, 0.22); color: #ffffff; }
 a.nav-f8.active { background: #d97706; color: #ffffff; border-color: #fbbf24; font-weight: 700; }
 
+a.nav-subidas {
+    background: rgba(20, 184, 166, 0.14);
+    color: #99f6e4;
+    border-color: rgba(20, 184, 166, 0.35);
+}
+a.nav-subidas:hover { background: rgba(20, 184, 166, 0.25); color: #ffffff; }
+a.nav-subidas.active { background: #0d9488; color: #ffffff; border-color: #2dd4bf; font-weight: 700; }
+
 a.nav-sin-carpetas {
     background: rgba(239, 68, 68, 0.14);
     color: #fca5a5;
@@ -423,6 +433,14 @@ a.nav-estadisticas {
 }
 a.nav-estadisticas:hover { background: rgba(168, 85, 247, 0.22); color: #ffffff; }
 a.nav-estadisticas.active { background: #7c3aed; color: #ffffff; border-color: #c084fc; font-weight: 700; }
+
+a.nav-manual {
+    background: rgba(249, 115, 22, 0.14);
+    color: #fed7aa;
+    border-color: rgba(249, 115, 22, 0.35);
+}
+a.nav-manual:hover { background: rgba(249, 115, 22, 0.25); color: #ffffff; }
+a.nav-manual.active { background: #ea580c; color: #ffffff; border-color: #fb923c; font-weight: 700; }
 
 a.nav-pdf-archivo {
     background: rgba(148, 163, 184, 0.18);

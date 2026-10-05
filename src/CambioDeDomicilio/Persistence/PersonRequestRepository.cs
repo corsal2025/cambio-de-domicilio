@@ -221,6 +221,20 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 "UPDATE PersonRequest SET Destination = 'None', TransferredAt = NULL WHERE Destination = 'Certificado'";
             dropCertificadoCommand.ExecuteNonQuery();
         }
+
+        // Cases that were already marked as Uploaded or Confirmed in Casos are migrated to the Subidas destination
+        using (var migrateSubidasCommand = connection.CreateCommand())
+        {
+            migrateSubidasCommand.CommandText = """
+                UPDATE PersonRequest
+                SET Destination = 'Subidas',
+                    TransferredAt = COALESCE(ConfirmedAt, UploadedAt, CURRENT_TIMESTAMP)
+                WHERE Destination = 'None'
+                  AND Status IN ('Uploaded', 'Confirmed')
+                  AND ClosedWithoutFolderAt IS NULL;
+                """;
+            migrateSubidasCommand.ExecuteNonQuery();
+        }
     }
 
     /// <summary>Additive migration for databases created before multiple contributors per email were
@@ -273,16 +287,18 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                     MarkedAt TEXT NULL,
                     SinCarpeta INTEGER NOT NULL DEFAULT 0,
                     ConfirmationBouncedAt TEXT NULL,
-                    BoxId INTEGER NULL
+                    BoxId INTEGER NULL,
+                    SoloCaja INTEGER NOT NULL DEFAULT 0,
+                    ClosedWithoutFolderAt TEXT NULL
                 );
                 INSERT INTO PersonRequest_new
                     (Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
                      NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
-                     FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta, ConfirmationBouncedAt, BoxId)
+                     FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta, ConfirmationBouncedAt, BoxId, SoloCaja, ClosedWithoutFolderAt)
                 SELECT
                     Id, FullName, Rut, Comuna, SourceMessageId, SourceConversationId, SourceSubject, SourceSender,
                     NeedsReview, Status, ReceivedAt, FechaUltimaCarpeta, UploadedAt, ConfirmedAt, ConfirmedByUserId, CreatedAt, Marked, SectorPdfGeneratedAt,
-                    FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta, ConfirmationBouncedAt, BoxId
+                    FolderNotFound, FolderNotFoundNotifiedAt, CodigoF8, MovedToF8At, Destination, TransferredAt, CertificadoNotifiedAt, PendienteCarpeta, MarkedAt, SinCarpeta, ConfirmationBouncedAt, BoxId, SoloCaja, ClosedWithoutFolderAt
                 FROM PersonRequest;
                 DROP TABLE PersonRequest;
                 ALTER TABLE PersonRequest_new RENAME TO PersonRequest;
@@ -499,8 +515,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             UPDATE PersonRequest
             SET Status = 'Pending', UploadedAt = NULL, ConfirmedAt = NULL, ConfirmedByUserId = NULL,
                 ConfirmationBouncedAt = NULL,
-                Destination = CASE WHEN Destination = 'Caja' AND BoxId IS NULL THEN 'None' ELSE Destination END,
-                TransferredAt = CASE WHEN Destination = 'Caja' AND BoxId IS NULL THEN NULL ELSE TransferredAt END
+                Destination = CASE WHEN (Destination = 'Caja' AND BoxId IS NULL) OR Destination = 'Subidas' THEN 'None' ELSE Destination END,
+                TransferredAt = CASE WHEN (Destination = 'Caja' AND BoxId IS NULL) OR Destination = 'Subidas' THEN NULL ELSE TransferredAt END
             WHERE Id = $id AND Status = 'Confirmed'
             """;
         command.Parameters.AddWithValue("$id", id);

@@ -1,0 +1,201 @@
+@page
+@model CambioDeDomicilio.Dashboard.Pages.SubidasASistemaModel
+@using CambioDeDomicilio.Domain
+<!DOCTYPE html>
+<html lang="es" class="cases-page-html">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Subidas a Sistema — CambioDeDomicilio</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+</head>
+<body class="cases-page">
+    <header class="app-header">
+        <div class="brand">
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                CambioDeDomicilio
+                <small>Municipalidad de Valparaíso</small>
+                <small>Subidas a Sistema</small>
+            </span>
+        </div>
+        <nav class="app-nav">
+            <div class="nav-group nav-group-filters">
+                <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("back")" /><span>Volver a Cambio de Domicilio</span></a>
+            </div>
+            <div class="nav-group nav-group-end">
+                <form method="get" class="nav-search">
+                    <input type="text" name="search" id="search-input" placeholder="Buscar por RUT o nombre..." value="@Model.Search" data-had-value="@(!string.IsNullOrEmpty(Model.Search) ? "true" : "false")" oninput="formatSearchRut(this); clearSearchIfEmpty(this)" />
+                    <button type="submit" class="nav-pill"><partial name="_NavIcon" model="@("search")" /><span>Buscar</span></button>
+                    @if (!string.IsNullOrEmpty(Model.Search))
+                    {
+                        <a asp-page="/SubidasASistema" class="nav-search-clear"><partial name="_NavIcon" model="@("clear")" /><span>Limpiar</span></a>
+                    }
+                </form>
+            </div>
+        </nav>
+    </header>
+
+    <div class="app-subnav">
+        <div class="app-subnav-main">
+            <span class="app-subnav-label">Sistemas</span>
+            <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/SubidasASistema" class="nav-subidas active"><partial name="_NavIcon" model="@("upload")" /><span>Subidas a Sistema</span></a>
+            <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
+            <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
+            <a asp-page="/Manual" class="nav-manual"><partial name="_NavIcon" model="@("manual")" /><span>Cómo usar el sistema</span></a>
+        </div>
+        <div class="app-subnav-docs">
+            <span class="app-subnav-label">Documentos</span>
+            <a asp-page="/Sector" asp-route-sector="Archivo" class="nav-pdf-archivo" title="Generar listado para Archivo">
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Archivo</span>
+            </a>
+            <a asp-page="/Sector" asp-route-sector="Oficina43" class="nav-pdf-oficina43" title="Generar listado para Oficina 43">
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Oficina 43</span>
+            </a>
+        </div>
+    </div>
+
+    <main>
+        @if (Model.Message is not null)
+        {
+            <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.Search))
+        {
+            <div class="f8-search-active-banner">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.3rem;">🎯</span>
+                    <span>Filtrando por <strong>"@Model.Search"</strong>: @(Model.Cases.Count == 0 ? "No se encontraron casos" : $"Se encontró {Model.Cases.Count} caso(s)")</span>
+                </div>
+                <a asp-page="/SubidasASistema" class="btn-clear-f8-filter">✕ Mostrar todos los casos subidos (@Model.TotalCount)</a>
+            </div>
+        }
+
+        <div class="card table-card">
+            @if (Model.Cases.Count == 0)
+            {
+                <div style="padding: 40px 20px; text-align: center; color: var(--color-text-muted);">
+                    <div style="font-size: 2.5rem; margin-bottom: 12px;">📤</div>
+                    <h3 style="margin-bottom: 8px; font-size: 1.1rem; color: var(--color-text);">No hay carpetas pendientes de derivación en Subidas a Sistema</h3>
+                    <p style="font-size: 0.9rem; max-width: 540px; margin: 0 auto;">
+                        Cuando marques <strong>"Marcar subida"</strong> en Cambio de Domicilio, las solicitudes subidas a Conaset pasarán automáticamente a esta estación para que decidas su destino físico (<strong>Caja</strong> o <strong>Sin Carpeta</strong>).
+                    </p>
+                </div>
+            }
+            else
+            {
+                <table class="cases cases-index">
+                    <thead>
+                        <tr class="header-groups">
+                            <th colspan="2" class="th-group th-group-frozen th-group-1 th-group-frozen-end">Contribuyente</th>
+                            <th class="th-group">Destino</th>
+                            <th colspan="2" class="th-group">Fechas</th>
+                            <th class="th-group">Sector</th>
+                            <th class="th-group">Estado Digital</th>
+                            <th class="th-group">Derivación Física</th>
+                        </tr>
+                        <tr class="header-cols">
+                            <th>Nombre</th>
+                            <th>RUT</th>
+                            <th>Comuna</th>
+                            <th>Recibido</th>
+                            <th>Última carpeta</th>
+                            <th>Sector</th>
+                            <th>Confirmación</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model.Cases)
+                    {
+                        <tr class="row-done" id="case-row-@item.Id">
+                            <td class="name-cell">
+                                <span class="name-text" style="font-weight:600;">@item.FullName</span>
+                            </td>
+                            <td class="text-cell rut-cell">
+                                <span>@item.Rut</span>
+                            </td>
+                            <td class="text-cell">@item.Comuna</td>
+                            <td class="text-cell">@item.ReceivedAt.LocalDateTime.ToString("dd-MM-yyyy")</td>
+                            <td class="text-cell">
+                                @(item.SinCarpeta ? "S/C" : item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "—")
+                            </td>
+                            <td class="text-cell sector-cell">
+                                @(item.Sector?.ToDisplayName() ?? "—")
+                            </td>
+                            <td>
+                                <span class="badge badge-confirmed">
+                                    Subida Confirmada
+                                </span>
+                                @if (item.ConfirmedAt is { } conf)
+                                {
+                                    <div style="font-size: 0.72rem; color: var(--color-text-muted); margin-top: 3px;">
+                                        @conf.LocalDateTime.ToString("dd-MM-yyyy HH:mm")
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                <div class="action-group">
+                                    <form method="post" asp-page-handler="SendToCaja"
+                                          onsubmit="return confirm('¿Carpeta física encontrada? El caso se enviará a la cola de Caja (sin enviar correo).');">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="btn-action btn-action--caja" title="Carpeta encontrada: enviar a la cola de Caja" aria-label="Enviar a Caja">
+                                            <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
+                                        </button>
+                                    </form>
+
+                                    <form method="post" asp-page-handler="CloseWithoutFolder"
+                                          onsubmit="return confirm('Esto traslada el caso a la sección \'Sin Carpetas\' (cerrado sin carpeta física). ¿Confirmar?');">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="btn-action btn-action--sin-carpeta" title="Cerrar el proceso sin carpeta física y trasladar a Sin Carpetas" aria-label="Sin carpeta">
+                                            <partial name="_ActionIcon" model="@("sin-carpeta")" /><span>Sin carpeta</span>
+                                        </button>
+                                    </form>
+
+                                    <form method="post" asp-page-handler="RectifyConfirmation"
+                                          onsubmit="return confirm('Esto enviará un correo de RECTIFICACIÓN a la comuna indicando que la confirmación anterior fue un error, y devolverá el caso a Cambio de Domicilio como Pendiente. ¿Continuar?') && confirm('¿Estás completamente seguro? Se enviará un correo real a la comuna ahora mismo.');">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <button type="submit" class="btn-action btn-action--rectify" title="Enviar correo de rectificación y volver el caso a Pendiente" aria-label="Deshacer y rectificar">
+                                            <partial name="_ActionIcon" model="@("rectify")" /><span>Rectificar</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </main>
+
+    <script>
+        function formatSearchRut(input) {
+            var raw = input.value;
+            if (!/^\d+[kK]?$/.test(raw.replace(/[.\-]/g, ''))) return;
+            var clean = raw.replace(/[.\-]/g, '');
+            if (clean.length < 2) return;
+            var num = clean.slice(0, -1);
+            var dv = clean.slice(-1).toUpperCase();
+            var formatted = '';
+            while (num.length > 3) {
+                formatted = '.' + num.slice(-3) + formatted;
+                num = num.slice(0, -3);
+            }
+            formatted = num + formatted + '-' + dv;
+            input.value = formatted;
+        }
+
+        function clearSearchIfEmpty(input) {
+            if (input.dataset.hadValue === 'true' && input.value.trim() === '') {
+                window.location.href = window.location.pathname;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -206,8 +206,12 @@
     </header>
     <div class="app-subnav no-print">
         <span class="app-subnav-label">Otros sistemas</span>
+        <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
         <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+        <a asp-page="/SubidasASistema" class="nav-subidas"><partial name="_NavIcon" model="@("upload")" /><span>Subidas a Sistema</span></a>
         <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
+        <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+        <a asp-page="/Manual" class="nav-manual"><partial name="_NavIcon" model="@("manual")" /><span>Cómo usar el sistema</span></a>
     </div>
 
     <main>

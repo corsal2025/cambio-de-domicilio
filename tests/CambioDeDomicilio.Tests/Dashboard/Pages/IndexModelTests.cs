@@ -933,6 +933,18 @@ public class IndexModelTests : IDisposable
         Assert.Equal(3, location.Position);
     }
 
+    [Fact]
+    public void OnGet_SearchMatchesCaseInSubidas_ComputesSubidasMatchCount()
+    {
+        var target = repository.Insert(NewRequest("msg-target"));
+        repository.SetDestination(target, CaseDestination.Subidas, DateTimeOffset.UtcNow);
+
+        model.OnGet(status: null, search: "18.785.387-7");
+
+        Assert.Equal(1, model.SubidasMatchCount);
+        Assert.Empty(model.Cases);
+    }
+
     private static PersonRequest OtherPerson(string sourceMessageId, string rut)
     {
         var request = NewRequest(sourceMessageId);

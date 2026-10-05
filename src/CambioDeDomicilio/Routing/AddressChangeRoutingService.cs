@@ -374,6 +374,10 @@ public sealed class AddressChangeRoutingService(
             : EmailTemplates.UploadConfirmation(request.FullName, request.Rut);
         await mailSender.SendAsync(comunaContact.ContactEmail, subject, body, cancellationToken);
         repository.UpdateStatusToConfirmed(request.Id, DateTimeOffset.UtcNow);
+        if (!viaF8)
+        {
+            repository.SetDestination(request.Id, CaseDestination.Subidas, DateTimeOffset.UtcNow);
+        }
         logger.LogInformation("Confirmación de subida enviada a la comuna correspondiente");
 
         foreach (var channel in notificationChannels)

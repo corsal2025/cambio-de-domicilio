@@ -74,9 +74,11 @@
             <span class="app-subnav-label">Sistemas</span>
             <a asp-page="/Index" class="nav-casos active"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
             <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/SubidasASistema" class="nav-subidas"><partial name="_NavIcon" model="@("upload")" /><span>Subidas a Sistema</span></a>
             <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
             <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
             <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
+            <a asp-page="/Manual" class="nav-manual"><partial name="_NavIcon" model="@("manual")" /><span>Cómo usar el sistema</span></a>
         </div>
         <div class="app-subnav-docs">
             <span class="app-subnav-label">Documentos</span>
@@ -118,6 +120,21 @@
                     </div>
                     <a asp-page="/F8" asp-route-search="@Model.SearchQuery" asp-route-highlightId="@Model.F8FirstMatchId" class="btn-cross-search">
                         Ver y seleccionar en F8 &rarr;
+                    </a>
+                </div>
+            }
+
+            if (Model.SubidasMatchCount > 0)
+            {
+                <div class="cross-search-banner cross-search-banner-subidas" style="background: rgba(13, 148, 136, 0.1); border: 1px solid rgba(13, 148, 136, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 1.25rem;">📤</span>
+                        <div class="cross-search-text" style="color: #0f766e; font-size: 0.95rem;">
+                            Esta persona tiene <strong>@Model.SubidasMatchCount caso(s)</strong> en <strong>Subidas a Sistema</strong> (pendiente de derivar a Caja o Sin Carpeta).
+                        </div>
+                    </div>
+                    <a asp-page="/SubidasASistema" asp-route-search="@Model.SearchQuery" class="btn-cross-search" style="background: #0d9488; color: white; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 0.875rem;">
+                        Ver en Subidas a Sistema &rarr;
                     </a>
                 </div>
             }
@@ -433,21 +450,9 @@
                                         <partial name="_ActionIcon" model="@("confirm")" /><span>Confirmar</span>
                                     </button>
                                 </form>
-                                <form method="post" asp-page-handler="SubirACaja">
-                                    <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn-action btn-action--caja" title="Enviar la carpeta a la cola de Caja (sin enviar correo)" aria-label="Enviar a Caja">
-                                        <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
-                                    </button>
-                                </form>
                             }
                             else if (item.Status == RequestStatus.Confirmed)
                             {
-                                <form method="post" asp-page-handler="SubirACaja">
-                                    <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn-action btn-action--caja" title="Enviar la carpeta a la cola de Caja (sin enviar correo)" aria-label="Enviar a Caja">
-                                        <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
-                                    </button>
-                                </form>
                                 <form method="post" asp-page-handler="RectifyConfirmation"
                                       onsubmit="return confirm('Esto enviará un correo de RECTIFICACIÓN a la comuna indicando que la confirmación anterior fue un error, y revertirá el caso a Pendiente. ¿Continuar?') && confirm('¿Estás completamente seguro? Se enviará un correo real a la comuna ahora mismo.');">
                                     <input type="hidden" name="id" value="@item.Id" />

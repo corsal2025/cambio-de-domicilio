@@ -1,0 +1,460 @@
+@page
+@model CambioDeDomicilio.Dashboard.Pages.ManualModel
+<!DOCTYPE html>
+<html lang="es" class="cases-page-html">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cómo Usar el Sistema — Manual de Usuario Didáctico</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <style>
+        .manual-container {
+            max-width: 1100px;
+            margin: 24px auto 60px auto;
+            padding: 0 16px;
+        }
+        .manual-hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            padding: 32px 28px;
+            color: #ffffff;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        .manual-hero h1 {
+            font-size: 1.6rem;
+            margin: 0 0 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #f8fafc;
+        }
+        .manual-hero p {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .manual-nav-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .manual-nav-pill {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #e2e8f0;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .manual-nav-pill:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+        .manual-section {
+            background: #ffffff;
+            border-radius: var(--radius);
+            border: 1px solid var(--color-border);
+            padding: 24px 28px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        .manual-section h2 {
+            font-size: 1.25rem;
+            margin: 0 0 14px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #0f172a;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+        }
+        .manual-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        .manual-step-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius);
+            padding: 16px;
+        }
+        .manual-step-badge {
+            display: inline-block;
+            background: #0284c7;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .manual-step-card h3 {
+            margin: 0 0 6px 0;
+            font-size: 0.95rem;
+            color: #1e293b;
+        }
+        .manual-step-card p {
+            margin: 0;
+            font-size: 0.84rem;
+            color: #475569;
+            line-height: 1.45;
+        }
+        .workflow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 20px;
+            background: #f1f5f9;
+            border-radius: var(--radius);
+            margin: 16px 0;
+            overflow-x: auto;
+        }
+        .workflow-node {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px 14px;
+            min-width: 150px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .workflow-node strong {
+            display: block;
+            font-size: 0.85rem;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+        .workflow-node span {
+            font-size: 0.72rem;
+            color: #64748b;
+        }
+        .workflow-arrow {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            font-weight: bold;
+        }
+        .action-demo {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            margin: 0 2px;
+        }
+        .tip-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 16px;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin-top: 14px;
+            font-size: 0.85rem;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body class="cases-page">
+    <header class="app-header">
+        <div class="brand">
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                CambioDeDomicilio
+                <small>Municipalidad de Valparaíso</small>
+                <small>Guía y Manual de Usuario</small>
+            </span>
+        </div>
+        <nav class="app-nav">
+            <div class="nav-group nav-group-filters">
+                <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("back")" /><span>Volver a Cambio de Domicilio</span></a>
+            </div>
+        </nav>
+    </header>
+
+    <div class="app-subnav">
+        <div class="app-subnav-main">
+            <span class="app-subnav-label">Sistemas</span>
+            <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/SubidasASistema" class="nav-subidas"><partial name="_NavIcon" model="@("upload")" /><span>Subidas a Sistema</span></a>
+            <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
+            <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
+            <a asp-page="/Manual" class="nav-manual active"><partial name="_NavIcon" model="@("manual")" /><span>Cómo usar el sistema</span></a>
+        </div>
+        <div class="app-subnav-docs">
+            <span class="app-subnav-label">Documentos</span>
+            <a asp-page="/Sector" asp-route-sector="Archivo" class="nav-pdf-archivo" title="Generar listado para Archivo">
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Archivo</span>
+            </a>
+            <a asp-page="/Sector" asp-route-sector="Oficina43" class="nav-pdf-oficina43" title="Generar listado para Oficina 43">
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Oficina 43</span>
+            </a>
+        </div>
+    </div>
+
+    <main class="manual-container">
+        <div class="manual-hero">
+            <h1>📖 Manual Didáctico de Usuario</h1>
+            <p>
+                Guía oficial paso a paso para el uso operativo del sistema <strong>Cambio de Domicilio</strong>. Aprende cómo fluye cada solicitud, qué funciones tiene cada pestaña y cómo derivar carpetas entre secciones sin perder ningún caso.
+            </p>
+            <div class="manual-nav-pills">
+                <a href="#flujo-general" class="manual-nav-pill">1. Flujo General</a>
+                <a href="#modulo-casos" class="manual-nav-pill">2. Cambio de Domicilio</a>
+                <a href="#modulo-f8" class="manual-nav-pill">3. F8 (Urgentes)</a>
+                <a href="#modulo-subidas" class="manual-nav-pill">4. Subidas a Sistema</a>
+                <a href="#modulo-sincarpetas" class="manual-nav-pill">5. Sin Carpetas</a>
+                <a href="#modulo-caja" class="manual-nav-pill">6. Caja</a>
+                <a href="#modulo-stats" class="manual-nav-pill">7. Estadísticas y PDFs</a>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 1: FLUJO GENERAL -->
+        <section id="flujo-general" class="manual-section">
+            <h2>🔄 1. Ciclo de Vida General: ¿Cómo viaja una solicitud?</h2>
+            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
+                El sistema conecta el correo municipal con Conaset y la custodia de carpetas físicas en papel. Cada solicitud sigue una ruta ordenada para garantizar que nunca se mezclen casos pendientes con casos completados:
+            </p>
+
+            <div class="workflow-diagram">
+                <div class="workflow-node">
+                    <strong>1. Correo Entrante</strong>
+                    <span>Llega a 'CARP. PARA PEDIR'</span>
+                </div>
+                <div class="workflow-arrow">&rarr;</div>
+                <div class="workflow-node" style="border-color:#38bdf8; background:#f0f9ff;">
+                    <strong style="color:#0284c7;">2. Cambio de Domicilio</strong>
+                    <span>Se busca RUT y fecha</span>
+                </div>
+                <div class="workflow-arrow">&rarr;</div>
+                <div class="workflow-node" style="border-color:#2dd4bf; background:#f0fdfa;">
+                    <strong style="color:#0d9488;">3. Marcar Subida</strong>
+                    <span>Sube a Conaset y confirma</span>
+                </div>
+                <div class="workflow-arrow">&rarr;</div>
+                <div class="workflow-node" style="border-color:#14b8a6; background:#ccfbf1;">
+                    <strong style="color:#0f766e;">4. Subidas a Sistema</strong>
+                    <span>Estación de derivación física</span>
+                </div>
+                <div class="workflow-arrow">&rarr;</div>
+                <div class="workflow-node" style="border-color:#22c55e; background:#f0fdf4;">
+                    <strong style="color:#16a34a;">5. Caja o Sin Carpeta</strong>
+                    <span>Custodia en Cajas foliadas</span>
+                </div>
+            </div>
+
+            <div class="tip-box">
+                💡 <strong>Regla de oro:</strong> Una vez que pulsas <strong>"Marcar subida"</strong>, la solicitud desaparece de la vista activa de Cambio de Domicilio y pasa directamente a <strong>Subidas a Sistema</strong>. De esta manera, tu pantalla principal solo contiene trabajo pendiente.
+            </div>
+        </section>
+
+        <!-- SECCIÓN 2: CAMBIO DE DOMICILIO -->
+        <section id="modulo-casos" class="manual-section">
+            <h2>🏠 2. Pestaña: Cambio de Domicilio (Casos Pendientes)</h2>
+            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
+                Es la <strong>mesa de trabajo principal</strong>. Aquí se reciben automáticamente los correos que llegan a la carpeta de Outlook <em>"CARP. PARA PEDIR"</em>.
+            </p>
+
+            <div class="manual-steps">
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Paso 1</span>
+                    <h3>Buscar y Verificar Contribuyente</h3>
+                    <p>
+                        Usa el buscador por RUT o nombre. Puedes corregir el nombre o RUT directamente haciendo clic en la celda y presionando Enter o haciendo clic fuera; el cambio se guarda automáticamente.
+                    </p>
+                </div>
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Paso 2</span>
+                    <h3>Ingresar Fecha Última Carpeta</h3>
+                    <p>
+                        Escribe la fecha (ej: <code>15/03/2024</code> o <code>15 marzo 2024</code>). El sistema clasifica el sector automáticamente:
+                        <br />• <strong>Antes de Julio 2023:</strong> <span class="badge" style="background:#e2e8f0; color:#334155;">Archivo</span>
+                        <br />• <strong>Julio 2023 en adelante:</strong> <span class="badge" style="background:#dbeafe; color:#1e40af;">Oficina 43</span>
+                        <br />• Si no tiene carpeta, escribe <code>S/C</code>.
+                    </p>
+                </div>
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Paso 3</span>
+                    <h3>Marcar para Retiro Físico</h3>
+                    <p>
+                        Marca la casilla <strong>"Marcar"</strong> para incluir la persona en el próximo listado PDF de retiro físico para los estantes de Archivo u Oficina 43.
+                    </p>
+                </div>
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Paso 4</span>
+                    <h3>Marcar Subida o Traspaso F8</h3>
+                    <p>
+                        • Si la carpeta <strong>no aparece en el archivo:</strong> marca F8 y pulsa <strong>"Traspaso a F8"</strong>.
+                        <br />• Si la carpeta <strong>está lista y escaneada:</strong> pulsa <strong>"Marcar subida"</strong>. El correo se mueve a <em>"CARP. YA SUBIDAS"</em>, se envía la confirmación oficial a la comuna y el caso pasa a <strong>Subidas a Sistema</strong>.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 3: F8 -->
+        <section id="modulo-f8" class="manual-section">
+            <h2>📁 3. Pestaña: F8 (Urgentes sin Carpeta Inicial)</h2>
+            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
+                Módulo dedicado a los casos donde la carpeta física <strong>no fue encontrada inicialmente</strong> y requiere un seguimiento de urgencia (código F8).
+            </p>
+
+            <div class="manual-steps">
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Gestión</span>
+                    <h3>Código F8</h3>
+                    <p>
+                        Ingresa el código F8 (ej: <code>F8-1045</code>). Queda asociado permanentemente al caso para control y búsqueda rápida.
+                    </p>
+                </div>
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Impresión</span>
+                    <h3>Listados PDF F8</h3>
+                    <p>
+                        En la barra superior de <strong>Documentos F8</strong>, descarga el <strong>PDF Archivo</strong> o <strong>PDF Oficina 43</strong> para entregar al personal de búsqueda.
+                    </p>
+                </div>
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Resolución</span>
+                    <h3>¿Qué hacer cuando se resuelve el F8?</h3>
+                    <p>
+                        • <strong>Si la carpeta apareció:</strong> Pulsa <span class="action-demo" style="background:#22c55e; color:#fff;">Caja</span>. El caso entra a la cola de Caja para embalaje.
+                        <br />• <strong>Si definitivamente no existe:</strong> Pulsa <span class="action-demo" style="background:#ef4444; color:#fff;">Sin carpeta</span>. El caso se traslada a la pestaña Sin Carpetas.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 4: SUBIDAS A SISTEMA -->
+        <section id="modulo-subidas" class="manual-section">
+            <h2>📤 4. Pestaña: Subidas a Sistema (Estación de Derivación)</h2>
+            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
+                Esta es la nueva estación intermedia. Recibe de manera inmediata todos los casos donde se pulsó <strong>"Marcar subida"</strong> en Cambio de Domicilio.
+            </p>
+
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin-bottom:16px;">
+                <h4 style="margin:0 0 8px 0; color:#0f172a;">Las 2 únicas acciones que ocurren aquí:</h4>
+                <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:10px;">
+                    <div style="flex:1; min-width:250px; background:#fff; padding:14px; border-radius:6px; border-left:4px solid #16a34a;">
+                        <strong style="color:#16a34a;">1. Acción Caja</strong>
+                        <p style="font-size:0.82rem; color:#475569; margin:4px 0 0 0;">
+                            Si dispones de la carpeta física, haz clic en <strong>Caja</strong>. La carpeta sale de esta pantalla y entra a la cola abierta de <strong>Caja</strong> para guardarse en cajas rotuladas.
+                        </p>
+                    </div>
+                    <div style="flex:1; min-width:250px; background:#fff; padding:14px; border-radius:6px; border-left:4px solid #dc2626;">
+                        <strong style="color:#dc2626;">2. Acción Sin Carpeta</strong>
+                        <p style="font-size:0.82rem; color:#475569; margin:4px 0 0 0;">
+                            Si el trámite se realizó de forma digital y no existe carpeta física en papel, haz clic en <strong>Sin carpeta</strong>. El caso se archiva en la sección <strong>Sin Carpetas</strong>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tip-box">
+                🛡️ <strong>Opción de Rectificar:</strong> Si un operador marcó subida por error, en esta pantalla existe el botón <strong>Rectificar</strong>, el cual envía un correo formal de anulación a la comuna y devuelve el caso a Pendiente en Cambio de Domicilio.
+            </div>
+        </section>
+
+        <!-- SECCIÓN 5: SIN CARPETAS -->
+        <section id="modulo-sincarpetas" class="manual-section">
+            <h2>🗂️ 5. Pestaña: Sin Carpetas (Historial Cerrado)</h2>
+            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
+                Registro histórico y libro de actas de todas las solicitudes que concluyeron su trámite <strong>sin custodia de carpeta física</strong>.
+            </p>
+            <div class="manual-steps">
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Auditoría</span>
+                    <h3>Trazabilidad Completa</h3>
+                    <p>
+                        Permite buscar en cualquier momento por RUT o comuna para responder a requerimientos de Contraloría, Conaset u otras municipalidades.
+                    </p>
+                </div>
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Reversibilidad</span>
+                    <h3>Reversión si aparece</h3>
+                    <p>
+                        Si meses después el archivo físico localiza una carpeta que se creía inexistente, se puede restituir el caso con el botón <strong>Revertir</strong>.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 6: CAJA -->
+        <section id="modulo-caja" class="manual-section">
+            <h2>📦 6. Pestaña: Caja (Embalaje y Foliado de Cajas)</h2>
+            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
+                Módulo para el empaque físico definitivo de las carpetas de conductores que se guardan en el depósito municipal.
+            </p>
+
+            <div class="manual-steps">
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Paso A</span>
+                    <h3>La Cola de Caja</h3>
+                    <p>
+                        Lista las carpetas físicas que esperan ser guardadas. Las carpetas se apilan físicamente en el mismo orden que aparecen en pantalla.
+                    </p>
+                </div>
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Paso B</span>
+                    <h3>Cerrar Caja</h3>
+                    <p>
+                        Cuando una caja física se llena (ej: 40 o 50 carpetas), pulsa <strong>"Cerrar Caja"</strong>. El sistema genera un código consecutivo (ej: <code>CAJA-001</code>) y congela el contenido.
+                    </p>
+                </div>
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Paso C</span>
+                    <h3>Rótulo Oficial de Caja</h3>
+                    <p>
+                        Imprime el listado oficial generado para pegarlo en la tapa de la caja de cartón con el listado completo de RUTs y nombres incluidos.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 7: ESTADÍSTICAS Y PDFS -->
+        <section id="modulo-stats" class="manual-section">
+            <h2>📊 7. Pestaña: Estadísticas y Documentos PDF</h2>
+            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
+                Métricas de gestión y generación de listados de trabajo para los operadores de bodega y archivo.
+            </p>
+
+            <div class="manual-steps">
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Plazo Legal</span>
+                    <h3>Control de 15 Días Hábiles</h3>
+                    <p>
+                        Semáforo automático de plazos: Verde (a tiempo), Amarillo (próximo a vencer) y Rojo (vencido). Permite priorizar antes de que venza el plazo normativo de Conaset.
+                    </p>
+                </div>
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Gestión</span>
+                    <h3>Comunas con Mayor Demanda</h3>
+                    <p>
+                        Gráficos interactivos de solicitudes por comuna y volumen mensual de ingresos vs subidas para reportes a la Dirección de Tránsito.
+                    </p>
+                </div>
+                <div class="manual-step-card">
+                    <span class="manual-step-badge">Impresión</span>
+                    <h3>Listados de Retiro (PDF)</h3>
+                    <p>
+                        Al generar el <strong>PDF Archivo</strong> o <strong>PDF Oficina 43</strong>, los casos marcados quedan registrados con fecha de generación para no volver a duplicarse en la siguiente impresión.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
