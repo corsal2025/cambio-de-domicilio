@@ -823,7 +823,7 @@ table.cases-index thead tr.header-groups th.th-group-frozen-end {
 table.cases td {
     padding: 6px 12px;
     border-bottom: 1px solid var(--color-border-subtle);
-    vertical-align: middle;
+    vertical-align: middle !important;
     text-align: center;
     transition: background var(--transition-fast);
     white-space: nowrap !important;
@@ -1205,16 +1205,20 @@ button.btn-outline-danger:hover {
     border-color: var(--color-review);
 }
 
-/* Acciones en la última columna */
+/* Acciones en la última columna — preserva table-cell para centrado vertical homogéneo con el resto de celdas */
+table.cases td:last-child,
 table.cases-index td:last-child {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+    display: table-cell !important;
+    vertical-align: middle !important;
+    text-align: center;
+    white-space: nowrap !important;
 }
 
+table.cases td:last-child form,
 table.cases-index td:last-child form {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
     margin: 0;
 }
 
@@ -1627,15 +1631,36 @@ table.cases-index tbody tr.row-highlight-target input.input-inline {
     justify-content: center;
     gap: 6px;
     flex-wrap: nowrap;
+    vertical-align: middle;
 }
 
 .action-group form {
     margin: 0;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+.confirmation-stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    gap: 3px;
+}
+
+.confirmation-date {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    line-height: 1;
 }
 
 .btn-action {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     padding: 6px 12px;
     border: 1px solid transparent;
@@ -1646,6 +1671,7 @@ table.cases-index tbody tr.row-highlight-target input.input-inline {
     line-height: 1;
     white-space: nowrap;
     cursor: pointer;
+    vertical-align: middle;
     transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 

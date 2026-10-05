@@ -128,16 +128,18 @@
                             <td class="text-cell sector-cell">
                                 @(item.Sector?.ToDisplayName() ?? "—")
                             </td>
-                            <td>
-                                <span class="badge badge-confirmed">
-                                    Subida Confirmada
-                                </span>
-                                @if (item.ConfirmedAt is { } conf)
-                                {
-                                    <div style="font-size: 0.72rem; color: var(--color-text-muted); margin-top: 3px;">
-                                        @conf.LocalDateTime.ToString("dd-MM-yyyy HH:mm")
-                                    </div>
-                                }
+                            <td class="text-cell confirmation-cell">
+                                <div class="confirmation-stack">
+                                    <span class="badge badge-confirmed">
+                                        Subida Confirmada
+                                    </span>
+                                    @if (item.ConfirmedAt is { } conf)
+                                    {
+                                        <span class="confirmation-date">
+                                            @conf.LocalDateTime.ToString("dd-MM-yyyy HH:mm")
+                                        </span>
+                                    }
+                                </div>
                             </td>
                             <td>
                                 <div class="action-group">
