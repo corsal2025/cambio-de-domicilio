@@ -5,60 +5,465 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cómo Usar el Sistema — Manual de Usuario Didáctico</title>
+    <title>Cómo Usar el Sistema — Tour Interactivo y Manual Paso a Paso</title>
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
     <style>
         .manual-container {
-            max-width: 1100px;
-            margin: 24px auto 60px auto;
+            max-width: 1200px;
+            margin: 20px auto 60px auto;
             padding: 0 16px;
         }
+
         .manual-hero {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(135deg, #0b2238 0%, #173859 100%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: var(--radius-lg);
-            padding: 32px 28px;
+            padding: 28px 32px;
             color: #ffffff;
             margin-bottom: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            flex-wrap: wrap;
         }
-        .manual-hero h1 {
-            font-size: 1.6rem;
+
+        .manual-hero-content h1 {
+            font-size: 1.65rem;
             margin: 0 0 8px 0;
             display: flex;
             align-items: center;
             gap: 12px;
             color: #f8fafc;
+            letter-spacing: -0.01em;
         }
-        .manual-hero p {
+
+        .manual-hero-content p {
             margin: 0;
             color: #94a3b8;
             font-size: 0.95rem;
+            max-width: 700px;
             line-height: 1.5;
         }
-        .manual-nav-pills {
+
+        .manual-hero-actions {
             display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 20px;
+            gap: 10px;
+            align-items: center;
         }
-        .manual-nav-pill {
+
+        .btn-start-tour {
+            background: #0284c7;
+            color: #ffffff;
+            border: 1px solid #38bdf8;
+            border-radius: 30px;
+            padding: 10px 22px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-start-tour:hover {
+            background: #0369a1;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(2, 132, 199, 0.5);
+        }
+
+        /* ==========================================================================
+           TOUR INTERACTIVO CONSOLE
+           ========================================================================== */
+        .tour-console {
+            background: #ffffff;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            margin-bottom: 36px;
+        }
+
+        .tour-stepper-bar {
+            background: #081a2b;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow-x: auto;
+            border-bottom: 2px solid #0284c7;
+        }
+
+        .tour-step-btn {
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            color: #e2e8f0;
-            padding: 6px 14px;
+            color: #cbd5e1;
+            padding: 8px 14px;
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: 600;
-            text-decoration: none;
+            cursor: pointer;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             transition: all 0.2s ease;
         }
-        .manual-nav-pill:hover {
-            background: rgba(255, 255, 255, 0.2);
+
+        .tour-step-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
             color: #ffffff;
-            transform: translateY(-1px);
         }
+
+        .tour-step-btn.active {
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #38bdf8;
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.5);
+        }
+
+        .tour-step-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.25);
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .tour-progress-strip {
+            height: 4px;
+            background: #e2e8f0;
+            width: 100%;
+        }
+
+        .tour-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0284c7, #14b8a6);
+            width: 14.28%;
+            transition: width 0.35s ease-in-out;
+        }
+
+        .tour-controls-bar {
+            padding: 12px 24px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .tour-step-indicator {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tour-nav-btns {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tour-btn {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .tour-btn:hover:not(:disabled) {
+            background: #f1f5f9;
+            color: #0f172a;
+            border-color: #94a3b8;
+        }
+
+        .tour-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .tour-btn-primary {
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #0284c7;
+        }
+
+        .tour-btn-primary:hover:not(:disabled) {
+            background: #0369a1;
+            color: #ffffff;
+        }
+
+        .tour-btn-autoplay {
+            background: #f0fdf4;
+            color: #16a34a;
+            border-color: #86efac;
+        }
+
+        .tour-btn-autoplay.playing {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fca5a5;
+        }
+
+        /* ==========================================================================
+           SHOWCASE STAGE (SPLIT VIEW: EXPLANATION + LIVE SIMULATION)
+           ========================================================================== */
+        .tour-stage {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            min-height: 520px;
+        }
+
+        @@media (max-width: 960px) {
+            .tour-stage {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .tour-info-panel {
+            padding: 28px 24px;
+            border-right: 1px solid #e2e8f0;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .tour-badge-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 10px;
+        }
+
+        .tour-info-title {
+            font-size: 1.35rem;
+            color: #0f172a;
+            margin: 0 0 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tour-info-desc {
+            font-size: 0.9rem;
+            color: #475569;
+            line-height: 1.55;
+            margin-bottom: 18px;
+        }
+
+        .tour-action-list {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius);
+            padding: 14px;
+            margin-bottom: 18px;
+        }
+
+        .tour-action-list h4 {
+            margin: 0 0 10px 0;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #64748b;
+        }
+
+        .tour-action-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 0.82rem;
+            color: #334155;
+            line-height: 1.4;
+        }
+
+        .tour-action-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .tour-demo-btn {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.15s ease;
+        }
+
+        .tour-demo-btn:hover {
+            transform: scale(1.04);
+        }
+
+        .tour-golden-rule {
+            background: #eff6ff;
+            border-left: 3px solid #0284c7;
+            padding: 10px 14px;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            font-size: 0.82rem;
+            color: #1e40af;
+            line-height: 1.45;
+            margin-bottom: 16px;
+        }
+
+        .tour-real-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #0284c7;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-decoration: none;
+            padding-top: 10px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .tour-real-link:hover {
+            text-decoration: underline;
+            color: #0369a1;
+        }
+
+        /* ==========================================================================
+           SIMULATOR WINDOW
+           ========================================================================== */
+        .tour-sim-panel {
+            background: #f1f5f9;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow-x: auto;
+        }
+
+        .sim-window {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sim-titlebar {
+            background: #e2e8f0;
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #cbd5e1;
+        }
+
+        .sim-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .sim-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #cbd5e1;
+        }
+
+        .sim-dot-red { background: #f87171; }
+        .sim-dot-yellow { background: #fbbf24; }
+        .sim-dot-green { background: #4ade80; }
+
+        .sim-url-bar {
+            background: #ffffff;
+            border-radius: 4px;
+            padding: 3px 12px;
+            font-size: 0.72rem;
+            font-family: monospace;
+            color: #475569;
+            flex: 1;
+            border: 1px solid #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sim-content {
+            padding: 16px;
+            position: relative;
+            background: #f8fafc;
+        }
+
+        /* Hotspots */
+        .hotspot-point {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #ea580c;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.7);
+            animation: hotspot-pulse 1.8s infinite;
+            z-index: 10;
+        }
+
+        @@keyframes hotspot-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(234, 88, 12, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0); }
+        }
+
+        .sim-toast {
+            display: none;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            margin-top: 12px;
+            animation: fadeIn 0.3s ease;
+            border-left: 4px solid #14b8a6;
+        }
+
+        @@keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Static manual section */
         .manual-section {
             background: #ffffff;
             border-radius: var(--radius);
@@ -67,6 +472,7 @@
             margin-bottom: 24px;
             box-shadow: var(--shadow-sm);
         }
+
         .manual-section h2 {
             font-size: 1.25rem;
             margin: 0 0 14px 0;
@@ -77,40 +483,7 @@
             border-bottom: 2px solid #f1f5f9;
             padding-bottom: 10px;
         }
-        .manual-steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
-            margin-top: 16px;
-        }
-        .manual-step-card {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: var(--radius);
-            padding: 16px;
-        }
-        .manual-step-badge {
-            display: inline-block;
-            background: #0284c7;
-            color: #ffffff;
-            font-size: 0.72rem;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 12px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
-        .manual-step-card h3 {
-            margin: 0 0 6px 0;
-            font-size: 0.95rem;
-            color: #1e293b;
-        }
-        .manual-step-card p {
-            margin: 0;
-            font-size: 0.84rem;
-            color: #475569;
-            line-height: 1.45;
-        }
+
         .workflow-diagram {
             display: flex;
             align-items: center;
@@ -122,48 +495,33 @@
             margin: 16px 0;
             overflow-x: auto;
         }
+
         .workflow-node {
             background: #ffffff;
             border: 1px solid #cbd5e1;
             border-radius: 8px;
             padding: 12px 14px;
-            min-width: 150px;
+            min-width: 140px;
             text-align: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
+
         .workflow-node strong {
             display: block;
             font-size: 0.85rem;
             color: #0f172a;
             margin-bottom: 4px;
         }
+
         .workflow-node span {
             font-size: 0.72rem;
             color: #64748b;
         }
+
         .workflow-arrow {
             font-size: 1.2rem;
             color: #94a3b8;
             font-weight: bold;
-        }
-        .action-demo {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.76rem;
-            font-weight: 600;
-            margin: 0 2px;
-        }
-        .tip-box {
-            background: #eff6ff;
-            border-left: 4px solid #3b82f6;
-            padding: 12px 16px;
-            border-radius: 0 var(--radius) var(--radius) 0;
-            margin-top: 14px;
-            font-size: 0.85rem;
-            color: #1e40af;
         }
     </style>
 </head>
@@ -174,7 +532,7 @@
             <span>
                 CambioDeDomicilio
                 <small>Municipalidad de Valparaíso</small>
-                <small>Guía y Manual de Usuario</small>
+                <small>Tour Interactivo y Manual Oficial</small>
             </span>
         </div>
         <nav class="app-nav">
@@ -207,254 +565,694 @@
     </div>
 
     <main class="manual-container">
+        <!-- HERO -->
         <div class="manual-hero">
-            <h1>📖 Manual Didáctico de Usuario</h1>
-            <p>
-                Guía oficial paso a paso para el uso operativo del sistema <strong>Cambio de Domicilio</strong>. Aprende cómo fluye cada solicitud, qué funciones tiene cada pestaña y cómo derivar carpetas entre secciones sin perder ningún caso.
-            </p>
-            <div class="manual-nav-pills">
-                <a href="#flujo-general" class="manual-nav-pill">1. Flujo General</a>
-                <a href="#modulo-casos" class="manual-nav-pill">2. Cambio de Domicilio</a>
-                <a href="#modulo-f8" class="manual-nav-pill">3. F8 (Urgentes)</a>
-                <a href="#modulo-subidas" class="manual-nav-pill">4. Subidas a Sistema</a>
-                <a href="#modulo-sincarpetas" class="manual-nav-pill">5. Sin Carpetas</a>
-                <a href="#modulo-caja" class="manual-nav-pill">6. Caja</a>
-                <a href="#modulo-stats" class="manual-nav-pill">7. Estadísticas y PDFs</a>
+            <div class="manual-hero-content">
+                <h1>🧭 Tour Guiado Interactivo: Aprende el Sistema</h1>
+                <p>
+                    Explora paso a paso cada una de las <strong>7 secciones clave</strong> del sistema. Descubre el propósito de cada pantalla, qué botones usar y prueba las acciones interactivas en vivo.
+                </p>
+            </div>
+            <div class="manual-hero-actions">
+                <button type="button" class="btn-start-tour" onclick="startGuidedTour()">
+                    <span>▶ Iniciar Tour Automático</span>
+                </button>
             </div>
         </div>
 
-        <!-- SECCIÓN 1: FLUJO GENERAL -->
-        <section id="flujo-general" class="manual-section">
-            <h2>🔄 1. Ciclo de Vida General: ¿Cómo viaja una solicitud?</h2>
+        <!-- ==========================================================================
+             TOUR INTERACTIVO CONSOLE
+             ========================================================================== -->
+        <div class="tour-console" id="tour-interactivo">
+            <!-- Stepper Tabs Bar -->
+            <div class="tour-stepper-bar">
+                <button type="button" class="tour-step-btn active" onclick="goToStep(1)">
+                    <span class="tour-step-num">1</span>
+                    <span>🏠 Cambio de Domicilio</span>
+                </button>
+                <button type="button" class="tour-step-btn" onclick="goToStep(2)">
+                    <span class="tour-step-num">2</span>
+                    <span>📁 Casos F8</span>
+                </button>
+                <button type="button" class="tour-step-btn" onclick="goToStep(3)">
+                    <span class="tour-step-num">3</span>
+                    <span>📤 Subidas a Sistema</span>
+                </button>
+                <button type="button" class="tour-step-btn" onclick="goToStep(4)">
+                    <span class="tour-step-num">4</span>
+                    <span>🗂️ Sin Carpetas</span>
+                </button>
+                <button type="button" class="tour-step-btn" onclick="goToStep(5)">
+                    <span class="tour-step-num">5</span>
+                    <span>📦 Caja</span>
+                </button>
+                <button type="button" class="tour-step-btn" onclick="goToStep(6)">
+                    <span class="tour-step-num">6</span>
+                    <span>📊 Estadísticas</span>
+                </button>
+                <button type="button" class="tour-step-btn" onclick="goToStep(7)">
+                    <span class="tour-step-num">7</span>
+                    <span>📄 Documentos PDF</span>
+                </button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="tour-progress-strip">
+                <div class="tour-progress-fill" id="tour-progress-fill"></div>
+            </div>
+
+            <!-- Controls Bar -->
+            <div class="tour-controls-bar">
+                <div class="tour-step-indicator" id="tour-step-indicator">
+                    <span>Paso 1 de 7</span>
+                    <span style="color:#94a3b8;">•</span>
+                    <span id="tour-step-name" style="color:#0284c7;">Cambio de Domicilio (Bandeja Principal)</span>
+                </div>
+                <div class="tour-nav-btns">
+                    <button type="button" class="tour-btn" id="tour-btn-prev" onclick="prevStep()" disabled>
+                        <span>◀ Anterior</span>
+                    </button>
+                    <button type="button" class="tour-btn tour-btn-primary" id="tour-btn-next" onclick="nextStep()">
+                        <span>Siguiente ▶</span>
+                    </button>
+                    <button type="button" class="tour-btn tour-btn-autoplay" id="tour-btn-autoplay" onclick="toggleAutoPlay()">
+                        <span>▶ Auto-Play</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Showcase Stage (Split View) -->
+            <div class="tour-stage">
+                <!-- Left Panel: Explanations & Actions -->
+                <div class="tour-info-panel" id="tour-info-panel">
+                    <div>
+                        <span class="tour-badge-tag" id="tour-badge-tag" style="background:#e0f2fe; color:#0369a1;">Paso 1 • Entrada</span>
+                        <h2 class="tour-info-title" id="tour-info-title">🏠 Cambio de Domicilio</h2>
+                        <div class="tour-info-desc" id="tour-info-desc">
+                            Es la <strong>mesa de trabajo principal</strong>. Aquí llegan automáticamente las solicitudes desde el correo <em>'CARP. PARA PEDIR'</em>. Tu labor aquí es ingresar la fecha de la última carpeta del contribuyente y definir su destino.
+                        </div>
+
+                        <div class="tour-action-list" id="tour-action-list">
+                            <h4>Acciones que realizas en este sitio:</h4>
+                            <div class="tour-action-item">
+                                <div>
+                                    <strong>1. Ingresar Fecha:</strong> Escribe ej. <code>15/03/2024</code>. El sistema clasifica el sector automáticamente (<span class="badge" style="background:#e2e8f0; color:#334155;">Archivo</span> si es &lt; Julio 2023, o <span class="badge" style="background:#dbeafe; color:#1e40af;">Oficina 43</span> si es posterior).
+                                </div>
+                            </div>
+                            <div class="tour-action-item">
+                                <div>
+                                    <strong>2. Marcar Subida:</strong> Pulsa <span class="tour-demo-btn" style="background:#0284c7; color:#fff;" onclick="simulateAction('marcar-subida')">Marcar subida</span>. Mueve el correo a <em>'CARP. YA SUBIDAS'</em>, envía confirmación oficial a la comuna y <strong>traslada el caso a Subidas a Sistema</strong>.
+                                </div>
+                            </div>
+                            <div class="tour-action-item">
+                                <div>
+                                    <strong>3. Traspaso a F8:</strong> Si la carpeta no se encuentra físicamente, pulsa <span class="tour-demo-btn" style="background:#d97706; color:#fff;" onclick="simulateAction('traspaso-f8')">Traspaso a F8</span> para seguimiento urgente.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tour-golden-rule" id="tour-golden-rule">
+                            💡 <strong>Regla de Oro:</strong> Los casos subidos ya NO se quedan en esta pantalla. Al pulsar <strong>Marcar subida</strong>, desaparecen de aquí para mantener tu bandeja limpia y van directo a <strong>Subidas a Sistema</strong>.
+                        </div>
+                    </div>
+
+                    <a href="/Index" target="_blank" class="tour-real-link" id="tour-real-link">
+                        <span>Ir a la pantalla real de Cambio de Domicilio &rarr;</span>
+                    </a>
+                </div>
+
+                <!-- Right Panel: Interactive Simulator -->
+                <div class="tour-sim-panel" id="tour-sim-panel">
+                    <div class="sim-window">
+                        <div class="sim-titlebar">
+                            <div class="sim-dots">
+                                <span class="sim-dot sim-dot-red"></span>
+                                <span class="sim-dot sim-dot-yellow"></span>
+                                <span class="sim-dot sim-dot-green"></span>
+                            </div>
+                            <div class="sim-url-bar" id="sim-url-bar">
+                                <span>🔒 https://localhost:5001/Index</span>
+                            </div>
+                        </div>
+                        <div class="sim-content" id="sim-content">
+                            <!-- Dynamic Simulation DOM will be injected by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="sim-toast" id="sim-toast"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================================================
+             MAPA DEL FLUJO COMPLETO (INFOGRAFÍA)
+             ========================================================================== -->
+        <section class="manual-section">
+            <h2>🔄 Ciclo de Vida General: Cómo Fluye una Solicitud</h2>
             <p style="font-size:0.9rem; color:#475569; margin-top:0;">
-                El sistema conecta el correo municipal con Conaset y la custodia de carpetas físicas en papel. Cada solicitud sigue una ruta ordenada para garantizar que nunca se mezclen casos pendientes con casos completados:
+                El sistema interconecta 7 áreas de trabajo garantizando que nunca se extravíe un caso ni se dupliquen esfuerzos entre el personal de ventanilla y el archivo físico:
             </p>
 
             <div class="workflow-diagram">
-                <div class="workflow-node">
-                    <strong>1. Correo Entrante</strong>
-                    <span>Llega a 'CARP. PARA PEDIR'</span>
+                <div class="workflow-node" style="border-color:#38bdf8; background:#f0f9ff;">
+                    <strong style="color:#0284c7;">1. Cambio Domicilio</strong>
+                    <span>Ingreso y Fecha</span>
                 </div>
                 <div class="workflow-arrow">&rarr;</div>
-                <div class="workflow-node" style="border-color:#38bdf8; background:#f0f9ff;">
-                    <strong style="color:#0284c7;">2. Cambio de Domicilio</strong>
-                    <span>Se busca RUT y fecha</span>
+                <div class="workflow-node" style="border-color:#fbbf24; background:#fefce8;">
+                    <strong style="color:#d97706;">2. F8 (Urgentes)</strong>
+                    <span>Si falta carpeta</span>
                 </div>
                 <div class="workflow-arrow">&rarr;</div>
                 <div class="workflow-node" style="border-color:#2dd4bf; background:#f0fdfa;">
-                    <strong style="color:#0d9488;">3. Marcar Subida</strong>
-                    <span>Sube a Conaset y confirma</span>
-                </div>
-                <div class="workflow-arrow">&rarr;</div>
-                <div class="workflow-node" style="border-color:#14b8a6; background:#ccfbf1;">
-                    <strong style="color:#0f766e;">4. Subidas a Sistema</strong>
-                    <span>Estación de derivación física</span>
+                    <strong style="color:#0d9488;">3. Subidas Sistema</strong>
+                    <span>Estación Derivación</span>
                 </div>
                 <div class="workflow-arrow">&rarr;</div>
                 <div class="workflow-node" style="border-color:#22c55e; background:#f0fdf4;">
-                    <strong style="color:#16a34a;">5. Caja o Sin Carpeta</strong>
-                    <span>Custodia en Cajas foliadas</span>
+                    <strong style="color:#16a34a;">4. Caja</strong>
+                    <span>Embalaje físico</span>
                 </div>
-            </div>
-
-            <div class="tip-box">
-                💡 <strong>Regla de oro:</strong> Una vez que pulsas <strong>"Marcar subida"</strong>, la solicitud desaparece de la vista activa de Cambio de Domicilio y pasa directamente a <strong>Subidas a Sistema</strong>. De esta manera, tu pantalla principal solo contiene trabajo pendiente.
-            </div>
-        </section>
-
-        <!-- SECCIÓN 2: CAMBIO DE DOMICILIO -->
-        <section id="modulo-casos" class="manual-section">
-            <h2>🏠 2. Pestaña: Cambio de Domicilio (Casos Pendientes)</h2>
-            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
-                Es la <strong>mesa de trabajo principal</strong>. Aquí se reciben automáticamente los correos que llegan a la carpeta de Outlook <em>"CARP. PARA PEDIR"</em>.
-            </p>
-
-            <div class="manual-steps">
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Paso 1</span>
-                    <h3>Buscar y Verificar Contribuyente</h3>
-                    <p>
-                        Usa el buscador por RUT o nombre. Puedes corregir el nombre o RUT directamente haciendo clic en la celda y presionando Enter o haciendo clic fuera; el cambio se guarda automáticamente.
-                    </p>
-                </div>
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Paso 2</span>
-                    <h3>Ingresar Fecha Última Carpeta</h3>
-                    <p>
-                        Escribe la fecha (ej: <code>15/03/2024</code> o <code>15 marzo 2024</code>). El sistema clasifica el sector automáticamente:
-                        <br />• <strong>Antes de Julio 2023:</strong> <span class="badge" style="background:#e2e8f0; color:#334155;">Archivo</span>
-                        <br />• <strong>Julio 2023 en adelante:</strong> <span class="badge" style="background:#dbeafe; color:#1e40af;">Oficina 43</span>
-                        <br />• Si no tiene carpeta, escribe <code>S/C</code>.
-                    </p>
-                </div>
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Paso 3</span>
-                    <h3>Marcar para Retiro Físico</h3>
-                    <p>
-                        Marca la casilla <strong>"Marcar"</strong> para incluir la persona en el próximo listado PDF de retiro físico para los estantes de Archivo u Oficina 43.
-                    </p>
-                </div>
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Paso 4</span>
-                    <h3>Marcar Subida o Traspaso F8</h3>
-                    <p>
-                        • Si la carpeta <strong>no aparece en el archivo:</strong> marca F8 y pulsa <strong>"Traspaso a F8"</strong>.
-                        <br />• Si la carpeta <strong>está lista y escaneada:</strong> pulsa <strong>"Marcar subida"</strong>. El correo se mueve a <em>"CARP. YA SUBIDAS"</em>, se envía la confirmación oficial a la comuna y el caso pasa a <strong>Subidas a Sistema</strong>.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECCIÓN 3: F8 -->
-        <section id="modulo-f8" class="manual-section">
-            <h2>📁 3. Pestaña: F8 (Urgentes sin Carpeta Inicial)</h2>
-            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
-                Módulo dedicado a los casos donde la carpeta física <strong>no fue encontrada inicialmente</strong> y requiere un seguimiento de urgencia (código F8).
-            </p>
-
-            <div class="manual-steps">
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Gestión</span>
-                    <h3>Código F8</h3>
-                    <p>
-                        Ingresa el código F8 (ej: <code>F8-1045</code>). Queda asociado permanentemente al caso para control y búsqueda rápida.
-                    </p>
-                </div>
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Impresión</span>
-                    <h3>Listados PDF F8</h3>
-                    <p>
-                        En la barra superior de <strong>Documentos F8</strong>, descarga el <strong>PDF Archivo</strong> o <strong>PDF Oficina 43</strong> para entregar al personal de búsqueda.
-                    </p>
-                </div>
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Resolución</span>
-                    <h3>¿Qué hacer cuando se resuelve el F8?</h3>
-                    <p>
-                        • <strong>Si la carpeta apareció:</strong> Pulsa <span class="action-demo" style="background:#22c55e; color:#fff;">Caja</span>. El caso entra a la cola de Caja para embalaje.
-                        <br />• <strong>Si definitivamente no existe:</strong> Pulsa <span class="action-demo" style="background:#ef4444; color:#fff;">Sin carpeta</span>. El caso se traslada a la pestaña Sin Carpetas.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECCIÓN 4: SUBIDAS A SISTEMA -->
-        <section id="modulo-subidas" class="manual-section">
-            <h2>📤 4. Pestaña: Subidas a Sistema (Estación de Derivación)</h2>
-            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
-                Esta es la nueva estación intermedia. Recibe de manera inmediata todos los casos donde se pulsó <strong>"Marcar subida"</strong> en Cambio de Domicilio.
-            </p>
-
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin-bottom:16px;">
-                <h4 style="margin:0 0 8px 0; color:#0f172a;">Las 2 únicas acciones que ocurren aquí:</h4>
-                <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:10px;">
-                    <div style="flex:1; min-width:250px; background:#fff; padding:14px; border-radius:6px; border-left:4px solid #16a34a;">
-                        <strong style="color:#16a34a;">1. Acción Caja</strong>
-                        <p style="font-size:0.82rem; color:#475569; margin:4px 0 0 0;">
-                            Si dispones de la carpeta física, haz clic en <strong>Caja</strong>. La carpeta sale de esta pantalla y entra a la cola abierta de <strong>Caja</strong> para guardarse en cajas rotuladas.
-                        </p>
-                    </div>
-                    <div style="flex:1; min-width:250px; background:#fff; padding:14px; border-radius:6px; border-left:4px solid #dc2626;">
-                        <strong style="color:#dc2626;">2. Acción Sin Carpeta</strong>
-                        <p style="font-size:0.82rem; color:#475569; margin:4px 0 0 0;">
-                            Si el trámite se realizó de forma digital y no existe carpeta física en papel, haz clic en <strong>Sin carpeta</strong>. El caso se archiva en la sección <strong>Sin Carpetas</strong>.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="tip-box">
-                🛡️ <strong>Opción de Rectificar:</strong> Si un operador marcó subida por error, en esta pantalla existe el botón <strong>Rectificar</strong>, el cual envía un correo formal de anulación a la comuna y devuelve el caso a Pendiente en Cambio de Domicilio.
-            </div>
-        </section>
-
-        <!-- SECCIÓN 5: SIN CARPETAS -->
-        <section id="modulo-sincarpetas" class="manual-section">
-            <h2>🗂️ 5. Pestaña: Sin Carpetas (Historial Cerrado)</h2>
-            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
-                Registro histórico y libro de actas de todas las solicitudes que concluyeron su trámite <strong>sin custodia de carpeta física</strong>.
-            </p>
-            <div class="manual-steps">
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Auditoría</span>
-                    <h3>Trazabilidad Completa</h3>
-                    <p>
-                        Permite buscar en cualquier momento por RUT o comuna para responder a requerimientos de Contraloría, Conaset u otras municipalidades.
-                    </p>
-                </div>
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Reversibilidad</span>
-                    <h3>Reversión si aparece</h3>
-                    <p>
-                        Si meses después el archivo físico localiza una carpeta que se creía inexistente, se puede restituir el caso con el botón <strong>Revertir</strong>.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECCIÓN 6: CAJA -->
-        <section id="modulo-caja" class="manual-section">
-            <h2>📦 6. Pestaña: Caja (Embalaje y Foliado de Cajas)</h2>
-            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
-                Módulo para el empaque físico definitivo de las carpetas de conductores que se guardan en el depósito municipal.
-            </p>
-
-            <div class="manual-steps">
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Paso A</span>
-                    <h3>La Cola de Caja</h3>
-                    <p>
-                        Lista las carpetas físicas que esperan ser guardadas. Las carpetas se apilan físicamente en el mismo orden que aparecen en pantalla.
-                    </p>
-                </div>
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Paso B</span>
-                    <h3>Cerrar Caja</h3>
-                    <p>
-                        Cuando una caja física se llena (ej: 40 o 50 carpetas), pulsa <strong>"Cerrar Caja"</strong>. El sistema genera un código consecutivo (ej: <code>CAJA-001</code>) y congela el contenido.
-                    </p>
-                </div>
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Paso C</span>
-                    <h3>Rótulo Oficial de Caja</h3>
-                    <p>
-                        Imprime el listado oficial generado para pegarlo en la tapa de la caja de cartón con el listado completo de RUTs y nombres incluidos.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECCIÓN 7: ESTADÍSTICAS Y PDFS -->
-        <section id="modulo-stats" class="manual-section">
-            <h2>📊 7. Pestaña: Estadísticas y Documentos PDF</h2>
-            <p style="font-size:0.9rem; color:#475569; margin-top:0;">
-                Métricas de gestión y generación de listados de trabajo para los operadores de bodega y archivo.
-            </p>
-
-            <div class="manual-steps">
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Plazo Legal</span>
-                    <h3>Control de 15 Días Hábiles</h3>
-                    <p>
-                        Semáforo automático de plazos: Verde (a tiempo), Amarillo (próximo a vencer) y Rojo (vencido). Permite priorizar antes de que venza el plazo normativo de Conaset.
-                    </p>
-                </div>
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Gestión</span>
-                    <h3>Comunas con Mayor Demanda</h3>
-                    <p>
-                        Gráficos interactivos de solicitudes por comuna y volumen mensual de ingresos vs subidas para reportes a la Dirección de Tránsito.
-                    </p>
-                </div>
-                <div class="manual-step-card">
-                    <span class="manual-step-badge">Impresión</span>
-                    <h3>Listados de Retiro (PDF)</h3>
-                    <p>
-                        Al generar el <strong>PDF Archivo</strong> o <strong>PDF Oficina 43</strong>, los casos marcados quedan registrados con fecha de generación para no volver a duplicarse en la siguiente impresión.
-                    </p>
+                <div class="workflow-arrow">o</div>
+                <div class="workflow-node" style="border-color:#f87171; background:#fef2f2;">
+                    <strong style="color:#dc2626;">5. Sin Carpetas</strong>
+                    <span>Cierre digital</span>
                 </div>
             </div>
         </section>
     </main>
+
+    <!-- ==========================================================================
+         JAVASCRIPT DEL TOUR INTERACTIVO PASO A PASO
+         ========================================================================== -->
+    <script>
+        const tourSteps = [
+            {
+                step: 1,
+                tag: "Paso 1 • Mesa de Entrada",
+                badgeBg: "#e0f2fe",
+                badgeColor: "#0369a1",
+                title: "🏠 Cambio de Domicilio",
+                url: "https://localhost:5001/Index",
+                realLinkText: "Ir a la pantalla real de Cambio de Domicilio →",
+                desc: "Es la <strong>mesa de trabajo principal</strong>. Aquí se reciben automáticamente los correos de comunas. Se revisa el RUT, se escribe la fecha de la última carpeta y se decide si el caso está listo para subirse o si es urgente F8.",
+                actionsHtml: `
+                    <h4>Acciones principales en este sitio:</h4>
+                    <div class="tour-action-item">
+                        <div><strong>1. Buscar:</strong> Filtra en tiempo real por RUT o Nombre. Si un caso ya fue subido o está en F8, una alerta te avisa de inmediato.</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>2. Fecha:</strong> Ingresa ej. <code>15/03/2024</code>. Calcula automáticamente el sector (<span class="badge" style="background:#e2e8f0; color:#334155;">Archivo</span> &lt; Jul 2023 o <span class="badge" style="background:#dbeafe; color:#1e40af;">Oficina 43</span>).</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>3. Marcar Subida:</strong> Pulsa <span class="tour-demo-btn" style="background:#0284c7; color:#fff;" onclick="simulateAction('marcar-subida')">Marcar subida</span>. Mueve el correo, confirma a la comuna y <strong>traslada a Subidas a Sistema</strong>.</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>4. Traspaso F8:</strong> Pulsa <span class="tour-demo-btn" style="background:#d97706; color:#fff;" onclick="simulateAction('traspaso-f8')">Traspaso F8</span> si la carpeta física no se encontró.</div>
+                    </div>
+                `,
+                goldenRule: "💡 <strong>Regla de Oro:</strong> Al pulsar 'Marcar subida', el caso sale de Cambio de Domicilio y se traslada a 'Subidas a Sistema'. Tu bandeja principal queda limpia con solo trabajo pendiente.",
+                renderSim: function() {
+                    return `
+                        <div style="background:#fff; border-radius:6px; border:1px solid #e2e8f0; padding:12px; font-size:0.82rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <div style="font-weight:700; color:#0f172a;">Casos Pendientes (Bandeja de Entrada)</div>
+                                <span class="hotspot-point" title="Punto 1: Buscador Inteligente" onclick="showToast('🔍 El buscador localiza en milisegundos y avisa si el caso ya está en F8, Caja o Subidas.')">1</span>
+                            </div>
+                            <table style="width:100%; border-collapse:collapse; text-align:left;">
+                                <tr style="background:#f1f5f9; font-size:0.75rem; color:#475569;">
+                                    <th style="padding:6px;">Contribuyente</th>
+                                    <th>RUT</th>
+                                    <th>Fecha Carpeta</th>
+                                    <th>Sector</th>
+                                    <th>Acción Disponible</th>
+                                </tr>
+                                <tr id="sim-row-1" style="border-bottom:1px solid #f1f5f9;">
+                                    <td style="padding:8px 6px; font-weight:600;">GONZALEZ SILVA CARLOS</td>
+                                    <td>17.482.912-3</td>
+                                    <td>
+                                        <input type="text" value="14/10/2023" style="width:85px; font-size:0.75rem; padding:2px 4px; border:1px solid #cbd5e1; border-radius:4px;" />
+                                    </td>
+                                    <td><span class="badge" style="background:#dbeafe; color:#1e40af; font-size:0.7rem; padding:2px 6px; border-radius:4px;">Oficina 43</span></td>
+                                    <td>
+                                        <div style="display:flex; gap:6px;">
+                                            <button class="tour-demo-btn" style="background:#0284c7; color:#fff;" onclick="simulateAction('marcar-subida')">Marcar subida</button>
+                                            <button class="tour-demo-btn" style="background:#d97706; color:#fff;" onclick="simulateAction('traspaso-f8')">F8</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <div style="margin-top:10px; font-size:0.75rem; color:#64748b; display:flex; justify-content:space-between;">
+                                <span>👆 ¡Haz clic en <strong>Marcar subida</strong> para ver cómo viaja el caso!</span>
+                                <span class="hotspot-point" title="Punto 2: Botón de Subida" onclick="showToast('📤 Marcar subida envía el correo de confirmación y traslada el caso a Subidas a Sistema.')">2</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+            {
+                step: 2,
+                tag: "Paso 2 • Búsqueda Especial",
+                badgeBg: "#fef3c7",
+                badgeColor: "#b45309",
+                title: "📁 Casos F8 (Urgentes)",
+                url: "https://localhost:5001/F8",
+                realLinkText: "Ir a la pantalla real de Casos F8 →",
+                desc: "Módulo especializado para cuando <strong>la carpeta física no aparece</strong> en las estanterías de bodega. Aquí se asigna el código de control F8 para que el personal busque exhaustivamente.",
+                actionsHtml: `
+                    <h4>Acciones principales en este sitio:</h4>
+                    <div class="tour-action-item">
+                        <div><strong>1. Asignar Código F8:</strong> Escribe ej. <code>F8-502</code> para control administrativo y búsqueda.</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>2. Descargar Listado F8:</strong> En la barra superior, genera el PDF de búsqueda rápida para los bodegueros.</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>3. Resolución con Caja:</strong> Si la carpeta apareció, pulsa <span class="tour-demo-btn" style="background:#16a34a; color:#fff;" onclick="simulateAction('f8-caja')">Caja</span> para enviarla a embalaje.</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>4. Resolución Sin Carpeta:</strong> Si definitivamente no existe, pulsa <span class="tour-demo-btn" style="background:#dc2626; color:#fff;" onclick="simulateAction('f8-sincarpeta')">Sin carpeta</span>.</div>
+                    </div>
+                `,
+                goldenRule: "💡 <strong>Regla de Oro:</strong> Un caso en F8 nunca se queda en el limbo. Siempre se resuelve enviándolo a 'Caja' (si apareció) o a 'Sin Carpetas' (si no existe carpeta de papel).",
+                renderSim: function() {
+                    return `
+                        <div style="background:#fff; border-radius:6px; border:1px solid #e2e8f0; padding:12px; font-size:0.82rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <div style="font-weight:700; color:#b45309;">Casos F8 Urgentes (Sin Carpeta Inicial)</div>
+                                <span class="hotspot-point" title="Punto 1: Código F8" onclick="showToast('🏷️ El código F8 se guarda automáticamente al escribir y salir de la celda.')">1</span>
+                            </div>
+                            <table style="width:100%; border-collapse:collapse; text-align:left;">
+                                <tr style="background:#fefce8; font-size:0.75rem; color:#854d0e;">
+                                    <th style="padding:6px;">Contribuyente</th>
+                                    <th>RUT</th>
+                                    <th>Código F8</th>
+                                    <th>Resolución</th>
+                                </tr>
+                                <tr id="sim-row-f8" style="border-bottom:1px solid #fefce8;">
+                                    <td style="padding:8px 6px; font-weight:600;">VALENZUELA ROJAS HERNAN</td>
+                                    <td>15.201.884-9</td>
+                                    <td><input type="text" value="F8-109" style="width:70px; font-size:0.75rem; padding:2px 4px; border:1px solid #fde047; border-radius:4px; font-weight:bold;" /></td>
+                                    <td>
+                                        <div style="display:flex; gap:6px;">
+                                            <button class="tour-demo-btn" style="background:#16a34a; color:#fff;" onclick="simulateAction('f8-caja')">Caja</button>
+                                            <button class="tour-demo-btn" style="background:#dc2626; color:#fff;" onclick="simulateAction('f8-sincarpeta')">Sin carpeta</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <div style="margin-top:10px; font-size:0.75rem; color:#64748b;">
+                                👆 Haz clic en <strong>Caja</strong> (si apareció) o <strong>Sin carpeta</strong> (si no existe papel).
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+            {
+                step: 3,
+                tag: "Paso 3 • Estación de Derivación",
+                badgeBg: "#ccfbf1",
+                badgeColor: "#0f766e",
+                title: "📤 Subidas a Sistema",
+                url: "https://localhost:5001/SubidasASistema",
+                realLinkText: "Ir a la pantalla real de Subidas a Sistema →",
+                desc: "Es la <strong>nueva estación intermedia</strong>. Aquí se concentran todas las solicitudes que ya fueron subidas y confirmadas por correo a la comuna. En este punto se decide su destino físico final.",
+                actionsHtml: `
+                    <h4>Las 2 únicas acciones que ocurren aquí:</h4>
+                    <div class="tour-action-item">
+                        <div><strong>1. Acción [Caja]:</strong> Si tienes la carpeta física en mano, pulsa <span class="tour-demo-btn" style="background:#16a34a; color:#fff;" onclick="simulateAction('subidas-caja')">Caja</span>. El caso entra a la cola abierta de Caja para embalaje.</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>2. Acción [Sin Carpeta]:</strong> Si el trámite no tiene respaldo de papel, pulsa <span class="tour-demo-btn" style="background:#dc2626; color:#fff;" onclick="simulateAction('subidas-sincarpeta')">Sin carpeta</span> para archivar digitalmente.</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>3. Acción [Rectificar]:</strong> ¿Se subió por error? Pulsa <span class="tour-demo-btn" style="background:#ea580c; color:#fff;" onclick="simulateAction('subidas-rectificar')">Rectificar</span> para anular con correo oficial a la comuna y devolver a Pendiente.</div>
+                    </div>
+                `,
+                goldenRule: "💡 <strong>Regla de Oro:</strong> Esta pantalla separa lo digital de lo físico. Una vez confirmada la subida, decides si la carpeta va a Caja de cartón o al libro digital de Sin Carpetas.",
+                renderSim: function() {
+                    return `
+                        <div style="background:#fff; border-radius:6px; border:1px solid #e2e8f0; padding:12px; font-size:0.82rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <div style="font-weight:700; color:#0f766e;">Subidas a Sistema (Pendientes de Derivación Física)</div>
+                                <span class="hotspot-point" title="Punto 1: Subidas Confirmadas" onclick="showToast('✅ Estos casos ya fueron informados a la comuna. Solo resta derivar la carpeta.')">1</span>
+                            </div>
+                            <table style="width:100%; border-collapse:collapse; text-align:left;">
+                                <tr style="background:#f0fdfa; font-size:0.75rem; color:#134e4a;">
+                                    <th style="padding:6px;">Contribuyente</th>
+                                    <th>Comuna</th>
+                                    <th>Estado</th>
+                                    <th>Derivación Física</th>
+                                </tr>
+                                <tr id="sim-row-subidas" style="border-bottom:1px solid #f0fdfa;">
+                                    <td style="padding:8px 6px; font-weight:600;">GONZALEZ SILVA CARLOS</td>
+                                    <td>Quilpué</td>
+                                    <td><span class="badge" style="background:#ccfbf1; color:#0f766e; font-size:0.7rem; padding:2px 6px; border-radius:4px;">Subida Confirmada</span></td>
+                                    <td>
+                                        <div style="display:flex; gap:6px;">
+                                            <button class="tour-demo-btn" style="background:#16a34a; color:#fff;" onclick="simulateAction('subidas-caja')">Caja</button>
+                                            <button class="tour-demo-btn" style="background:#dc2626; color:#fff;" onclick="simulateAction('subidas-sincarpeta')">Sin carpeta</button>
+                                            <button class="tour-demo-btn" style="background:#ea580c; color:#fff;" onclick="simulateAction('subidas-rectificar')">Rectificar</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <div style="margin-top:10px; font-size:0.75rem; color:#64748b;">
+                                👆 Prueba hacer clic en <strong>Caja</strong> o <strong>Sin carpeta</strong> para ver el destino del caso.
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+            {
+                step: 4,
+                tag: "Paso 4 • Archivo Digital",
+                badgeBg: "#fee2e2",
+                badgeColor: "#991b1b",
+                title: "🗂️ Sin Carpetas",
+                url: "https://localhost:5001/SinCarpetas",
+                realLinkText: "Ir a la pantalla real de Sin Carpetas →",
+                desc: "Es el <strong>libro oficial de actas e historial cerrado</strong> de todas las solicitudes donde no existió carpeta en papel. Garantiza que quede respaldo legal auditado frente a Contraloría o reclamos de contribuyentes.",
+                actionsHtml: `
+                    <h4>Acciones principales en este sitio:</h4>
+                    <div class="tour-action-item">
+                        <div><strong>1. Búsqueda y Auditoría:</strong> Permite consultar en segundos cualquier trámite histórico cerrado sin carpeta.</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>2. Botón Revertir:</strong> Si meses después la bodega encuentra físicamente la carpeta, se puede pulsar <span class="tour-demo-btn" style="background:#0284c7; color:#fff;" onclick="simulateAction('sincarpeta-revertir')">Revertir</span> para reincorporarla a la cola de Caja.</div>
+                    </div>
+                `,
+                goldenRule: "💡 <strong>Regla de Oro:</strong> Aunque un caso se cierre 'Sin Carpeta', nunca se borra. La trazabilidad municipal queda resguardada permanentemente.",
+                renderSim: function() {
+                    return `
+                        <div style="background:#fff; border-radius:6px; border:1px solid #e2e8f0; padding:12px; font-size:0.82rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <div style="font-weight:700; color:#991b1b;">Historial de Solicitudes Sin Carpeta Física</div>
+                                <span class="hotspot-point" title="Punto 1: Auditoría" onclick="showToast('📜 Registro histórico inmutable de casos tramitados sin custodia física.')">1</span>
+                            </div>
+                            <table style="width:100%; border-collapse:collapse; text-align:left;">
+                                <tr style="background:#fef2f2; font-size:0.75rem; color:#991b1b;">
+                                    <th style="padding:6px;">Contribuyente</th>
+                                    <th>RUT</th>
+                                    <th>Cerrado El</th>
+                                    <th>Acción</th>
+                                </tr>
+                                <tr style="border-bottom:1px solid #fef2f2;">
+                                    <td style="padding:8px 6px; font-weight:600;">MORALES PINTO DANIELA</td>
+                                    <td>19.112.409-K</td>
+                                    <td>05/10/2026</td>
+                                    <td>
+                                        <button class="tour-demo-btn" style="background:#0284c7; color:#fff;" onclick="simulateAction('sincarpeta-revertir')">Revertir a Caja</button>
+                                    </td>
+                                </tr>
+                            </table>
+                            <div style="margin-top:10px; font-size:0.75rem; color:#64748b;">
+                                👆 Haz clic en <strong>Revertir a Caja</strong> si la carpeta llegó tardíamente al archivo.
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+            {
+                step: 5,
+                tag: "Paso 5 • Embalaje Definitivo",
+                badgeBg: "#dcfce7",
+                badgeColor: "#15803d",
+                title: "📦 Módulo de Caja",
+                url: "https://localhost:5001/Caja",
+                realLinkText: "Ir a la pantalla real de Caja →",
+                desc: "Gestiona el <strong>empaque físico de carpetas en cajas de cartón</strong> foliadas. Garantiza que cuando alguien busque una carpeta física en 5 años más, sepa exactamente en qué caja y en qué posición está guardada.",
+                actionsHtml: `
+                    <h4>El ciclo de 3 pasos en Caja:</h4>
+                    <div class="tour-action-item">
+                        <div><strong>1. Cola de Caja Abierta:</strong> Muestra las carpetas físicas que esperan ser guardadas. Se apilan en el mismo orden que muestra la pantalla.</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>2. Cerrar Caja:</strong> Al llenarse la caja (ej: 40 carpetas), pulsa <span class="tour-demo-btn" style="background:#16a34a; color:#fff;" onclick="simulateAction('caja-cerrar')">Cerrar Caja</span>. Asigna automáticamente un código (ej: <code>CAJA-001</code>).</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>3. Imprimir Rótulo:</strong> Genera la carátula oficial que se pega en la tapa de la caja con el índice de todos los RUTs incluidos.</div>
+                    </div>
+                `,
+                goldenRule: "💡 <strong>Regla de Oro:</strong> Desde 'Cambio de Domicilio' puedes buscar cualquier RUT y el sistema te dirá: <em>'Está en la Caja CAJA-004, posición N° 12'</em>.",
+                renderSim: function() {
+                    return `
+                        <div style="background:#fff; border-radius:6px; border:1px solid #e2e8f0; padding:12px; font-size:0.82rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <div style="font-weight:700; color:#15803d;">Cola de Caja Abierta (Lista para Foliar)</div>
+                                <button class="tour-demo-btn" style="background:#16a34a; color:#fff;" onclick="simulateAction('caja-cerrar')">📦 Cerrar Caja</button>
+                            </div>
+                            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:10px; margin-bottom:8px;">
+                                <div style="font-weight:700; color:#166534; font-size:0.8rem;">Caja Actual: CAJA-008 (En preparación)</div>
+                                <div style="font-size:0.75rem; color:#475569;">38 carpetas físicas ingresadas en la cola</div>
+                            </div>
+                            <div id="sim-box-result" style="font-size:0.75rem; color:#64748b;">
+                                👆 Haz clic en <strong>Cerrar Caja</strong> para simular el foliado oficial.
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+            {
+                step: 6,
+                tag: "Paso 6 • Control de Gestión",
+                badgeBg: "#f3e8ff",
+                badgeColor: "#6b21a8",
+                title: "📊 Estadísticas y Plazos",
+                url: "https://localhost:5001/Estadisticas",
+                realLinkText: "Ir a la pantalla real de Estadísticas →",
+                desc: "Monitorea el <strong>cumplimiento del plazo legal de 15 días hábiles</strong> exigido por la normativa de Conaset y la Dirección de Tránsito. Permite anticiparse a posibles sumarios o reclamos.",
+                actionsHtml: `
+                    <h4>Funciones principales en este sitio:</h4>
+                    <div class="tour-action-item">
+                        <div><strong>1. Semáforo Legal de Plazos:</strong>
+                            <br />• 🟢 Verde: Más de 5 días hábiles restantes.
+                            <br />• 🟡 Amarillo: Menos de 5 días hábiles (prioridad urgente).
+                            <br />• 🔴 Rojo: Plazo legal de 15 días vencido.
+                        </div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>2. Métricas por Comuna:</strong> Ranking de comunas que más carpetas solicitan para dimensionar la carga laboral.</div>
+                    </div>
+                `,
+                goldenRule: "💡 <strong>Regla de Oro:</strong> Revisa el semáforo todas las mañanas para priorizar las carpetas en amarillo antes de que venzan legalmente.",
+                renderSim: function() {
+                    return `
+                        <div style="background:#fff; border-radius:6px; border:1px solid #e2e8f0; padding:12px; font-size:0.82rem;">
+                            <div style="font-weight:700; color:#6b21a8; margin-bottom:10px;">Semáforo de Plazos Legales (15 Días Hábiles)</div>
+                            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; text-align:center;">
+                                <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; padding:10px;">
+                                    <div style="font-size:1.4rem; font-weight:800; color:#16a34a;">28</div>
+                                    <div style="font-size:0.72rem; color:#15803d; font-weight:700;">A TIEMPO</div>
+                                </div>
+                                <div style="background:#fefce8; border:1px solid #fde047; border-radius:6px; padding:10px;">
+                                    <div style="font-size:1.4rem; font-weight:800; color:#ca8a04;">6</div>
+                                    <div style="font-size:0.72rem; color:#a16207; font-weight:700;">POR VENCER</div>
+                                </div>
+                                <div style="background:#fef2f2; border:1px solid #fca5a5; border-radius:6px; padding:10px;">
+                                    <div style="font-size:1.4rem; font-weight:800; color:#dc2626;">1</div>
+                                    <div style="font-size:0.72rem; color:#991b1b; font-weight:700;">VENCIDO</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+            {
+                step: 7,
+                tag: "Paso 7 • Personal de Bodega",
+                badgeBg: "#f1f5f9",
+                badgeColor: "#334155",
+                title: "📄 Documentos PDF para Retiro",
+                url: "https://localhost:5001/Sector?sector=Archivo",
+                realLinkText: "Ir a la pantalla real de Documentos PDF →",
+                desc: "Genera las <strong>nóminas de búsqueda física impresas</strong> para entregar al personal que va a los estantes de Archivo y Oficina 43 a retirar las carpetas de los contribuyentes.",
+                actionsHtml: `
+                    <h4>Listados disponibles en la barra superior:</h4>
+                    <div class="tour-action-item">
+                        <div><strong>1. PDF Archivo:</strong> Casos cuya última carpeta tiene fecha anterior a Julio 2023. Se buscan en el depósito histórico.</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>2. PDF Oficina 43:</strong> Casos de Julio 2023 en adelante. Se buscan en los módulos activos.</div>
+                    </div>
+                    <div class="tour-action-item">
+                        <div><strong>3. Control de Duplicados:</strong> Al imprimir, los casos quedan marcados con fecha de emisión para no reimprimirlos por error.</div>
+                    </div>
+                `,
+                goldenRule: "💡 <strong>Regla de Oro:</strong> Marca la casilla 'Marcar' en Cambio de Domicilio para que el contribuyente aparezca en el próximo listado PDF que lleven a la bodega.",
+                renderSim: function() {
+                    return `
+                        <div style="background:#fff; border-radius:6px; border:1px solid #e2e8f0; padding:12px; font-size:0.82rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <div style="font-weight:700; color:#0f172a;">Listado de Retiro para Archivo (Bodega)</div>
+                                <span class="badge" style="background:#e2e8f0; color:#334155; font-size:0.7rem; padding:2px 6px;">Sector Archivo</span>
+                            </div>
+                            <div style="border:1px dashed #cbd5e1; border-radius:6px; padding:10px; background:#f8fafc; font-family:monospace; font-size:0.75rem;">
+                                <div>========================================</div>
+                                <div>MUNICIPALIDAD DE VALPARAISO - DIRECCION DE TRANSITO</div>
+                                <div>NOMINA DE BUSQUEDA EN ARCHIVO FISICO</div>
+                                <div>Fecha: 05/10/2026 • Operador: Ventanilla 2</div>
+                                <div>========================================</div>
+                                <div>1. 14.502.812-4 | PEREZ JUAN | Fecha: 12/03/2019</div>
+                                <div>2. 16.891.024-9 | SOTO MARIA | Fecha: 28/05/2021</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        ];
+
+        let currentStepIndex = 0;
+        let autoPlayInterval = null;
+
+        function goToStep(stepNumber) {
+            currentStepIndex = stepNumber - 1;
+            renderCurrentStep();
+        }
+
+        function nextStep() {
+            if (currentStepIndex < tourSteps.length - 1) {
+                currentStepIndex++;
+                renderCurrentStep();
+            }
+        }
+
+        function prevStep() {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                renderCurrentStep();
+            }
+        }
+
+        function renderCurrentStep() {
+            const data = tourSteps[currentStepIndex];
+
+            // Update Progress Fill
+            const percent = ((currentStepIndex + 1) / tourSteps.length) * 100;
+            document.getElementById('tour-progress-fill').style.width = percent + '%';
+
+            // Update Stepper Buttons
+            const buttons = document.querySelectorAll('.tour-step-btn');
+            buttons.forEach((btn, idx) => {
+                if (idx === currentStepIndex) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Update Controls
+            document.getElementById('tour-btn-prev').disabled = currentStepIndex === 0;
+            document.getElementById('tour-btn-next').disabled = currentStepIndex === tourSteps.length - 1;
+            document.getElementById('tour-step-indicator').innerHTML = `
+                <span>Paso ${data.step} de ${tourSteps.length}</span>
+                <span style="color:#94a3b8;">•</span>
+                <span style="color:#0284c7;">${data.title}</span>
+            `;
+
+            // Update Left Panel
+            const badge = document.getElementById('tour-badge-tag');
+            badge.innerText = data.tag;
+            badge.style.background = data.badgeBg;
+            badge.style.color = data.badgeColor;
+
+            document.getElementById('tour-info-title').innerText = data.title;
+            document.getElementById('tour-info-desc').innerHTML = data.desc;
+            document.getElementById('tour-action-list').innerHTML = data.actionsHtml;
+            document.getElementById('tour-golden-rule').innerHTML = data.goldenRule;
+
+            const realLink = document.getElementById('tour-real-link');
+            realLink.href = data.url;
+            realLink.innerHTML = `<span>${data.realLinkText}</span>`;
+
+            // Update Right Panel Simulation
+            document.getElementById('sim-url-bar').innerHTML = `<span>🔒 ${data.url}</span>`;
+            document.getElementById('sim-content').innerHTML = data.renderSim();
+            document.getElementById('sim-toast').style.display = 'none';
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('sim-toast');
+            toast.innerText = msg;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 4000);
+        }
+
+        function simulateAction(type) {
+            if (type === 'marcar-subida') {
+                const row = document.getElementById('sim-row-1');
+                if (row) {
+                    row.style.background = '#dcfce7';
+                    row.style.transition = 'all 0.5s ease';
+                    showToast('✅ ¡Solicitud subida a Conaset! El caso desaparece de Cambio de Domicilio y pasa a Subidas a Sistema.');
+                    setTimeout(() => {
+                        row.style.opacity = '0.3';
+                        row.style.transform = 'translateX(20px)';
+                    }, 600);
+                }
+            } else if (type === 'traspaso-f8') {
+                showToast('📁 Caso trasladado a F8 para búsqueda de urgencia.');
+            } else if (type === 'f8-caja') {
+                const row = document.getElementById('sim-row-f8');
+                if (row) row.style.opacity = '0.4';
+                showToast('📦 ¡Carpeta apareció! Enviada a la cola de Caja para embalaje.');
+            } else if (type === 'f8-sincarpeta') {
+                const row = document.getElementById('sim-row-f8');
+                if (row) row.style.opacity = '0.4';
+                showToast('🗂️ Caso cerrado sin carpeta. Se archiva en la sección Sin Carpetas.');
+            } else if (type === 'subidas-caja') {
+                const row = document.getElementById('sim-row-subidas');
+                if (row) row.style.opacity = '0.4';
+                showToast('📦 ¡Carpeta en mano! Derivada exitosamente a la cola de Caja.');
+            } else if (type === 'subidas-sincarpeta') {
+                const row = document.getElementById('sim-row-subidas');
+                if (row) row.style.opacity = '0.4';
+                showToast('🗂️ Trámite sin papel. Archivado en Sin Carpetas.');
+            } else if (type === 'subidas-rectificar') {
+                showToast('🛡️ Correo de anulación enviado a la comuna. Caso revertido a Pendiente.');
+            } else if (type === 'sincarpeta-revertir') {
+                showToast('↩️ Caso reincorporado. Vuelve a la cola de Caja.');
+            } else if (type === 'caja-cerrar') {
+                document.getElementById('sim-box-result').innerHTML = `
+                    <div style="background:#dcfce7; color:#15803d; padding:8px; border-radius:4px; font-weight:700;">
+                        ✅ ¡Caja CAJA-008 cerrada con éxito! Rótulo oficial listo para imprimir.
+                    </div>
+                `;
+                showToast('📦 Caja cerrada y foliada. Código CAJA-008 asignado.');
+            }
+        }
+
+        function toggleAutoPlay() {
+            const btn = document.getElementById('tour-btn-autoplay');
+            if (autoPlayInterval) {
+                clearInterval(autoPlayInterval);
+                autoPlayInterval = null;
+                btn.classList.remove('playing');
+                btn.innerHTML = '<span>▶ Auto-Play</span>';
+            } else {
+                btn.classList.add('playing');
+                btn.innerHTML = '<span>⏸ Pausar</span>';
+                autoPlayInterval = setInterval(() => {
+                    if (currentStepIndex < tourSteps.length - 1) {
+                        nextStep();
+                    } else {
+                        goToStep(1);
+                    }
+                }, 5500);
+            }
+        }
+
+        function startGuidedTour() {
+            goToStep(1);
+            document.getElementById('tour-interactivo').scrollIntoView({ behavior: 'smooth' });
+            if (!autoPlayInterval) toggleAutoPlay();
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCurrentStep();
+        });
+    </script>
 </body>
 </html>
