@@ -257,6 +257,17 @@ public class IndexModelTests : IDisposable
         Assert.Equal(new DateOnly(2024, 5, 1), stored.FechaUltimaCarpeta);
     }
 
+    [Fact]
+    public void OnPostSetFecha_IsoDate_UpdatesDate()
+    {
+        var id = repository.Insert(NewRequest("msg-iso"));
+
+        model.OnPostSetFecha(id, "2024-05-01");
+
+        var stored = repository.GetAll().Single(c => c.Id == id);
+        Assert.Equal(new DateOnly(2024, 5, 1), stored.FechaUltimaCarpeta);
+    }
+
 
     [Fact]
     public void OnPostSetFecha_EmptyValue_ClearsDateWithoutError()

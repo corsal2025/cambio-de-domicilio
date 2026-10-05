@@ -1072,6 +1072,48 @@ table.cases-index .codigo-f8-input {
     text-align: center;
 }
 
+.fecha-form input[type="date"].fecha-input {
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--color-text);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-xs);
+    padding: 3px 6px;
+    outline: none;
+    cursor: pointer;
+    text-align: center;
+    min-width: 140px;
+    height: 28px;
+    box-sizing: border-box;
+    transition: all var(--transition-fast);
+}
+
+.fecha-form input[type="date"].fecha-input:hover {
+    border-color: var(--color-border-strong);
+    background: #ffffff;
+}
+
+.fecha-form input[type="date"].fecha-input:focus {
+    border-color: var(--color-accent);
+    background: #ffffff;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+.fecha-form input[type="date"].fecha-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.75;
+    padding: 1px;
+    margin-left: 4px;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.fecha-form input[type="date"].fecha-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
 table.cases-index td:last-child {
     white-space: nowrap !important;
     text-align: center;

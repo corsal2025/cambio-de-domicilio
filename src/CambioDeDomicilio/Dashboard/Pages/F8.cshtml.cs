@@ -65,13 +65,14 @@ public class F8Model(
             return RedirectToPage(new { search = Search, highlightId = HighlightId });
         }
 
-        if (!SpanishDate.TryParse(fecha, out var parsed))
+        if (!DateOnly.TryParseExact(fecha.Trim(), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed)
+            && !SpanishDate.TryParse(fecha, out parsed))
         {
             if (isAjax)
             {
-                return new JsonResult(new { success = false, message = "Fecha no reconocida. Formatos aceptados: 15/03/2024 o 15 marzo 2024." }) { StatusCode = 400 };
+                return new JsonResult(new { success = false, message = "Fecha no válida. Ingrese una fecha válida (ej: dd/mm/aaaa)." }) { StatusCode = 400 };
             }
-            Message = "Fecha no reconocida. Formatos aceptados: 15/03/2024 o 15 marzo 2024.";
+            Message = "Fecha no válida. Ingrese una fecha válida (ej: dd/mm/aaaa).";
             MessageIsError = true;
             Load();
             return Page();
@@ -81,7 +82,7 @@ public class F8Model(
         if (isAjax)
         {
             var sector = parsed < new DateOnly(2023, 7, 1) ? "Archivo" : "Oficina 43";
-            return new JsonResult(new { success = true, fecha = SpanishDate.Format(parsed), sector });
+            return new JsonResult(new { success = true, fecha = parsed.ToString("yyyy-MM-dd"), sector });
         }
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
