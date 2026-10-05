@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Crea un acceso directo en el Escritorio que abre el dashboard de
     CambioDeDomicilio en el navegador, iniciando el proceso si no está corriendo.
@@ -36,8 +36,8 @@ $launcherContent = @"
 `$running = Get-Process -Name "CambioDeDomicilio" -ErrorAction SilentlyContinue
 # A newer build was published while an old one is still running: restart so the operator
 # always gets the latest version from the shortcut (never a stale build).
-`$dll = Join-Path "$PublishPath" "CambioDeDomicilio.dll"
-if (`$running -and (Test-Path `$dll) -and (Get-Item `$dll).LastWriteTime -gt (`$running | Sort-Object StartTime | Select-Object -First 1).StartTime) {
+`$exe = Join-Path "$PublishPath" "CambioDeDomicilio.exe"
+if (`$running -and (Test-Path `$exe) -and (Get-Item `$exe).LastWriteTime -gt (`$running | Sort-Object StartTime | Select-Object -First 1).StartTime) {
     `$running | Stop-Process -Force
     Start-Sleep -Milliseconds 1500
     `$running = `$null
