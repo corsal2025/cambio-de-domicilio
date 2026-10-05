@@ -198,8 +198,7 @@
                                 <td style="text-align:center;">@item.Comuna</td>
                                 <td style="text-align:center;">@(item.SinCarpeta ? "S/C" : item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")</td>
                                 <td class="no-print" style="text-align:center;">
-                                    <form method="post" asp-page-handler="RemoveFromClosedBox" style="display:inline;"
-                                          onsubmit="return confirm('¿Devolver a @item.FullName a Casos? Saldrá de esta caja.');">
+                                    <form method="post" asp-page-handler="RemoveFromClosedBox" style="display:inline;">
                                         <input type="hidden" name="id" value="@item.Id" />
                                         <input type="hidden" name="boxId" value="@box.Id" />
                                         <button type="submit" class="btn-action btn-action--return" title="Quitar de esta caja y devolver a Casos" aria-label="Devolver a casos">
@@ -270,8 +269,7 @@
                                 <td style="text-align:center;">@(item.SinCarpeta ? "S/C" : item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")</td>
                                 <td style="text-align:center;"><span class="badge @(item.Status == RequestStatus.Confirmed ? "badge-confirmed" : "badge-uploaded")">@item.Status</span></td>
                                 <td style="text-align:center;">
-                                    <form method="post" asp-page-handler="UndoSingle" style="display:inline;"
-                                          onsubmit="return confirm('¿Devolver a @item.FullName a Casos? Saldrá de la cola de caja.');">
+                                    <form method="post" asp-page-handler="UndoSingle" style="display:inline;">
                                         <input type="hidden" name="id" value="@item.Id" />
                                         <button type="submit" class="btn-action btn-action--return" title="Quitar de la cola de caja y devolver a Casos" aria-label="Devolver a casos">
                                             <partial name="_ActionIcon" model="@("return")" /><span>Devolver a casos</span>
@@ -330,7 +328,6 @@
             function submitUndoBatch() {
                 var checked = document.querySelectorAll('.queue-check:checked');
                 if (checked.length === 0) return;
-                if (!confirm('¿Quitar las ' + checked.length + ' carpeta(s) seleccionadas de la cola de caja y devolverlas a Casos?')) return;
 
                 var form = document.getElementById('undoBatchForm');
                 // Remove previous selectedIds inputs only, NEVER wipe innerHTML (which contains __RequestVerificationToken)
@@ -409,6 +406,7 @@
         })();
     </script>
     <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
+    <script src="~/js/system-tour.js" asp-append-version="true"></script>
     <partial name="_AuthorFooter" />
 </body>
 </html>

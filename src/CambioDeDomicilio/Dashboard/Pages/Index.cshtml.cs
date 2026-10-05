@@ -506,9 +506,9 @@ public class IndexModel(
 
         var all = everything.AsEnumerable();
 
-        // Cases already transferred to F8 (see OnPostTransferToF8) live on the dedicated F8 page
-        // instead — ticking the F8 checkbox alone does not remove a case from here.
-        all = all.Where(c => c.TransferredAt is null);
+        // Cases transferred out of Casos (to F8, Subidas a Sistema, Caja, or Sin Carpetas)
+        // live on their respective dedicated pages instead.
+        all = all.Where(c => c.TransferredAt is null && c.ClosedWithoutFolderAt is null && c.Destination == CaseDestination.None);
 
         if (!string.IsNullOrEmpty(StatusFilter) && Enum.TryParse<RequestStatus>(StatusFilter, out var status))
         {

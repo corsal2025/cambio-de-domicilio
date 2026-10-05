@@ -143,16 +143,14 @@
                             </td>
                             <td>
                                 <div class="action-group">
-                                    <form method="post" asp-page-handler="SendToCaja"
-                                          onsubmit="return confirm('¿Carpeta física encontrada? El caso se enviará a la cola de Caja (sin enviar correo).');">
+                                    <form method="post" asp-page-handler="SendToCaja">
                                         <input type="hidden" name="id" value="@item.Id" />
                                         <button type="submit" class="btn-action btn-action--caja" title="Carpeta encontrada: enviar a la cola de Caja" aria-label="Enviar a Caja">
                                             <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
                                         </button>
                                     </form>
 
-                                    <form method="post" asp-page-handler="CloseWithoutFolder"
-                                          onsubmit="return confirm('Esto traslada el caso a la sección \'Sin Carpetas\' (cerrado sin carpeta física). ¿Confirmar?');">
+                                    <form method="post" asp-page-handler="CloseWithoutFolder">
                                         <input type="hidden" name="id" value="@item.Id" />
                                         <button type="submit" class="btn-action btn-action--sin-carpeta" title="Cerrar el proceso sin carpeta física y trasladar a Sin Carpetas" aria-label="Sin carpeta">
                                             <partial name="_ActionIcon" model="@("sin-carpeta")" /><span>Sin carpeta</span>
@@ -199,5 +197,7 @@
             }
         }
     </script>
+    <script src="~/js/system-tour.js" asp-append-version="true"></script>
+    <partial name="_AuthorFooter" />
 </body>
 </html>

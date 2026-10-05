@@ -235,6 +235,19 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
                 """;
             migrateSubidasCommand.ExecuteNonQuery();
         }
+
+        // Cases closed without folder belong to the SinCarpetas destination so they do not leak into Casos
+        using (var migrateSinCarpetasCommand = connection.CreateCommand())
+        {
+            migrateSinCarpetasCommand.CommandText = """
+                UPDATE PersonRequest
+                SET Destination = 'SinCarpetas',
+                    TransferredAt = COALESCE(ClosedWithoutFolderAt, CURRENT_TIMESTAMP)
+                WHERE ClosedWithoutFolderAt IS NOT NULL
+                  AND (Destination != 'SinCarpetas' OR TransferredAt IS NULL);
+                """;
+            migrateSinCarpetasCommand.ExecuteNonQuery();
+        }
     }
 
     /// <summary>Additive migration for databases created before multiple contributors per email were
@@ -724,7 +737,10 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         using var command = connection.CreateCommand();
         command.CommandText = """
             UPDATE PersonRequest
-            SET ClosedWithoutFolderAt = $closedAt, FolderNotFound = 0, Destination = 'None', TransferredAt = NULL
+            SET ClosedWithoutFolderAt = $closedAt,
+                FolderNotFound = 0,
+                Destination = 'SinCarpetas',
+                TransferredAt = $closedAt
             WHERE Id = $id
             """;
         command.Parameters.AddWithValue("$closedAt", closedAt.ToString("O"));

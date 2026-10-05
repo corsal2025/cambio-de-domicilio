@@ -296,8 +296,7 @@
                                     @(item.ClosedWithoutFolderAt is { } closedAt ? closedAt.LocalDateTime.ToString("dd-MM-yyyy HH:mm") : "—")
                                 </td>
                                 <td class="no-print">
-                                    <form method="post" asp-page-handler="Revert"
-                                          onsubmit="return confirm('¿Desea restaurar este caso a la sección F8?');">
+                                    <form method="post" asp-page-handler="Revert">
                                         <input type="hidden" name="id" value="@item.Id" />
                                         <input type="hidden" name="search" value="@Model.Search" />
                                         <button type="submit" class="btn-action" title="Restaurar a la pantalla de F8" aria-label="Restaurar a F8">
@@ -339,6 +338,7 @@
         }
     </script>
     <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
+    <script src="~/js/system-tour.js" asp-append-version="true"></script>
     <partial name="_AuthorFooter" />
 </body>
 </html>

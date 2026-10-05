@@ -416,15 +416,13 @@
                                 <!-- Both forms always render for Pending cases; CSS (tr:has(input[name="folderNotFoundValue"]:checked))
                                      picks which one shows, live, the instant the F8 checkbox is toggled — ticking F8 goes through
                                      fetch() (see submitCheckboxToggle), not a full-page reload. -->
-                                <form method="post" asp-page-handler="TransferToF8" class="f8-only"
-                                      onsubmit="return confirm('Esto moverá el caso a la pantalla F8 y desaparecerá de Casos. ¿Confirmar?');">
+                                <form method="post" asp-page-handler="TransferToF8" class="f8-only">
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <button type="submit" class="btn-action btn-action--f8" title="Trasladar caso a la pantalla F8" aria-label="Traspaso a F8">
                                         <partial name="_ActionIcon" model="@("f8")" /><span>Traspaso a F8</span>
                                     </button>
                                 </form>
-                                <form method="post" asp-page-handler="MarkUploadedAndConfirm" class="no-f8-only"
-                                      onsubmit="return confirm('Esto moverá el correo a \'CARP. YA SUBIDAS\' y enviará la confirmación a la comuna de inmediato. ¿Confirmar?');">
+                                <form method="post" asp-page-handler="MarkUploadedAndConfirm" class="no-f8-only">
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <button type="submit" class="btn-action btn-action--upload" title="Mover correo a 'CARP. YA SUBIDAS' y enviar confirmación" aria-label="Marcar subida">
                                         <partial name="_ActionIcon" model="@("upload")" /><span>Marcar subida</span>
@@ -433,8 +431,7 @@
                             }
                             else if (item.FolderNotFound)
                             {
-                                <form method="post" asp-page-handler="TransferToF8"
-                                      onsubmit="return confirm('Esto moverá el caso a la pantalla F8 y desaparecerá de Casos. ¿Confirmar?');">
+                                <form method="post" asp-page-handler="TransferToF8">
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <button type="submit" class="btn-action btn-action--f8" title="Trasladar caso a la pantalla F8" aria-label="Traspaso a F8">
                                         <partial name="_ActionIcon" model="@("f8")" /><span>Traspaso a F8</span>
@@ -778,6 +775,7 @@
             }
         })();
     </script>
+    <script src="~/js/system-tour.js" asp-append-version="true"></script>
     <partial name="_AuthorFooter" />
 </body>
 </html>

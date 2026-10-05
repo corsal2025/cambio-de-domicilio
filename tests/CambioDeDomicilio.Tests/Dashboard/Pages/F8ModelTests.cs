@@ -154,7 +154,7 @@ public class F8ModelTests : IDisposable
 
         var stored = repository.FindById(id)!;
         Assert.NotNull(stored.ClosedWithoutFolderAt);
-        Assert.Equal(CaseDestination.None, stored.Destination);
+        Assert.Equal(CaseDestination.SinCarpetas, stored.Destination);
         model.OnGet();
         Assert.DoesNotContain(model.Cases, c => c.Id == id);
     }

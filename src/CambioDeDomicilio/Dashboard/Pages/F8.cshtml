@@ -216,8 +216,7 @@
                             <div class="action-group">
                             @if (item.Status == RequestStatus.Pending && !item.NeedsReview)
                             {
-                                <form method="post" asp-page-handler="MarkUploadedAndConfirm"
-                                      onsubmit="return confirm('Esto moverá el correo a \'CARP. YA SUBIDAS\' y enviará la confirmación a la comuna de inmediato. ¿Confirmar?');">
+                                <form method="post" asp-page-handler="MarkUploadedAndConfirm">
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <input type="hidden" name="search" value="@Model.Search" />
                                     <input type="hidden" name="highlightId" value="@Model.HighlightId" />
@@ -237,8 +236,7 @@
                                     </button>
                                 </form>
                             }
-                                <form method="post" asp-page-handler="SendToCaja"
-                                      onsubmit="return confirm('¿Carpeta física encontrada? El caso se enviará a la cola de Caja (no se enviará ningún correo).');">
+                                <form method="post" asp-page-handler="SendToCaja">
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <input type="hidden" name="search" value="@Model.Search" />
                                     <input type="hidden" name="highlightId" value="@Model.HighlightId" />
@@ -246,8 +244,7 @@
                                         <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
                                     </button>
                                 </form>
-                                <form method="post" asp-page-handler="CloseWithoutFolder"
-                                      onsubmit="return confirm('Esto traslada el caso a la sección \'Sin Carpetas\' (cerrado sin carpeta física). ¿Confirmar?');">
+                                <form method="post" asp-page-handler="CloseWithoutFolder">
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <input type="hidden" name="search" value="@Model.Search" />
                                     <input type="hidden" name="highlightId" value="@Model.HighlightId" />
@@ -255,8 +252,7 @@
                                         <partial name="_ActionIcon" model="@("sin-carpeta")" /><span>Sin carpeta</span>
                                     </button>
                                 </form>
-                                <form method="post" asp-page-handler="RevertToCasos"
-                                      onsubmit="return confirm('Revertir borra TODOS los datos F8 de este caso (incluido el código F8) y lo devuelve a Casos solo con la acción Caja. No se puede deshacer. ¿Confirmar?');">
+                                <form method="post" asp-page-handler="RevertToCasos">
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <input type="hidden" name="search" value="@Model.Search" />
                                     <input type="hidden" name="highlightId" value="@Model.HighlightId" />
@@ -545,6 +541,7 @@
         })();
     </script>
     <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
+    <script src="~/js/system-tour.js" asp-append-version="true"></script>
     <partial name="_AuthorFooter" />
 </body>
 </html>

@@ -139,7 +139,9 @@ public enum CaseDestination
     /// confirmed or SoloCaja cases) or from F8 (folder found). See IPersonRequestRepository.SendToCaja.</summary>
     Caja,
     /// <summary>Transferred to the /SubidasASistema screen once marked as uploaded.</summary>
-    Subidas
+    Subidas,
+    /// <summary>Closed without folder and transferred to the /SinCarpetas screen.</summary>
+    SinCarpetas
 }
 
 /// <summary>A closed batch of Caja cases, in the physical order they were packed — see

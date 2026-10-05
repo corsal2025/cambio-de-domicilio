@@ -573,9 +573,12 @@
                     Explora paso a paso cada una de las <strong>7 secciones clave</strong> del sistema. Descubre el propósito de cada pantalla, qué botones usar y prueba las acciones interactivas en vivo.
                 </p>
             </div>
-            <div class="manual-hero-actions">
-                <button type="button" class="btn-start-tour" onclick="startGuidedTour()">
-                    <span>▶ Iniciar Tour Automático</span>
+            <div class="manual-hero-actions" style="display:flex; gap:12px; flex-wrap:wrap;">
+                <button type="button" class="btn-start-tour" style="background:#0284c7; border-color:#38bdf8;" onclick="startSystemTour()">
+                    <span>🚀 Iniciar Tour en Vivo (Pantallas Reales)</span>
+                </button>
+                <button type="button" class="btn-start-tour" style="background:rgba(255,255,255,0.12); border-color:rgba(255,255,255,0.25);" onclick="startGuidedTour()">
+                    <span>▶ Ver Simulador Aquí Mismo</span>
                 </button>
             </div>
         </div>
@@ -1254,5 +1257,7 @@
             renderCurrentStep();
         });
     </script>
+    <script src="~/js/system-tour.js" asp-append-version="true"></script>
+    <partial name="_AuthorFooter" />
 </body>
 </html>

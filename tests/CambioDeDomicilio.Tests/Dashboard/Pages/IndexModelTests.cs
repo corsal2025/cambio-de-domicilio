@@ -809,7 +809,7 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
-    public void OnGet_ClosedWithoutFolderCase_StaysVisibleInCasos()
+    public void OnGet_ClosedWithoutFolderCase_MovesToSinCarpetasAndHiddenFromCasos()
     {
         var id = repository.Insert(NewRequest("msg-1"));
         repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
@@ -817,7 +817,7 @@ public class IndexModelTests : IDisposable
 
         model.OnGet(status: null);
 
-        Assert.Contains(model.Cases, c => c.Id == id && c.ClosedWithoutFolderAt is not null);
+        Assert.DoesNotContain(model.Cases, c => c.Id == id);
     }
 
     [Theory]

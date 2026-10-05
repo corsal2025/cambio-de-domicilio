@@ -922,7 +922,7 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void CloseWithoutFolder_F8Case_ClosesAndReturnsToCasos()
+    public void CloseWithoutFolder_F8Case_ClosesAndMovesToSinCarpetas()
     {
         var id = repository.Insert(NewRequest("msg-f8"));
         repository.SetFolderNotFound(id, true);
@@ -934,8 +934,8 @@ public class PersonRequestRepositoryTests : IDisposable
         var stored = repository.FindById(id)!;
         Assert.Equal(closedAt, stored.ClosedWithoutFolderAt);
         Assert.False(stored.FolderNotFound);
-        Assert.Equal(CaseDestination.None, stored.Destination);
-        Assert.Null(stored.TransferredAt);
+        Assert.Equal(CaseDestination.SinCarpetas, stored.Destination);
+        Assert.Equal(closedAt, stored.TransferredAt);
     }
 
     [Fact]
@@ -962,7 +962,7 @@ public class PersonRequestRepositoryTests : IDisposable
 
         repository.SendToCaja([id], DateTimeOffset.UtcNow);
 
-        Assert.Equal(CaseDestination.None, repository.FindById(id)!.Destination);
+        Assert.Equal(CaseDestination.SinCarpetas, repository.FindById(id)!.Destination);
     }
 
     [Fact]
@@ -1032,7 +1032,7 @@ public class PersonRequestRepositoryTests : IDisposable
         var closed = repository.FindById(id)!;
         Assert.NotNull(closed.ClosedWithoutFolderAt);
         Assert.False(closed.FolderNotFound);
-        Assert.Equal(CaseDestination.None, closed.Destination);
+        Assert.Equal(CaseDestination.SinCarpetas, closed.Destination);
 
         var reopenedAt = DateTimeOffset.UtcNow;
         repository.ReopenSinCarpetaToF8(id, reopenedAt);
