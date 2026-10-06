@@ -4,7 +4,7 @@
 
 Servicio en segundo plano (.NET 10, `BackgroundService`) que ayuda a tramitar las solicitudes de carpeta de contribuyentes que otras comunas le hacen a Valparaíso, ligadas a Conaset. El flujo de negocio completo está diagramado en [`docs/flujo-proceso.md`](docs/flujo-proceso.md) — acá el resumen técnico:
 
-1. Cada 30 minutos (configurable) revisa la carpeta **"CARP. PARA PEDIR"** del buzón `cambiodedomicilio@munivalpo.cl` en Exchange on-premise (vía EWS). El operador clasifica manualmente los correos entrantes moviéndolos a esa carpeta — el sistema no escanea la bandeja de entrada completa.
+1. Cuando el operador presiona **"Sincronizar ahora"** en el dashboard (no hay sondeo automático) revisa la carpeta **"CARP. PARA PEDIR"** del buzón `cambiodedomicilio@munivalpo.cl` en Exchange on-premise (vía EWS). El operador clasifica manualmente los correos entrantes moviéndolos a esa carpeta — el sistema no escanea la bandeja de entrada completa.
 2. Por cada correo nuevo de una comuna conocida (dominio comparado contra el directorio, no un patrón adivinado — si el dominio es compartido por varias comunas, como gmail.com, exige coincidencia exacta de la dirección): extrae **nombre del contribuyente y RUT de TODOS los contribuyentes listados** (un correo puede pedir varias personas), validando el dígito verificador y usando el asunto como respaldo cuando el cuerpo no trae datos (el RUT del asunto se confía, el nombre no — siempre exige revisión manual). Registra un caso **Pendiente** por cada contribuyente — no envía ningún correo en este paso.
 3. El operador digita manualmente la **fecha de última carpeta** por caso; el sistema deriva el **sector** (Archivo si es anterior a julio 2023, Oficina 43 si es igual o posterior) y puede generar un PDF con los casos de un sector para ir a buscar las carpetas físicas.
 4. Para marcar un caso como subido, hay dos caminos: (a) el operador sube la carpeta a Conaset y mueve el correo a **"CARP. YA SUBIDAS"** en Outlook — el sistema lo detecta en el próximo ciclo y marca el caso como **Subida**, sin enviar nada todavía; o (b) desde el dashboard, un botón **"Marcar subida"** hace ambas cosas de inmediato: mueve el correo por EWS y marca el caso.
@@ -53,6 +53,8 @@ El mismo proceso sirve un dashboard en `https://localhost:5001` (el puerto HTTP 
 
 Desde el dashboard (`/Index`) el operador puede: ver los casos con su estado (Pendiente/Subido/Confirmado), filtrar por estado o por "Requiere revisión", marcar casos con un checkbox propio (organización personal, sin efecto en el flujo), editar el nombre/RUT de cualquier caso, editar la fecha de última carpeta (recalcula el sector al instante, se guarda solo al salir del campo), y confirmar con "Enviar confirmación" (casos Subidos) o "Marcar subida" (mueve el correo y confirma en un solo clic, con diálogo de confirmación porque es irreversible). Los casos Confirmados se resaltan en la tabla. Desde `/Sector/Archivo` o `/Sector/Oficina43` se genera el documento imprimible (imprimir del navegador → PDF) con los casos de ese sector.
 
+Todos los POST del dashboard validan token antiforgery (CSRF). La configuración se valida al arrancar (`RouterOptionsValidator`): una URL de EWS mal formada o carpetas iguales abortan el inicio con un mensaje claro, y credenciales vacías solo generan una advertencia (el modo Development corre sin buzón).
+
 Ver `deploy/README.md` para el detalle del certificado HTTPS en producción.
 
 ## Pruebas
@@ -72,7 +74,7 @@ Usa contenedores Linux si no tienes .NET SDK local:
 
 ```bash
 docker compose run --rm build       # compila
-docker compose run --rm test        # ejecuta 199 tests
+docker compose run --rm test        # ejecuta la suite completa de tests
 docker compose run --rm publish     # genera single-file exe en ./publish/
 ```
 
@@ -112,7 +114,9 @@ src/CambioDeDomicilio/
   Persistence/         # Repositorio SQLite (sin ORM)
   Reporting/           # Escritor del reporte CSV (incluye sector derivado)
   Routing/             # Servicio central: detección, extracción, dedup, marcado de subida, confirmación
-  RouterWorker.cs      # BackgroundService: orquesta el ciclo de sondeo de ambas carpetas
+  Statistics/          # Cálculos de la pantalla de Estadísticas
+  Dashboard/Pages/     # Razor Pages: Casos, F8, Caja, Subidas, Sin carpetas, Sectores, Comunas, Descartados
+  RouterWorker.cs      # Orquesta un ciclo de sincronización de ambas carpetas (se dispara desde el dashboard)
 tests/CambioDeDomicilio.Tests/
 ```
 

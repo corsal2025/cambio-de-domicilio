@@ -83,8 +83,8 @@ Start-ScheduledTask -TaskName CambioDeDomicilio
 Get-ScheduledTask -TaskName CambioDeDomicilio | Get-ScheduledTaskInfo
 ```
 
-Confirmar que `data/reporte.csv` se crea/actualiza tras el primer ciclo
-(hasta `PollIntervalMinutes` minutos después de iniciar), y que
+Confirmar que `data/reporte.csv` se crea/actualiza tras la primera sincronización
+(el sondeo es manual: botón "Sincronizar ahora" del dashboard), y que
 `https://localhost:5001` (o `https://<nombre-del-pc>:5001` desde otro equipo
 de la red) muestra el dashboard.
 

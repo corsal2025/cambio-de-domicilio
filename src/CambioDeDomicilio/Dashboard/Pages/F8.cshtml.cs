@@ -15,8 +15,11 @@ namespace CambioDeDomicilio.Dashboard.Pages;
 public class F8Model(
     IPersonRequestRepository repository,
     AddressChangeRoutingService routingService,
-    RouterOptions options) : PageModel
+    RouterOptions options,
+    TimeProvider? timeProvider = null) : PageModel
 {
+    private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
+
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
     public string? Message { get; set; }
     public bool MessageIsError { get; set; }
@@ -89,7 +92,7 @@ public class F8Model(
         repository.SetFechaUltimaCarpeta(id, parsed);
         if (isAjax)
         {
-            var sector = parsed < new DateOnly(2023, 7, 1) ? "Archivo" : "Oficina 43";
+            var sector = FolderSectorRule.For(parsed).ToDisplayName();
             return new JsonResult(new { success = true, fecha = parsed.ToString("yyyy-MM-dd"), sector });
         }
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
@@ -243,7 +246,7 @@ public class F8Model(
     {
         var received = DateOnly.FromDateTime(request.ReceivedAt.LocalDateTime);
         var deadline = DeadlineCalculator.AddBusinessDays(received, options.PlazoDiasHabiles);
-        return DeadlineCalculator.BusinessDaysRemaining(DateOnly.FromDateTime(DateTime.Today), deadline);
+        return DeadlineCalculator.BusinessDaysRemaining(DateOnly.FromDateTime(clock.GetLocalNow().DateTime), deadline);
     }
 
     private void Load()

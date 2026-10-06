@@ -20,8 +20,7 @@ public sealed class DiscardedEmailRepository(string connectionString) : IDiscard
 {
     public void EnsureSchema()
     {
-        using var connection = new SqliteConnection(connectionString);
-        connection.Open();
+        using var connection = SqliteConnectionSetup.OpenConfigured(connectionString);
         using var command = connection.CreateCommand();
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS DiscardedEmail (
@@ -95,9 +94,7 @@ public sealed class DiscardedEmailRepository(string connectionString) : IDiscard
 
     private SqliteConnection Open()
     {
-        var connection = new SqliteConnection(connectionString);
-        connection.Open();
-        return connection;
+        return SqliteConnectionSetup.OpenConfigured(connectionString);
     }
 
     private static DiscardedEmail Map(SqliteDataReader reader) => new()

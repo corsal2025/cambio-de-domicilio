@@ -40,7 +40,14 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 
 var routerOptions = builder.Configuration.GetSection(RouterOptions.SectionName).Get<RouterOptions>()
     ?? throw new InvalidOperationException($"Missing '{RouterOptions.SectionName}' configuration section.");
+var optionsValidation = RouterOptionsValidator.Validate(routerOptions);
+if (optionsValidation.Errors.Count > 0)
+{
+    throw new InvalidOperationException(
+        $"Invalid '{RouterOptions.SectionName}' configuration:{Environment.NewLine}- {string.Join($"{Environment.NewLine}- ", optionsValidation.Errors)}");
+}
 builder.Services.AddSingleton(routerOptions);
+builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services.AddSingleton<IPersonRequestRepository>(_ =>
     new PersonRequestRepository($"Data Source={routerOptions.SqliteDbPath}"));
@@ -69,6 +76,11 @@ builder.Services.AddDataProtection()
 builder.Services.AddRazorPages(options => options.RootDirectory = "/Dashboard/Pages");
 
 var app = builder.Build();
+
+foreach (var warning in optionsValidation.Warnings)
+{
+    app.Logger.LogWarning("{ConfigurationWarning}", warning);
+}
 
 // Deployment verification mode: reads the mailbox through the real EWS pipeline and
 // prints only counts and sender domains (no personal data), then exits.

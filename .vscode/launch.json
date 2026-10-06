@@ -25,7 +25,6 @@
         "Router__ReportCsvPath": "${workspaceFolder}/data/reporte.dev.csv",
         "Router__ComunaDirectoryCsvPath": "${workspaceFolder}/data/comunas.csv",
         "Router__Ews__Url": "https://ews-disabled-in-development.invalid/EWS/Exchange.asmx",
-        "Router__PollIntervalMinutes": "100000",
         "Router__ToastNotificationsEnabled": "false"
       }
     }

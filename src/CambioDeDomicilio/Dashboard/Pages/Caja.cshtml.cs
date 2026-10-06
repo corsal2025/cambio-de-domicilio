@@ -9,7 +9,6 @@ namespace CambioDeDomicilio.Dashboard.Pages;
 /// when the operator presses "Caja" in Casos or F8. "Cerrar Caja"
 /// snapshots everything currently queued into a new, sequentially-numbered box; the next case to
 /// arrive starts filling the next one. F8 cases never appear here — see PersonRequest.BoxId.</summary>
-[IgnoreAntiforgeryToken]
 public class CajaModel(IPersonRequestRepository repository) : PageModel
 {
     public IReadOnlyList<PersonRequest> Queue { get; private set; } = [];

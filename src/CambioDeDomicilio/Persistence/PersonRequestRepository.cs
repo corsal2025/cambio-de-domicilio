@@ -126,8 +126,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
 {
     public void EnsureSchema()
     {
-        using var connection = new SqliteConnection(connectionString);
-        connection.Open();
+        using var connection = SqliteConnectionSetup.OpenConfigured(connectionString);
+        SqliteConnectionSetup.EnableWriteAheadLogging(connection);
         using var command = connection.CreateCommand();
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS PersonRequest (
@@ -1007,50 +1007,30 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
 
     private SqliteConnection Open()
     {
-        var connection = new SqliteConnection(connectionString);
-        connection.Open();
-        return connection;
+        return SqliteConnectionSetup.OpenConfigured(connectionString);
     }
 
-        private static PersonRequest Map(SqliteDataReader reader)
+    // Every query selects "*" and EnsureSchema guarantees all of these columns exist, so a missing
+    // column or an unparseable value is a real bug and must surface instead of silently becoming
+    // null/false (which would hide corrupt rows from the operator).
+    private static PersonRequest Map(SqliteDataReader reader)
     {
         long? GetNullableInt64(string name)
         {
-            try
-            {
-                var ord = reader.GetOrdinal(name);
-                return reader.IsDBNull(ord) ? null : reader.GetInt64(ord);
-            }
-            catch
-            {
-                return null;
-            }
+            var ord = reader.GetOrdinal(name);
+            return reader.IsDBNull(ord) ? null : reader.GetInt64(ord);
         }
 
         DateTimeOffset? GetNullableDateTimeOffset(string name)
         {
-            try
-            {
-                var ord = reader.GetOrdinal(name);
-                return reader.IsDBNull(ord) ? null : DateTimeOffset.Parse(reader.GetString(ord));
-            }
-            catch
-            {
-                return null;
-            }
+            var ord = reader.GetOrdinal(name);
+            return reader.IsDBNull(ord) ? null : DateTimeOffset.Parse(reader.GetString(ord));
         }
 
         bool GetBoolean(string name)
         {
-            try
-            {
-                var ord = reader.GetOrdinal(name);
-                return !reader.IsDBNull(ord) && reader.GetInt32(ord) == 1;
-            }
-            catch
-            {
-                return false;
-            }
+            var ord = reader.GetOrdinal(name);
+            return !reader.IsDBNull(ord) && reader.GetInt32(ord) == 1;
         }
 
         return new PersonRequest

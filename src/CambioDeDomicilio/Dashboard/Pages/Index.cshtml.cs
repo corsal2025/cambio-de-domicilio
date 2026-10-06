@@ -15,8 +15,11 @@ public class IndexModel(
     AddressChangeRoutingService routingService,
     RouterWorker routerWorker,
     RouterOptions options,
-    ILogger<IndexModel> logger) : PageModel
+    ILogger<IndexModel> logger,
+    TimeProvider? timeProvider = null) : PageModel
 {
+    private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
+
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
     public IReadOnlyList<ComunaContact> ComunaOptions { get; private set; } = [];
     public int NeedsReviewCount { get; private set; }
@@ -115,7 +118,7 @@ public class IndexModel(
         repository.SetFechaUltimaCarpeta(id, parsed);
         if (isAjax)
         {
-            var sector = parsed < new DateOnly(2023, 7, 1) ? "Archivo" : "Oficina 43";
+            var sector = FolderSectorRule.For(parsed).ToDisplayName();
             return new JsonResult(new { success = true, fecha = parsed.ToString("yyyy-MM-dd"), sector });
         }
         return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
@@ -490,7 +493,7 @@ public class IndexModel(
     {
         var received = DateOnly.FromDateTime(request.ReceivedAt.LocalDateTime);
         var deadline = DeadlineCalculator.AddBusinessDays(received, options.PlazoDiasHabiles);
-        return DeadlineCalculator.BusinessDaysRemaining(DateOnly.FromDateTime(DateTime.Today), deadline);
+        return DeadlineCalculator.BusinessDaysRemaining(DateOnly.FromDateTime(clock.GetLocalNow().DateTime), deadline);
     }
 
     private void Load()

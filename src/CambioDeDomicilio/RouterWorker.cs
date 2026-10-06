@@ -33,12 +33,8 @@ public sealed class RouterWorker(
 
     /// <summary>No automatic polling — sync only runs when the operator presses "Sincronizar
     /// ahora" on the dashboard (see IndexModel.OnPostSyncNowAsync), which calls RunCycleAsync
-    /// directly. This method just ensures the schema exists at startup.</summary>
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        repository.EnsureSchema();
-        return Task.CompletedTask;
-    }
+    /// directly. The schema is created once at startup in Program.cs.</summary>
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) => Task.CompletedTask;
 
     /// <summary>Runs one poll cycle. Returns false only when a cycle was already running and this call was skipped
     /// (used by the dashboard's manual "sync now" action to report accurate feedback).</summary>
