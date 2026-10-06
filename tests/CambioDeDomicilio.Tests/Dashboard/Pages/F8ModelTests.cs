@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using CambioDeDomicilio.Configuration;
@@ -150,7 +151,8 @@ public class F8ModelTests : IDisposable
         var id = repository.Insert(NewRequest("msg-1", "Persona F8"));
         repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
 
-        model.OnPostCloseWithoutFolder(id);
+        var result = Assert.IsType<RedirectToPageResult>(model.OnPostCloseWithoutFolder(id));
+        Assert.Equal("/SinCarpetas", result.PageName);
 
         var stored = repository.FindById(id)!;
         Assert.NotNull(stored.ClosedWithoutFolderAt);

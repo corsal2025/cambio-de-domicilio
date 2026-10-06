@@ -19,6 +19,8 @@ public class SinCarpetasModel(IPersonRequestRepository repository) : PageModel
     public void OnGet(string? search = null)
     {
         Search = search;
+        Message ??= TempData?["Message"] as string;
+        if (TempData?["MessageIsError"] is bool isErr) MessageIsError = isErr;
         Load();
     }
 

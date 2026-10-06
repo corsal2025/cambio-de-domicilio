@@ -57,12 +57,20 @@ public class F8Model(
 
         if (fecha.Trim().Equals("S/C", StringComparison.OrdinalIgnoreCase))
         {
+            var request = repository.FindById(id);
             repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
+            if (TempData is not null)
+            {
+                TempData["Message"] = request is not null
+                    ? $"Caso de {request.FullName} cerrado sin carpeta física y trasladado a Sin Carpetas."
+                    : "Caso cerrado sin carpeta física y trasladado a Sin Carpetas.";
+                TempData["MessageIsError"] = false;
+            }
             if (isAjax)
             {
-                return new JsonResult(new { success = true, fecha = "S/C", sector = "—", moved = true });
+                return new JsonResult(new { success = true, fecha = "S/C", sector = "—", redirectUrl = "/SinCarpetas" });
             }
-            return RedirectToPage(new { search = Search, highlightId = HighlightId });
+            return RedirectToPage("/SinCarpetas");
         }
 
         if (!DateOnly.TryParseExact(fecha.Trim(), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed)
@@ -121,9 +129,16 @@ public class F8Model(
     /// <summary>"Sin carpeta": closes the process without a folder. The case moves to the Sin Carpetas screen.</summary>
     public IActionResult OnPostCloseWithoutFolder(long id)
     {
+        var request = repository.FindById(id);
         repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
-        Message = "Caso cerrado sin carpeta física y trasladado a la sección 'Sin Carpetas'.";
-        return RedirectToPage(new { search = Search, highlightId = HighlightId });
+        if (TempData is not null)
+        {
+            TempData["Message"] = request is not null
+                ? $"Caso de {request.FullName} cerrado sin carpeta física y trasladado a Sin Carpetas."
+                : "Caso cerrado sin carpeta física y trasladado a Sin Carpetas.";
+            TempData["MessageIsError"] = false;
+        }
+        return RedirectToPage("/SinCarpetas");
     }
 
     public IActionResult OnPostSetPersonData(long id, string nombre, string rut)

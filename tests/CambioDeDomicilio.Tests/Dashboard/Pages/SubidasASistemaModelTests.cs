@@ -99,6 +99,7 @@ public class SubidasASistemaModelTests : IDisposable
         var id = InsertCase("JUAN PEREZ", "12.345.678-5", RequestStatus.Confirmed, CaseDestination.Subidas);
 
         var result = Assert.IsType<RedirectToPageResult>(model.OnPostCloseWithoutFolder(id));
+        Assert.Equal("/SinCarpetas", result.PageName);
 
         var stored = repository.FindById(id)!;
         Assert.NotNull(stored.ClosedWithoutFolderAt);

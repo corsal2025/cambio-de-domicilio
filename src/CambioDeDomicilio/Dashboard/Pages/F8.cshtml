@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model CambioDeDomicilio.Dashboard.Pages.F8Model
 @using CambioDeDomicilio.Domain
 <!DOCTYPE html>
@@ -412,6 +412,10 @@
                 }
                 var tr = input.closest('tr');
                 if (tr) {
+                    if (data && data.redirectUrl) {
+                        window.location.href = data.redirectUrl;
+                        return;
+                    }
                     if (data && data.moved) {
                         tr.style.transition = 'opacity 0.3s ease';
                         tr.style.opacity = '0';

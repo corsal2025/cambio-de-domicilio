@@ -54,9 +54,12 @@ public class SubidasASistemaModel(IPersonRequestRepository repository, AddressCh
         }
 
         repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
-        Message = $"El caso de {request.FullName} se cerró sin carpeta física y se trasladó a Sin Carpetas.";
-        MessageIsError = false;
-        return RedirectToPage(new { search = Search });
+        if (TempData is not null)
+        {
+            TempData["Message"] = $"El caso de {request.FullName} se cerró sin carpeta física y se trasladó a Sin Carpetas.";
+            TempData["MessageIsError"] = false;
+        }
+        return RedirectToPage("/SinCarpetas");
     }
 
     public async Task<IActionResult> OnPostRectifyConfirmationAsync(long id)
