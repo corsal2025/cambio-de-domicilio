@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model CambioDeDomicilio.Dashboard.Pages.ComunasModel
 <!DOCTYPE html>
 <html lang="es">
@@ -36,7 +36,11 @@
             <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
             <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
             <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
-            <a asp-page="/Manual" class="nav-manual"><partial name="_NavIcon" model="@("manual")" /><span>Cómo usar el sistema</span></a>
+            <button type="button" id="btn-guia-global" class="btn-guia-accion" title="CÃ³mo usar el sistema (GuÃ­a interactiva)" data-tooltip="Simulador interactivo con flecha explicativa que te enseÃ±a paso a paso cÃ³mo usar el sistema">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>CÃ³mo usar el sistema</span>
+            </button>
+            <a asp-page="/Manual" class="nav-manual" title="Manual completo de procedimientos y normativa"><partial name="_NavIcon" model="@("manual")" /><span>Manual</span></a>
         </div>
         <div class="app-subnav-docs">
             <span class="app-subnav-label">Documentos</span>
@@ -121,5 +125,6 @@
     </main>
     <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
     <partial name="_AuthorFooter" />
+    <script src="~/js/system-tour.js" asp-append-version="true"></script>
 </body>
 </html>

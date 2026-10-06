@@ -1,419 +1,399 @@
 /**
- * system-tour.js — Tour Guiado Interactivo por las Pantallas Reales del Sistema
- * Municipalidad de Valparaíso — CambioDeDomicilio
+ * system-tour.js — Simulador Interactivo con Spotlight y Guía con Flecha Explicativa
+ * Sistema de Gestión de Carpetas 2.0 (CambioDeDomicilio)
+ * Municipalidad de Valparaíso
  */
 
 (function () {
-    const TOUR_STORAGE_KEY = 'cdd_system_tour_active';
-    const TOUR_STEP_KEY = 'cdd_system_tour_step';
+    let tourPasoActual = 0;
+    let tourKeyHandler = null;
 
-    const STEPS = [
+    const PASOS_TOUR = [
         {
-            step: 1,
-            path: '/',
-            altPaths: ['/Index'],
-            navClass: '.nav-casos',
-            badge: 'Mesa de Entrada',
-            title: '1. Cambio de Domicilio (Bandeja Principal)',
-            summary: 'Aquí ingresan automáticamente las solicitudes recibidas por correo desde las distintas comunas.',
-            keyPoints: [
-                '<strong>Fecha última carpeta:</strong> Ingresa la fecha en formato <code>dd/mm/aaaa</code> para clasificar el sector (Archivo histórico u Oficina 43).',
-                '<strong>Marcar subida:</strong> Cuando la carpeta se sube a Conaset, pulsa este botón. El caso <em>desaparece de esta bandeja</em> y viaja directo a <strong>Subidas a Sistema</strong>.',
-                '<strong>Traspaso a F8:</strong> Si la carpeta no se encuentra en las estanterías, pulsa este botón para enviarla al módulo urgente de búsqueda F8.'
-            ],
-            nextUrl: '/F8?tour=2',
-            prevUrl: null,
-            nextLabel: 'Siguiente: Casos F8 ➔'
+            target: '.app-subnav-main',
+            titulo: '1. Flujo y Módulos del Sistema',
+            icono: '🧭',
+            descripcion: 'Desde esta barra gestionas el ciclo de vida completo: <b>Cambio de Domicilio</b> (bandeja de entrada), <b>F8</b> (búsqueda urgente en bodega), <b>Subidas a Sistema</b> (solicitudes subidas a Conaset), <b>Sin Carpetas</b> (archivo digital), <b>Caja</b> (embalaje físico foliado) y <b>Estadísticas</b>.'
         },
         {
-            step: 2,
-            path: '/F8',
-            altPaths: ['/F8/'],
-            navClass: '.nav-f8',
-            badge: 'Búsqueda Especial',
-            title: '2. Casos F8 (Urgencias / Sin Carpeta Inicial)',
-            summary: 'Módulo dedicado para cuando la carpeta física no se encontró a la primera en el archivo físico.',
-            keyPoints: [
-                '<strong>Código F8:</strong> Asigna un código único (ej. <code>F8-1234</code>) para que los bodegueros rastreen la carpeta en terreno.',
-                '<strong>Botón Caja:</strong> Si la carpeta física finalmente aparece, pulsa <strong>Caja</strong> para derivarla al embalaje.',
-                '<strong>Botón Sin Carpeta:</strong> Si definitivamente no existe carpeta física, pulsa <strong>Sin carpeta</strong>. El caso se archiva directo en <strong>Sin Carpetas</strong>.'
-            ],
-            nextUrl: '/SubidasASistema?tour=3',
-            prevUrl: '/?tour=1',
-            nextLabel: 'Siguiente: Subidas a Sistema ➔'
+            target: '.nav-group-filters',
+            titulo: '2. Filtros de Estados',
+            icono: '🏷️',
+            descripcion: 'Clasifica tus solicitudes al instante: <b>Todos</b>, <b>Pendientes</b> de procesar, <b>Subidos</b> a sistema, <b>Confirmados</b> y <b>Requiere revisión</b> (aquellos cuyos datos del correo necesitan corrección manual).'
         },
         {
-            step: 3,
-            path: '/SubidasASistema',
-            altPaths: ['/SubidasASistema/'],
-            navClass: '.nav-subidas',
-            badge: 'Estación de Derivación',
-            title: '3. Subidas a Sistema',
-            summary: 'Aquí se concentran todas las solicitudes que ya fueron marcadas como subidas en Cambio de Domicilio.',
-            keyPoints: [
-                '<strong>Bandeja limpia:</strong> Esta sección evita que Cambio de Domicilio se llene de trámites ya subidos.',
-                '<strong>Derivación a Caja:</strong> Si tienes la carpeta física en mano, pulsa <strong>Caja</strong> para enviarla a embalaje oficial.',
-                '<strong>Derivación Sin Carpeta:</strong> Si el contribuyente no requirió carpeta de papel, pulsa <strong>Sin carpeta</strong> para archivarlo en Sin Carpetas.'
-            ],
-            nextUrl: '/SinCarpetas?tour=4',
-            prevUrl: '/F8?tour=2',
-            nextLabel: 'Siguiente: Sin Carpetas ➔'
+            target: '.nav-search',
+            titulo: '3. Búsqueda Inteligente por RUT',
+            icono: '🔍',
+            descripcion: 'Busca en segundos por <b>RUT</b> o nombre del contribuyente. Si el caso ya avanzó a F8, Subidas o Caja, el sistema detecta su ubicación y te ofrece un botón de salto directo.'
         },
         {
-            step: 4,
-            path: '/SinCarpetas',
-            altPaths: ['/SinCarpetas/'],
-            navClass: '.nav-sin-carpetas',
-            badge: 'Archivo Digital',
-            title: '4. Sin Carpetas (Histórico y Auditoría)',
-            summary: 'Repositorio histórico permanente de todos los casos cerrados que no contaron con carpeta física de papel.',
-            keyPoints: [
-                '<strong>Auditoría completa:</strong> Consulta en segundos la fecha exacta de cierre y el funcionario que gestionó el caso.',
-                '<strong>Revertir a F8:</strong> Si en el futuro aparece la carpeta física en bodega, puedes pulsar <strong>Revertir a F8</strong> para reabrir la búsqueda.'
-            ],
-            nextUrl: '/Caja?tour=5',
-            prevUrl: '/SubidasASistema?tour=3',
-            nextLabel: 'Siguiente: Embalaje en Caja ➔'
+            target: '.fecha-input, .sector-cell, th:nth-child(10), .table-card',
+            titulo: '4. Fecha de Última Carpeta y Sector',
+            icono: '📅',
+            descripcion: 'Ingresa la fecha en formato <code>dd/mm/aaaa</code>. El sistema clasifica automáticamente el sector: carpetas anteriores al 2000 van a <b>Archivo Histórico</b>, mientras que del 2000 en adelante van a <b>Oficina 43</b>.'
         },
         {
-            step: 5,
-            path: '/Caja',
-            altPaths: ['/Caja/'],
-            navClass: '.nav-caja',
-            badge: 'Embalaje y Bodega',
-            title: '5. Caja (Control Físico y Embalaje)',
-            summary: 'Gestiona la cola de carpetas físicas que serán embaladas en cajas foliadas oficiales para su entrega a bodega.',
-            keyPoints: [
-                '<strong>Cola de espera:</strong> Las carpetas enviadas desde Casos, F8 o Subidas a Sistema se van acumulando aquí.',
-                '<strong>Cerrar Caja:</strong> Al completar la cantidad de carpetas (ej. 40 o 50), ingresa el número de caja y pulsa <strong>Cerrar Caja</strong> para generar el rótulo oficial numerado (ej. <code>A1-CD</code>).',
-                '<strong>Historial de Cajas:</strong> Consulta e imprime el listado de cualquier caja cerrada en el panel lateral.'
-            ],
-            nextUrl: '/Estadisticas?tour=6',
-            prevUrl: '/SinCarpetas?tour=4',
-            nextLabel: 'Siguiente: Estadísticas ➔'
+            target: '.btn-action--upload, form.no-f8-only, .action-group, .table-card',
+            titulo: '5. Marcar Subida (Avanzar a Subidas a Sistema)',
+            icono: '📤',
+            descripcion: 'Una vez ingresados los datos en Conaset, pulsa <b>Marcar subida</b>. El caso se retira de la bandeja principal y se traslada a <b>Subidas a Sistema</b> para definir su entrega física o cierre.'
         },
         {
-            step: 6,
-            path: '/Estadisticas',
-            altPaths: ['/Estadisticas/'],
-            navClass: '.nav-estadisticas',
-            badge: 'Control Legal',
-            title: '6. Estadísticas y Semáforo de Plazos (15 Días)',
-            summary: 'Panel de monitoreo en tiempo real del cumplimiento de la normativa legal de plazos.',
-            keyPoints: [
-                '<strong>Semáforo legal:</strong> 🟢 Verde (&gt; 5 días restantes), 🟡 Amarillo (&lt; 5 días restantes, urgencia), 🔴 Rojo (plazo de 15 días vencido).',
-                '<strong>Ranking comunal:</strong> Visualiza qué comunas generan mayor demanda de carpetas para planificar la carga de trabajo.'
-            ],
-            nextUrl: '/Manual?tour=done',
-            prevUrl: '/Caja?tour=5',
-            nextLabel: 'Finalizar Tour ✓'
+            target: '.f8-cell, .btn-action--f8, th:nth-child(4), .table-card',
+            titulo: '6. Traspaso a F8 (Carpeta no encontrada)',
+            icono: '🚨',
+            descripcion: 'Si la carpeta física no se localiza en la estantería, marca la casilla <b>F8</b> o presiona <b>Traspaso a F8</b> para derivarla al módulo de búsqueda urgente en bodega y asignarle código de rastreo.'
+        },
+        {
+            target: '.app-subnav-docs',
+            titulo: '7. Generación de Listados PDF',
+            icono: '📄',
+            descripcion: 'Genera las nóminas oficiales en PDF para <b>Archivo</b> u <b>Oficina 43</b> con los casos marcados, listas para imprimir y entregar a los estanteros.'
+        },
+        {
+            target: '.nav-sin-carpetas, .nav-caja, .app-subnav-main',
+            titulo: '8. Cierre Definitivo: Caja o Sin Carpeta',
+            icono: '📦',
+            descripcion: 'Todo trámite termina en uno de dos destinos: <b>Caja</b> si existe carpeta de papel para embalar con rótulo numerado oficial, o <b>Sin Carpetas</b> si el contribuyente no requirió carpeta física.'
         }
     ];
 
-    function injectStyles() {
-        if (document.getElementById('system-tour-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'system-tour-styles';
-        style.textContent = `
-            /* Tour Floating HUD */
-            .tour-hud {
-                position: fixed;
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%) translateY(20px);
-                width: calc(100% - 32px);
-                max-width: 900px;
-                background: linear-gradient(135deg, rgba(8, 26, 43, 0.96) 0%, rgba(15, 38, 64, 0.98) 100%);
-                backdrop-filter: blur(14px);
-                -webkit-backdrop-filter: blur(14px);
-                border: 2px solid #0284c7;
-                border-radius: 16px;
-                box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(2, 132, 199, 0.35);
-                color: #ffffff;
-                z-index: 999999;
-                padding: 18px 24px;
-                font-family: inherit;
-                opacity: 0;
-                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                pointer-events: auto;
+    function iniciarGuiaInteractiva() {
+        const tip = document.getElementById('tooltip-flotante');
+        if (tip) tip.classList.remove('visible');
+
+        cerrarGuiaInteractiva();
+        tourPasoActual = 0;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'tour-overlay';
+        overlay.className = 'tour-overlay';
+        overlay.innerHTML = `
+            <button class="tour-btn-salir-flotante" id="tour-salir-flotante" title="Terminar y cerrar la guía">
+                <span>✕</span> Cerrar guía
+            </button>
+            <div id="tour-spotlight" class="tour-spotlight"></div>
+            <div id="tour-card" class="tour-card">
+                <div class="tour-card-header">
+                    <span class="tour-paso-badge" id="tour-badge">Paso 1 de ${PASOS_TOUR.length}</span>
+                    <button class="tour-btn-cerrar" id="tour-cerrar" title="Cerrar guía">&times;</button>
+                </div>
+                <div class="tour-card-body">
+                    <h3 id="tour-titulo" class="tour-card-titulo"></h3>
+                    <p id="tour-desc" class="tour-card-desc"></p>
+                </div>
+                <div class="tour-card-footer">
+                    <button class="tour-btn-nav" id="tour-prev">Anterior</button>
+                    <div class="tour-dots" id="tour-dots"></div>
+                    <button class="tour-btn-nav tour-btn-primary" id="tour-next">Siguiente</button>
+                </div>
+                <div id="tour-flecha" class="tour-flecha"></div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        document.getElementById('tour-cerrar').onclick = cerrarGuiaInteractiva;
+        document.getElementById('tour-salir-flotante').onclick = cerrarGuiaInteractiva;
+        overlay.onclick = function (e) {
+            if (e.target === overlay) cerrarGuiaInteractiva();
+        };
+
+        tourKeyHandler = function (e) {
+            if (e.key === 'Escape') {
+                cerrarGuiaInteractiva();
+            } else if (e.key === 'ArrowRight' && tourPasoActual < PASOS_TOUR.length - 1) {
+                tourPasoActual++;
+                renderPasoTour();
+            } else if (e.key === 'ArrowLeft' && tourPasoActual > 0) {
+                tourPasoActual--;
+                renderPasoTour();
             }
-            .tour-hud.visible {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
+        };
+        window.addEventListener('keydown', tourKeyHandler);
+
+        document.getElementById('tour-prev').onclick = function () {
+            if (tourPasoActual > 0) {
+                tourPasoActual--;
+                renderPasoTour();
             }
-            .tour-hud-header {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                margin-bottom: 12px;
-                gap: 12px;
-                flex-wrap: wrap;
+        };
+
+        document.getElementById('tour-next').onclick = function () {
+            if (tourPasoActual < PASOS_TOUR.length - 1) {
+                tourPasoActual++;
+                renderPasoTour();
+            } else {
+                cerrarGuiaInteractiva();
+                mostrarToastFinal();
             }
-            .tour-hud-badge {
-                background: #0284c7;
-                color: #ffffff;
-                padding: 4px 10px;
-                border-radius: 20px;
-                font-size: 0.72rem;
-                font-weight: 800;
-                letter-spacing: 0.05em;
-                text-transform: uppercase;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-            }
-            .tour-hud-title {
-                font-size: 1.15rem;
-                font-weight: 800;
-                color: #f8fafc;
-                margin: 0;
-                flex: 1;
-                letter-spacing: -0.01em;
-            }
-            .tour-hud-close {
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                color: #cbd5e1;
-                padding: 5px 12px;
-                border-radius: 8px;
-                font-size: 0.8rem;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                display: inline-flex;
-                align-items: center;
-                gap: 4px;
-            }
-            .tour-hud-close:hover {
-                background: #ef4444;
-                border-color: #ef4444;
-                color: #ffffff;
-            }
-            .tour-hud-summary {
-                font-size: 0.9rem;
-                color: #94a3b8;
-                margin-bottom: 12px;
-                line-height: 1.45;
-            }
-            .tour-hud-points {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-                gap: 10px;
-                background: rgba(0, 0, 0, 0.25);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 10px;
-                padding: 12px 14px;
-                margin-bottom: 14px;
-                font-size: 0.82rem;
-                line-height: 1.4;
-                color: #e2e8f0;
-            }
-            .tour-hud-points code {
-                background: rgba(2, 132, 199, 0.25);
-                color: #38bdf8;
-                padding: 1px 4px;
-                border-radius: 4px;
-            }
-            .tour-hud-footer {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 12px;
-                flex-wrap: wrap;
-            }
-            .tour-hud-progress {
-                font-size: 0.78rem;
-                color: #64748b;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            .tour-hud-dots {
-                display: flex;
-                gap: 4px;
-            }
-            .tour-hud-dot {
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.2);
-                transition: all 0.2s ease;
-            }
-            .tour-hud-dot.active {
-                background: #38bdf8;
-                width: 22px;
-                border-radius: 10px;
-            }
-            .tour-hud-actions {
-                display: flex;
-                gap: 8px;
-                align-items: center;
-            }
-            .tour-hud-btn {
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                color: #f1f5f9;
-                padding: 8px 16px;
-                border-radius: 8px;
-                font-size: 0.84rem;
-                font-weight: 700;
-                cursor: pointer;
-                text-decoration: none;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                transition: all 0.2s ease;
-            }
-            .tour-hud-btn:hover {
-                background: rgba(255, 255, 255, 0.2);
-                color: #ffffff;
-            }
-            .tour-hud-btn-primary {
-                background: #0284c7;
-                border-color: #38bdf8;
-                color: #ffffff;
-                box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
-            }
-            .tour-hud-btn-primary:hover {
-                background: #0369a1;
-                transform: translateY(-1px);
-            }
-            /* Highlight target animation */
-            .tour-highlight-active {
-                position: relative !important;
-                outline: 3px solid #38bdf8 !important;
-                outline-offset: 4px !important;
-                box-shadow: 0 0 20px rgba(56, 189, 248, 0.5) !important;
-                animation: tourPulse 2s infinite ease-in-out !important;
-            }
-            @keyframes tourPulse {
-                0% { outline-color: #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
-                50% { outline-color: #0284c7; box-shadow: 0 0 28px rgba(2, 132, 199, 0.7); }
-                100% { outline-color: #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
-            }
-        `;
-        document.head.appendChild(style);
+        };
+
+        renderPasoTour(true);
     }
 
-    function getCurrentStepIndex() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const tourParam = urlParams.get('tour');
-        if (tourParam) {
-            const parsed = parseInt(tourParam, 10);
-            if (!isNaN(parsed) && parsed >= 1 && parsed <= STEPS.length) {
-                return parsed - 1;
+    function renderPasoTour(esPrimerRender = false) {
+        const paso = PASOS_TOUR[tourPasoActual];
+        let target = null;
+
+        // Intentar los selectores especificados en target
+        const selectores = paso.target.split(',');
+        for (let s of selectores) {
+            const found = document.querySelector(s.trim());
+            if (found && found.offsetParent !== null) {
+                target = found;
+                break;
             }
         }
 
-        const currentPath = window.location.pathname;
-        for (let i = 0; i < STEPS.length; i++) {
-            const s = STEPS[i];
-            if (s.path === currentPath || (s.altPaths && s.altPaths.includes(currentPath))) {
-                return i;
-            }
+        // Fallback si no está el elemento específico
+        if (!target) {
+            target = document.querySelector('.table-card') || document.querySelector('.cases') || document.querySelector('.app-header');
         }
-        return -1;
-    }
+        if (!target) return;
 
-    function isTourActive() {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('tour') === 'done') {
-            sessionStorage.removeItem(TOUR_STORAGE_KEY);
-            return false;
+        document.getElementById('tour-badge').textContent = `Paso ${tourPasoActual + 1} de ${PASOS_TOUR.length}`;
+        document.getElementById('tour-titulo').innerHTML = `<span class="tour-ico">${paso.icono}</span> ${paso.titulo}`;
+        document.getElementById('tour-desc').innerHTML = paso.descripcion;
+        document.getElementById('tour-prev').disabled = tourPasoActual === 0;
+
+        const esUltimo = tourPasoActual === PASOS_TOUR.length - 1;
+        const btnNext = document.getElementById('tour-next');
+        if (esUltimo) {
+            btnNext.textContent = '✔ ¡Finalizar!';
+            btnNext.style.background = '#10b981';
+            btnNext.style.borderColor = '#059669';
+            btnNext.style.color = '#fff';
+            btnNext.style.fontWeight = '700';
+        } else {
+            btnNext.textContent = 'Siguiente';
+            btnNext.style.background = '';
+            btnNext.style.borderColor = '';
+            btnNext.style.color = '';
+            btnNext.style.fontWeight = '';
         }
-        if (urlParams.has('tour')) {
-            sessionStorage.setItem(TOUR_STORAGE_KEY, 'true');
-            return true;
-        }
-        return sessionStorage.getItem(TOUR_STORAGE_KEY) === 'true';
-    }
 
-    function renderTourHud() {
-        if (!isTourActive()) return;
-
-        const stepIdx = getCurrentStepIndex();
-        if (stepIdx < 0) return;
-
-        const data = STEPS[stepIdx];
-        injectStyles();
-
-        // Remove existing HUD if present
-        const existing = document.getElementById('system-tour-hud');
-        if (existing) existing.remove();
-
-        const hud = document.createElement('div');
-        hud.id = 'system-tour-hud';
-        hud.className = 'tour-hud';
-
-        const dotsHtml = STEPS.map((s, idx) =>
-            `<span class="tour-hud-dot ${idx === stepIdx ? 'active' : ''}" title="${s.title}"></span>`
+        // Dots
+        document.getElementById('tour-dots').innerHTML = PASOS_TOUR.map((_, i) =>
+            `<span class="tour-dot ${i === tourPasoActual ? 'activo' : ''}"></span>`
         ).join('');
 
-        const pointsHtml = data.keyPoints.map(p => `<div>• ${p}</div>`).join('');
+        const posicionar = () => {
+            const r = target.getBoundingClientRect();
+            const spot = document.getElementById('tour-spotlight');
+            const card = document.getElementById('tour-card');
+            const flecha = document.getElementById('tour-flecha');
+            if (!spot || !card) return;
 
-        hud.innerHTML = `
-            <div class="tour-hud-header">
-                <span class="tour-hud-badge">🧭 Paso ${data.step} de ${STEPS.length} • ${data.badge}</span>
-                <h3 class="tour-hud-title">${data.title}</h3>
-                <button type="button" class="tour-hud-close" id="tour-hud-close-btn" title="Cerrar tour guiado">
-                    ✕ Salir del tour
-                </button>
-            </div>
-            <div class="tour-hud-summary">${data.summary}</div>
-            <div class="tour-hud-points">${pointsHtml}</div>
-            <div class="tour-hud-footer">
-                <div class="tour-hud-progress">
-                    <span>Avance:</span>
-                    <div class="tour-hud-dots">${dotsHtml}</div>
-                </div>
-                <div class="tour-hud-actions">
-                    ${data.prevUrl ? `<a href="${data.prevUrl}" class="tour-hud-btn">◀ Anterior</a>` : ''}
-                    <a href="${data.nextUrl}" class="tour-hud-btn tour-hud-btn-primary">${data.nextLabel}</a>
-                </div>
-            </div>
-        `;
+            const cardW = 390;
+            const cardH = 260;
+            const pad = 6;
+            const esGrilla = r.height > window.innerHeight * 0.55 || r.width > window.innerWidth * 0.85;
 
-        document.body.appendChild(hud);
-
-        // Highlight active subnav tab
-        if (data.navClass) {
-            const targetEl = document.querySelector(data.navClass);
-            if (targetEl) {
-                targetEl.classList.add('tour-highlight-active');
+            if (esPrimerRender) {
+                spot.style.transition = 'none';
+                card.style.transition = 'none';
             }
+
+            if (esGrilla) {
+                const spotTop = Math.max(12, Math.round(r.top));
+                const spotH = Math.min(Math.round(r.height), window.innerHeight - spotTop - 24);
+                spot.style.left = `${Math.max(10, Math.round(r.left - pad))}px`;
+                spot.style.top = `${spotTop}px`;
+                spot.style.width = `${Math.min(window.innerWidth - 20, Math.round(r.width + pad * 2))}px`;
+                spot.style.height = `${Math.max(220, spotH)}px`;
+
+                const cardLeft = Math.round((window.innerWidth - cardW) / 2);
+                const cardTop = Math.round(Math.max(80, (window.innerHeight - cardH) / 2));
+                card.style.left = `${cardLeft}px`;
+                card.style.top = `${cardTop}px`;
+                if (flecha) flecha.style.display = 'none';
+            } else {
+                if (flecha) flecha.style.display = 'block';
+
+                // Spotlight regular
+                spot.style.left = `${Math.max(0, Math.round(r.left - pad))}px`;
+                spot.style.top = `${Math.max(0, Math.round(r.top - pad))}px`;
+                spot.style.width = `${Math.round(r.width + pad * 2)}px`;
+                spot.style.height = `${Math.round(r.height + pad * 2)}px`;
+
+                // Posicionar tarjeta
+                let cardLeft = Math.round(r.left + (r.width / 2) - (cardW / 2));
+                if (cardLeft < 16) cardLeft = 16;
+                if (cardLeft + cardW > window.innerWidth - 16) cardLeft = window.innerWidth - cardW - 16;
+
+                let cardTop = Math.round(r.bottom + 14);
+                let flechaArriba = true;
+
+                // Si se sale por abajo, colocar arriba del elemento
+                if (cardTop + cardH > window.innerHeight - 16) {
+                    cardTop = Math.round(r.top - cardH - 14);
+                    flechaArriba = false;
+                }
+
+                if (cardTop < 16) cardTop = 16;
+                if (cardTop + cardH > window.innerHeight - 16) cardTop = window.innerHeight - cardH - 16;
+
+                card.style.left = `${cardLeft}px`;
+                card.style.top = `${cardTop}px`;
+
+                if (flecha) {
+                    flecha.className = `tour-flecha ${flechaArriba ? 'flecha-arriba' : 'flecha-abajo'}`;
+                    const flechaX = Math.max(24, Math.min(cardW - 36, (r.left + r.width / 2) - cardLeft));
+                    flecha.style.left = `${Math.round(flechaX)}px`;
+                }
+            }
+
+            if (esPrimerRender) {
+                void card.offsetHeight;
+                spot.style.transition = '';
+                card.style.transition = '';
+            }
+
+            spot.classList.add('visible');
+            card.classList.add('visible');
+        };
+
+        const rect = target.getBoundingClientRect();
+        const yaVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+
+        if (yaVisible || esPrimerRender) {
+            posicionar();
+        } else {
+            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            setTimeout(posicionar, 100);
+        }
+    }
+
+    function cerrarGuiaInteractiva() {
+        if (tourKeyHandler) {
+            window.removeEventListener('keydown', tourKeyHandler);
+            tourKeyHandler = null;
+        }
+        const o = document.getElementById('tour-overlay');
+        if (o) o.remove();
+    }
+
+    function mostrarToastFinal() {
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #0f172a;
+            color: #ffffff;
+            border-left: 4px solid #10b981;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            z-index: 100000;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        `;
+        toast.innerHTML = '🎉 ¡Guía interactiva completada! Ya conoces el flujo del sistema.';
+        document.body.appendChild(toast);
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        });
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    /* ================= INICIALIZACIÓN DE TOOLTIPS GLOBALES ================= */
+    function iniciarTooltipsGlobales() {
+        let tip = document.getElementById('tooltip-flotante');
+        if (!tip) {
+            tip = document.createElement('div');
+            tip.id = 'tooltip-flotante';
+            tip.className = 'tooltip-flotante';
+            document.body.appendChild(tip);
         }
 
-        // Show HUD with transition
-        requestAnimationFrame(() => {
-            hud.classList.add('visible');
+        document.addEventListener('mouseover', function (e) {
+            const el = e.target.closest('[data-tooltip]');
+            if (!el) {
+                tip.classList.remove('visible');
+                return;
+            }
+            const texto = el.getAttribute('data-tooltip');
+            if (!texto) return;
+            tip.textContent = texto;
+            tip.classList.add('visible');
+
+            const rect = el.getBoundingClientRect();
+            const tipRect = tip.getBoundingClientRect();
+            let left = rect.left + rect.width / 2 - tipRect.width / 2;
+            if (left < 10) left = 10;
+            if (left + tipRect.width > window.innerWidth - 10) left = window.innerWidth - tipRect.width - 10;
+            let top = rect.bottom + 8;
+            if (top + tipRect.height > window.innerHeight - 8) {
+                top = rect.top - tipRect.height - 8;
+                tip.classList.add('pos-arriba');
+            } else {
+                tip.classList.remove('pos-arriba');
+            }
+            tip.style.left = `${Math.round(left)}px`;
+            tip.style.top = `${Math.round(top)}px`;
         });
 
-        // Close button handler
-        document.getElementById('tour-hud-close-btn')?.addEventListener('click', () => {
-            sessionStorage.removeItem(TOUR_STORAGE_KEY);
-            hud.classList.remove('visible');
-            setTimeout(() => hud.remove(), 300);
-            if (data.navClass) {
-                document.querySelector(data.navClass)?.classList.remove('tour-highlight-active');
+        document.addEventListener('mouseout', function (e) {
+            const el = e.target.closest('[data-tooltip]');
+            if (el && !e.relatedTarget?.closest('[data-tooltip]')) {
+                tip.classList.remove('visible');
             }
         });
     }
 
-    // Expose global starter function
-    window.startSystemTour = function () {
-        sessionStorage.setItem(TOUR_STORAGE_KEY, 'true');
-        window.location.href = '/?tour=1';
-    };
+    // Inicializar listeners al cargar el DOM
+    document.addEventListener('DOMContentLoaded', function () {
+        iniciarTooltipsGlobales();
 
-    window.exitSystemTour = function () {
-        sessionStorage.removeItem(TOUR_STORAGE_KEY);
-        const hud = document.getElementById('system-tour-hud');
-        if (hud) {
-            hud.classList.remove('visible');
-            setTimeout(() => hud.remove(), 300);
+        // Enlazar botones de inicio de la guía
+        document.querySelectorAll('#btn-guia-global, .btn-guia-accion, .btn-start-tour').forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const path = window.location.pathname.toLowerCase();
+                const esPrincipal = path === '/' || path === '' || path === '/index';
+
+                if (!esPrincipal) {
+                    window.location.href = '/?simulador=1';
+                } else {
+                    iniciarGuiaInteractiva();
+                }
+            });
+        });
+
+        // Detectar si la URL solicita iniciar el simulador
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('simulador') || params.has('tour') || params.has('guia')) {
+            // Limpiar parámetro de URL sin recargar
+            params.delete('simulador');
+            params.delete('tour');
+            params.delete('guia');
+            const newSearch = params.toString();
+            const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+            window.history.replaceState({}, '', newUrl);
+
+            setTimeout(iniciarGuiaInteractiva, 200);
+        }
+    });
+
+    // Exponer API global
+    window.iniciarGuiaInteractiva = iniciarGuiaInteractiva;
+    window.cerrarGuiaInteractiva = cerrarGuiaInteractiva;
+    window.startSystemTour = function () {
+        const path = window.location.pathname.toLowerCase();
+        if (path === '/' || path === '' || path === '/index') {
+            iniciarGuiaInteractiva();
+        } else {
+            window.location.href = '/?simulador=1';
         }
     };
-
-    document.addEventListener('DOMContentLoaded', () => {
-        renderTourHud();
-    });
+    window.exitSystemTour = cerrarGuiaInteractiva;
 })();
