@@ -11,51 +11,117 @@
     const PASOS_TOUR = [
         {
             target: '.app-subnav-main',
-            titulo: '1. Flujo y Módulos del Sistema',
+            titulo: '1. Cómo funciona el sistema completo',
             icono: '🧭',
-            descripcion: 'Desde esta barra gestionas el ciclo de vida completo: <b>Cambio de Domicilio</b> (bandeja de entrada), <b>F8</b> (búsqueda urgente en bodega), <b>Subidas a Sistema</b> (solicitudes subidas a Conaset), <b>Sin Carpetas</b> (archivo digital), <b>Caja</b> (embalaje físico foliado) y <b>Estadísticas</b>.'
+            descripcion: 'Las comunas piden carpetas por correo. El sistema <b>lee ese correo</b>, crea un <b>caso por contribuyente</b> y lo acompaña por: <b>Cambio de Domicilio</b> → <b>Subidas a Sistema</b> o <b>F8</b> → <b>Caja</b> o <b>Sin Carpetas</b>. Esta guía recorre cada pieza.'
         },
         {
-            target: '.nav-group-filters',
-            titulo: '2. Filtros de Estados',
+            target: '.nav-sync, .app-header',
+            titulo: '2. Sincronizar ahora (la entrada de datos)',
+            icono: '🔄',
+            descripcion: 'La lectura del correo es <b>solo manual</b>: no hay sincronización automática. Al pulsar este botón el sistema lee <b>CARP. PARA PEDIR</b> (casos nuevos), <b>CARP. YA SUBIDAS</b> (marca subidos), revisa la bandeja por <b>rebotes</b> y actualiza el reporte CSV.'
+        },
+        {
+            target: '.nav-group-tools a:first-child, .nav-group-tools, .app-header',
+            titulo: '3. Comunas: a quién se reconoce',
+            icono: '🗺️',
+            descripcion: 'Es el directorio de comunas (nombre, correo de contacto y dominio). El sistema reconoce una solicitud por el <b>dominio del remitente</b>. Aquí puedes <b>agregar, editar o eliminar</b> comunas; los cambios se usan en la próxima sincronización.'
+        },
+        {
+            target: '.nav-group-tools a:nth-child(2), .nav-group-tools, .app-header',
+            titulo: '4. Descartados: correos no reconocidos',
+            icono: '🗑️',
+            descripcion: 'Si el remitente no está en el directorio (o comparte dominio con varias comunas sin estar registrado), el correo queda aquí con su <b>motivo</b>. Al registrar la comuna, la próxima sincronización crea el caso y lo quita de Descartados.'
+        },
+        {
+            target: '.nav-group-filters, .app-header',
+            titulo: '5. Filtros y "Requiere revisión"',
             icono: '🏷️',
-            descripcion: 'Clasifica tus solicitudes al instante: <b>Todos</b>, <b>Pendientes</b> de procesar, <b>Subidos</b> a sistema, <b>Confirmados</b> y <b>Requiere revisión</b> (aquellos cuyos datos del correo necesitan corrección manual).'
+            descripcion: 'Filtra por <b>Todos</b>, <b>Pendientes</b>, <b>Subidos</b>, <b>Confirmados</b>, <b>Requiere revisión</b> y <b>Rebotados</b>. En revisión quedan los casos donde el correo no trajo nombre o RUT válido: debes digitarlos y no se pueden confirmar hasta corregirlos.'
         },
         {
-            target: '.nav-search',
-            titulo: '3. Búsqueda Inteligente por RUT',
+            target: '.nav-search, .app-header',
+            titulo: '6. Búsqueda por RUT o nombre',
             icono: '🔍',
-            descripcion: 'Busca en segundos por <b>RUT</b> o nombre del contribuyente. Si el caso ya avanzó a F8, Subidas o Caja, el sistema detecta su ubicación y te ofrece un botón de salto directo.'
+            descripcion: 'Escribe un <b>RUT</b> (se formatea solo) o un nombre. Si el caso ya avanzó a F8, Subidas, Caja o Sin Carpetas, el sistema te indica <b>dónde está</b> (incluso la caja y el N°) y te lleva a su fila resaltada.'
         },
         {
-            target: '.fecha-input, .sector-cell, th:nth-child(10), .table-card',
-            titulo: '4. Fecha de Última Carpeta y Sector',
+            target: '.legacy-caja-option, .table-card',
+            titulo: '7. Agregar casos a mano',
+            icono: '➕',
+            descripcion: 'Con <b>Agregar caso(s)</b> ingresas contribuyentes manualmente. Marcando <b>Carpeta antigua</b> el caso va <b>directo a la cola de Caja</b> sin enviar correo a la comuna: sirve para carpetas viejas que nunca se registraron.'
+        },
+        {
+            target: '.table-card',
+            titulo: '8. Colores de las filas',
+            icono: '🎨',
+            descripcion: '<b>Blanco</b>: sin ninguna acción. <b>Gris</b>: acción terminada (subido, confirmado, en Caja o cerrado). <b>Amarillo</b>: casilla <b>Marcar</b>. <b>Morado</b>: <b>Pendiente carpeta</b>. <b>Rojo</b>: requiere revisión o rebotó. Marcar y Pendiente son solo para organizarte.'
+        },
+        {
+            target: '.table-card',
+            titulo: '9. Plazo de 15 días hábiles',
+            icono: '⏳',
+            descripcion: 'Cada caso tiene <b>15 días hábiles</b> (lunes a viernes) desde que se recibió. El indicador va en <b>verde</b>; pasa a <b>ámbar</b> con 7 días o menos y a <b>rojo</b> con 3 o menos o vencido. Deja de contar cuando el caso ya está subido o confirmado.'
+        },
+        {
+            target: '.fecha-input, .sector-cell, .table-card',
+            titulo: '10. Fecha de última carpeta y sector',
             icono: '📅',
-            descripcion: 'Ingresa la fecha en formato <code>dd/mm/aaaa</code>. El sistema clasifica automáticamente el sector: carpetas anteriores al 2000 van a <b>Archivo Histórico</b>, mientras que del 2000 en adelante van a <b>Oficina 43</b>.'
+            descripcion: 'Escribe la fecha como <b>15 marzo 2024</b> o <b>15/03/2024</b>. El sector sale solo: antes del <b>1 de julio de 2023</b> es <b>Archivo</b>; desde esa fecha, <b>Oficina 43</b>. Con <b>S/C</b> en F8 el caso se cierra sin carpeta.'
         },
         {
-            target: '.btn-action--upload, form.no-f8-only, .action-group, .table-card',
-            titulo: '5. Marcar Subida (Avanzar a Subidas a Sistema)',
+            target: '.btn-action--upload, .action-group, .table-card',
+            titulo: '11. Marcar subida (confirmar a la comuna)',
             icono: '📤',
-            descripcion: 'Una vez ingresados los datos en Conaset, pulsa <b>Marcar subida</b>. El caso se retira de la bandeja principal y se traslada a <b>Subidas a Sistema</b> para definir su entrega física o cierre.'
+            descripcion: 'Al pulsar <b>Marcar subida</b> el sistema mueve el correo a <b>CARP. YA SUBIDAS</b>, marca el caso como Subido y Confirmado y <b>envía el correo de confirmación</b> a la comuna. Si fue un error existe <b>Rectificar</b>: envía una rectificación y vuelve el caso a Pendiente.'
         },
         {
-            target: '.f8-cell, .btn-action--f8, th:nth-child(4), .table-card',
-            titulo: '6. Traspaso a F8 (Carpeta no encontrada)',
+            target: '.table-card',
+            titulo: '12. Rebotes y avisos',
+            icono: '📬',
+            descripcion: 'En cada sincronización se buscan <b>correos devueltos</b> de las confirmaciones. Los casos afectados muestran la marca <b>REBOTÓ</b> y el filtro Rebotados; cuando lo corriges pulsas <b>Resuelto</b>. También llega un aviso interno por cada confirmación enviada.'
+        },
+        {
+            target: '.nav-f8, .app-subnav-main',
+            titulo: '13. F8: carpeta física no encontrada',
             icono: '🚨',
-            descripcion: 'Si la carpeta física no se localiza en la estantería, marca la casilla <b>F8</b> o presiona <b>Traspaso a F8</b> para derivarla al módulo de búsqueda urgente en bodega y asignarle código de rastreo.'
+            descripcion: 'Si la carpeta no aparece, marca <b>F8</b> y usa <b>Traspaso a F8</b>. Allí registras el <b>código F8</b> y la fecha de la penúltima carpeta. Desde F8 puedes <b>Marcar subida</b>, enviar a <b>Caja</b> (si la encuentras), cerrar <b>Sin carpeta</b> o <b>Revertir</b> sin perder lo digitado.'
         },
         {
-            target: '.app-subnav-docs',
-            titulo: '7. Generación de Listados PDF',
-            icono: '📄',
-            descripcion: 'Genera las nóminas oficiales en PDF para <b>Archivo</b> u <b>Oficina 43</b> con los casos marcados, listas para imprimir y entregar a los estanteros.'
+            target: '.nav-subidas, .app-subnav-main',
+            titulo: '14. Subidas a Sistema',
+            icono: '☁️',
+            descripcion: 'Lista de <b>solo lectura</b> con los casos ya subidos o confirmados: fechas, estado digital y confirmación. Desde aquí decides su destino físico: <b>Caja</b>, <b>Sin carpeta</b> o <b>Rectificar</b>.'
         },
         {
-            target: '.nav-sin-carpetas, .nav-caja, .app-subnav-main',
-            titulo: '8. Cierre Definitivo: Caja o Sin Carpeta',
+            target: '.nav-caja, .app-subnav-main',
+            titulo: '15. Caja: embalaje físico',
             icono: '📦',
-            descripcion: 'Todo trámite termina en uno de dos destinos: <b>Caja</b> si existe carpeta de papel para embalar con rótulo numerado oficial, o <b>Sin Carpetas</b> si el contribuyente no requirió carpeta física.'
+            descripcion: 'Las carpetas llegan a una <b>cola</b> en orden de llegada. Escribes el <b>rótulo o N° de caja</b> y pulsas <b>Cerrar Caja</b>. Las cajas cerradas se pueden <b>imprimir</b>, <b>reabrir</b> o quitarles una carpeta; <b>Devolver a casos</b> saca carpetas de la cola.'
+        },
+        {
+            target: '.nav-sin-carpetas, .app-subnav-main',
+            titulo: '16. Sin Carpetas: cierre definitivo',
+            icono: '🗄️',
+            descripcion: 'Aquí quedan los casos en que <b>no se encontró la carpeta física</b>. Es un listado final <b>sin acciones</b>: solo se puede <b>imprimir o guardar como PDF</b>. Es el cierre del trámite.'
+        },
+        {
+            target: '.app-subnav-docs, .app-subnav-main',
+            titulo: '17. Listados PDF: Archivo y Oficina 43',
+            icono: '📄',
+            descripcion: 'Genera las nóminas para ir a buscar carpetas, separadas por <b>Archivo</b> u <b>Oficina 43</b>. Solo entran los casos con la casilla <b>Marcar</b>. Se imprimen o guardan como PDF desde el navegador.'
+        },
+        {
+            target: '.nav-estadisticas, .app-subnav-main',
+            titulo: '18. Estadísticas',
+            icono: '📊',
+            descripcion: 'Gráficos de casos por estado, ingresos por semana, tiempo promedio de confirmación, comunas con más volumen, sector Archivo vs Oficina 43, plazos F8 y correos descartados por motivo.'
+        },
+        {
+            target: '.app-header',
+            titulo: '19. Dependencias técnicas',
+            icono: '⚙️',
+            descripcion: 'El sistema usa: <b>base SQLite</b> (data/router.db), directorio <b>comunas.csv</b>, el buzón <b>Exchange</b> cambiodedomicilio@munivalpo.cl (EWS), el reporte <b>reporte.csv</b> y avisos de Windows. Se abre en <b>https://localhost:5001</b>, sin clave: el acceso lo controla la red municipal.'
         }
     ];
 
