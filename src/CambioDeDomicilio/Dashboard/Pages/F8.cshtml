@@ -408,6 +408,12 @@
                 }
                 var tr = input.closest('tr');
                 if (tr) {
+                    if (data && data.moved) {
+                        tr.style.transition = 'opacity 0.3s ease';
+                        tr.style.opacity = '0';
+                        setTimeout(function () { tr.remove(); }, 300);
+                        return;
+                    }
                     var sectorTd = tr.querySelector('.sector-cell');
                     if (sectorTd && data && data.sector !== undefined) {
                         sectorTd.textContent = data.sector;

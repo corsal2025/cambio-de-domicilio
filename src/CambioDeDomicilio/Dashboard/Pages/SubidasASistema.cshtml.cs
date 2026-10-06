@@ -75,7 +75,9 @@ public class SubidasASistemaModel(IPersonRequestRepository repository, AddressCh
         var subidas = all
             .Where(c => (c.Destination == CaseDestination.Subidas ||
                          (c.Destination == CaseDestination.None && (c.Status == RequestStatus.Uploaded || c.Status == RequestStatus.Confirmed)))
-                        && c.ClosedWithoutFolderAt is null)
+                        && c.ClosedWithoutFolderAt is null
+                        && !c.SinCarpeta
+                        && c.Destination != CaseDestination.SinCarpetas)
             .OrderByDescending(c => c.ConfirmedAt ?? c.UploadedAt ?? c.ReceivedAt)
             .ToList();
 

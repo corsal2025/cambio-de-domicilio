@@ -33,8 +33,8 @@ public class SinCarpetasModel(IPersonRequestRepository repository) : PageModel
     {
         var all = repository.GetAll();
         var sinCarpetaCases = all
-            .Where(c => c.ClosedWithoutFolderAt is not null)
-            .OrderByDescending(c => c.ClosedWithoutFolderAt)
+            .Where(c => c.Destination == CaseDestination.SinCarpetas || c.ClosedWithoutFolderAt is not null || c.SinCarpeta)
+            .OrderByDescending(c => c.ClosedWithoutFolderAt ?? c.TransferredAt ?? c.ReceivedAt)
             .ToList();
 
         TotalCount = sinCarpetaCases.Count;

@@ -57,10 +57,10 @@ public class F8Model(
 
         if (fecha.Trim().Equals("S/C", StringComparison.OrdinalIgnoreCase))
         {
-            repository.SetSinCarpeta(id);
+            repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
             if (isAjax)
             {
-                return new JsonResult(new { success = true, fecha = "S/C", sector = "—" });
+                return new JsonResult(new { success = true, fecha = "S/C", sector = "—", moved = true });
             }
             return RedirectToPage(new { search = Search, highlightId = HighlightId });
         }
@@ -235,7 +235,7 @@ public class F8Model(
     {
         var all = repository.GetAll();
         var f8Cases = all
-            .Where(c => c.Destination == CaseDestination.F8)
+            .Where(c => c.Destination == CaseDestination.F8 && !c.SinCarpeta && c.ClosedWithoutFolderAt is null)
             .OrderBy(c => c.Status == RequestStatus.Confirmed)
             .ThenBy(c => c.ConfirmedAt)
             .ThenByDescending(c => c.ReceivedAt)

@@ -236,15 +236,17 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             migrateSubidasCommand.ExecuteNonQuery();
         }
 
-        // Cases closed without folder belong to the SinCarpetas destination so they do not leak into Casos
+        // Cases closed without folder or flagged as SinCarpeta in F8 belong to the SinCarpetas destination so they do not leak into Casos or F8
         using (var migrateSinCarpetasCommand = connection.CreateCommand())
         {
             migrateSinCarpetasCommand.CommandText = """
                 UPDATE PersonRequest
                 SET Destination = 'SinCarpetas',
-                    TransferredAt = COALESCE(ClosedWithoutFolderAt, CURRENT_TIMESTAMP)
-                WHERE ClosedWithoutFolderAt IS NOT NULL
-                  AND (Destination != 'SinCarpetas' OR TransferredAt IS NULL);
+                    ClosedWithoutFolderAt = COALESCE(ClosedWithoutFolderAt, TransferredAt, CURRENT_TIMESTAMP),
+                    TransferredAt = COALESCE(TransferredAt, ClosedWithoutFolderAt, CURRENT_TIMESTAMP),
+                    SinCarpeta = 1
+                WHERE (ClosedWithoutFolderAt IS NOT NULL OR (SinCarpeta = 1 AND Destination = 'F8') OR Destination = 'SinCarpetas')
+                  AND (Destination != 'SinCarpetas' OR ClosedWithoutFolderAt IS NULL OR TransferredAt IS NULL OR SinCarpeta != 1);
                 """;
             migrateSinCarpetasCommand.ExecuteNonQuery();
         }
@@ -739,6 +741,7 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             UPDATE PersonRequest
             SET ClosedWithoutFolderAt = $closedAt,
                 FolderNotFound = 0,
+                SinCarpeta = 1,
                 Destination = 'SinCarpetas',
                 TransferredAt = $closedAt
             WHERE Id = $id
@@ -757,7 +760,8 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             SET ClosedWithoutFolderAt = NULL,
                 Destination = 'F8',
                 TransferredAt = $transferredAt,
-                FolderNotFound = 1
+                FolderNotFound = 1,
+                SinCarpeta = 0
             WHERE Id = $id
             """;
         command.Parameters.AddWithValue("$transferredAt", transferredAt.ToString("O"));

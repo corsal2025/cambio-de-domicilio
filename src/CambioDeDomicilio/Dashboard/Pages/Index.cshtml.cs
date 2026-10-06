@@ -508,7 +508,7 @@ public class IndexModel(
 
         // Cases transferred out of Casos (to F8, Subidas a Sistema, Caja, or Sin Carpetas)
         // live on their respective dedicated pages instead.
-        all = all.Where(c => c.TransferredAt is null && c.ClosedWithoutFolderAt is null && c.Destination == CaseDestination.None);
+        all = all.Where(c => c.TransferredAt is null && c.ClosedWithoutFolderAt is null && !c.SinCarpeta && c.Destination == CaseDestination.None);
 
         if (!string.IsNullOrEmpty(StatusFilter) && Enum.TryParse<RequestStatus>(StatusFilter, out var status))
         {
