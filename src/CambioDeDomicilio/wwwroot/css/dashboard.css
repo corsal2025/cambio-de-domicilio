@@ -2028,33 +2028,33 @@ table.cases-index .codigo-f8-input {
    SIMULADOR INTERACTIVO (SPOTLIGHT & GUÃA CON FLECHA EXPLICATIVA)
    ========================================================================== */
 .btn-guia-accion {
-    background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+    background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%) !important;
     color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    font-weight: 700;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.42rem 0.85rem;
-    border-radius: var(--radius-sm, 6px);
-    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.32);
-    transition: all 0.15s ease;
-    cursor: pointer;
-    font-size: 0.82rem;
-    text-decoration: none;
-    line-height: 1.2;
-    font-family: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    font-weight: 700 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.45rem !important;
+    padding: 0.42rem 0.85rem !important;
+    border-radius: var(--radius-sm, 6px) !important;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35) !important;
+    transition: all 0.15s ease !important;
+    cursor: pointer !important;
+    font-size: 0.82rem !important;
+    text-decoration: none !important;
+    line-height: 1.2 !important;
+    font-family: inherit !important;
 }
 
 .btn-guia-accion:hover {
-    background: linear-gradient(135deg, #3730a3 0%, #5b21b6 100%);
-    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.46);
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, #3730a3 0%, #5b21b6 100%) !important;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.5) !important;
+    transform: translateY(-1px) !important;
     color: #ffffff !important;
 }
 
 .btn-guia-accion svg {
-    flex-shrink: 0;
+    flex-shrink: 0 !important;
 }
 
 /* Tooltip flotante animado */
