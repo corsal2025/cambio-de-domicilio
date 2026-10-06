@@ -1,4 +1,4 @@
-﻿@page "{sector?}"
+@page "{sector?}"
 @model CambioDeDomicilio.Dashboard.Pages.SectorModel
 <!DOCTYPE html>
 <html lang="es">
@@ -205,17 +205,20 @@
         </nav>
     </header>
     <div class="app-subnav no-print">
-        <span class="app-subnav-label">Otros sistemas</span>
-        <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
-        <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
-        <a asp-page="/SubidasASistema" class="nav-subidas"><partial name="_NavIcon" model="@("upload")" /><span>Subidas a Sistema</span></a>
-        <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
-        <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
-            <button type="button" id="btn-guia-global" class="btn-guia-accion" title="CÃ³mo usar el sistema (GuÃ­a interactiva)" data-tooltip="Simulador interactivo con flecha explicativa que te enseÃ±a paso a paso cÃ³mo usar el sistema">
+        <div class="app-subnav-main">
+            <span class="app-subnav-label">Otros sistemas</span>
+            <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/SubidasASistema" class="nav-subidas"><partial name="_NavIcon" model="@("upload")" /><span>Subidas a Sistema</span></a>
+            <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
+            <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+        </div>
+        <div class="app-subnav-docs">
+            <button type="button" id="btn-guia-global" class="btn-guia-accion" title="Cómo usar el sistema (Guía interactiva)" data-tooltip="Simulador interactivo con flecha explicativa que te enseña paso a paso cómo usar el sistema">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                <span>CÃ³mo usar el sistema</span>
+                <span>Cómo usar el sistema</span>
             </button>
-            <a asp-page="/Manual" class="nav-manual" title="Manual completo de procedimientos y normativa"><partial name="_NavIcon" model="@("manual")" /><span>Manual</span></a>
+        </div>
     </div>
 
     <main>
