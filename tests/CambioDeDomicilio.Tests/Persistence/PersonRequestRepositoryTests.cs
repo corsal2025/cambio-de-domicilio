@@ -1020,28 +1020,20 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void CloseWithoutFolder_And_ReopenSinCarpetaToF8_WorksCorrectly()
+    public void CloseWithoutFolder_MovesCaseToSinCarpetasAndKeepsItThere()
     {
         var id = repository.Insert(NewRequest("msg-sc"));
         repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
         repository.SetFolderNotFound(id, true);
 
-        var closedAt = DateTimeOffset.UtcNow;
-        repository.CloseWithoutFolder(id, closedAt);
+        repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
 
         var closed = repository.FindById(id)!;
         Assert.NotNull(closed.ClosedWithoutFolderAt);
+        Assert.NotNull(closed.TransferredAt);
+        Assert.True(closed.SinCarpeta);
         Assert.False(closed.FolderNotFound);
         Assert.Equal(CaseDestination.SinCarpetas, closed.Destination);
-
-        var reopenedAt = DateTimeOffset.UtcNow;
-        repository.ReopenSinCarpetaToF8(id, reopenedAt);
-
-        var reopened = repository.FindById(id)!;
-        Assert.Null(reopened.ClosedWithoutFolderAt);
-        Assert.True(reopened.FolderNotFound);
-        Assert.Equal(CaseDestination.F8, reopened.Destination);
-        Assert.NotNull(reopened.TransferredAt);
     }
 
     private static PersonRequest NewRequest(string sourceMessageId, string rut = "18.785.387-7") => new()

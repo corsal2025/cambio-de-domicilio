@@ -290,7 +290,6 @@
                                 <th>Fecha de ingreso</th>
                                 <th>Código F8</th>
                                 <th>Fecha cierre S/C</th>
-                                <th class="no-print">Acción</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -306,15 +305,6 @@
                                 <td class="text-cell">@(string.IsNullOrWhiteSpace(item.CodigoF8) ? "—" : item.CodigoF8)</td>
                                 <td class="text-cell">
                                     @(item.ClosedWithoutFolderAt is { } closedAt ? closedAt.LocalDateTime.ToString("dd-MM-yyyy HH:mm") : "—")
-                                </td>
-                                <td class="no-print">
-                                    <form method="post" asp-page-handler="Revert">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        <input type="hidden" name="search" value="@Model.Search" />
-                                        <button type="submit" class="btn-action" title="Restaurar a la pantalla de F8" aria-label="Restaurar a F8">
-                                            <partial name="_ActionIcon" model="@("rectify")" /><span>Revertir a F8</span>
-                                        </button>
-                                    </form>
                                 </td>
                             </tr>
                         }

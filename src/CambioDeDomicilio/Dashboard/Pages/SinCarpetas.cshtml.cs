@@ -5,6 +5,8 @@ using CambioDeDomicilio.Persistence;
 
 namespace CambioDeDomicilio.Dashboard.Pages;
 
+/// <summary>Terminal, read-only list: a case closed without folder (penultimate folder not found)
+/// stays here with no further actions.</summary>
 public class SinCarpetasModel(IPersonRequestRepository repository) : PageModel
 {
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
@@ -22,13 +24,6 @@ public class SinCarpetasModel(IPersonRequestRepository repository) : PageModel
         Message ??= TempData?["Message"] as string;
         if (TempData?["MessageIsError"] is bool isErr) MessageIsError = isErr;
         Load();
-    }
-
-    public IActionResult OnPostRevert(long id)
-    {
-        repository.ReopenSinCarpetaToF8(id, DateTimeOffset.UtcNow);
-        Message = "Caso restituido a la sección F8 con éxito.";
-        return RedirectToPage(new { search = Search });
     }
 
     private void Load()

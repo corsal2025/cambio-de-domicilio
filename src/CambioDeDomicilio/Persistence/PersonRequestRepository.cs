@@ -42,9 +42,6 @@ public interface IPersonRequestRepository
     /// returns the case to Casos (Destination None, TransferredAt cleared). No email is sent.</summary>
     void CloseWithoutFolder(long id, DateTimeOffset closedAt);
 
-    /// <summary>Reverts a case closed without folder back to F8 (Destination F8, ClosedWithoutFolderAt cleared).</summary>
-    void ReopenSinCarpetaToF8(long id, DateTimeOffset transferredAt);
-
     void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long? confirmedByUserId = null);
 
     /// <summary>Every Confirmed case with this RUT — usually one, but the same person can have a
@@ -747,24 +744,6 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             WHERE Id = $id
             """;
         command.Parameters.AddWithValue("$closedAt", closedAt.ToString("O"));
-        command.Parameters.AddWithValue("$id", id);
-        command.ExecuteNonQuery();
-    }
-
-    public void ReopenSinCarpetaToF8(long id, DateTimeOffset transferredAt)
-    {
-        using var connection = Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            UPDATE PersonRequest
-            SET ClosedWithoutFolderAt = NULL,
-                Destination = 'F8',
-                TransferredAt = $transferredAt,
-                FolderNotFound = 1,
-                SinCarpeta = 0
-            WHERE Id = $id
-            """;
-        command.Parameters.AddWithValue("$transferredAt", transferredAt.ToString("O"));
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
     }
