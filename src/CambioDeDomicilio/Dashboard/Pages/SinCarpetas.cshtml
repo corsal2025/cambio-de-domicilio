@@ -103,6 +103,15 @@
             color: var(--color-primary);
         }
 
+        /* The shared .card.table-card is sized for the fixed-height Casos/F8 layout (height: 0 inside
+           a flex column). This page is a normal-flow document sheet, so without this override the
+           table collapses to zero height and the list looks empty. */
+        .doc-sheet .card.table-card {
+            flex: none;
+            height: auto;
+            overflow: visible !important;
+        }
+
         .sin-carpetas-toolbar {
             display: flex;
             gap: 12px;
