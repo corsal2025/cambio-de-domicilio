@@ -21,7 +21,7 @@ internal static class SqliteConnectionSetup
     }
 
     /// <summary>Write-ahead logging is stored in the database file, so it only needs to be switched on once
-    /// (from EnsureSchema). Readers then no longer block the single writer and vice versa.</summary>
+    /// (from the schema migrator). Readers then no longer block the single writer and vice versa.</summary>
     public static void EnableWriteAheadLogging(SqliteConnection connection)
     {
         using var command = connection.CreateCommand();

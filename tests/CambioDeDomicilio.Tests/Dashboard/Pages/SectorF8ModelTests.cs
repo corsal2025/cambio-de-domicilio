@@ -14,7 +14,7 @@ public class SectorF8ModelTests : IDisposable
     public SectorF8ModelTests()
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
     }
 
     [Fact]

@@ -26,9 +26,9 @@ public class ConfirmationConcurrencyTests : IDisposable
     public ConfirmationConcurrencyTests()
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
         var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
-        discardedRepository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
 
         var options = new RouterOptions
         {

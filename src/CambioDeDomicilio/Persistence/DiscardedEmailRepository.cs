@@ -5,7 +5,6 @@ namespace CambioDeDomicilio.Persistence;
 
 public interface IDiscardedEmailRepository
 {
-    void EnsureSchema();
     bool ExistsBySourceMessageId(string sourceMessageId);
     void Insert(DiscardedEmail email);
     void DeleteBySourceMessageId(string sourceMessageId);
@@ -18,23 +17,6 @@ public interface IDiscardedEmailRepository
 
 public sealed class DiscardedEmailRepository(string connectionString) : IDiscardedEmailRepository
 {
-    public void EnsureSchema()
-    {
-        using var connection = SqliteConnectionSetup.OpenConfigured(connectionString);
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            CREATE TABLE IF NOT EXISTS DiscardedEmail (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                SourceMessageId TEXT NOT NULL UNIQUE,
-                SourceSubject TEXT NOT NULL,
-                SourceSender TEXT NOT NULL,
-                Reason TEXT NOT NULL,
-                DiscardedAt TEXT NOT NULL
-            );
-            """;
-        command.ExecuteNonQuery();
-    }
-
     public bool ExistsBySourceMessageId(string sourceMessageId)
     {
         using var connection = Open();

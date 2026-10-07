@@ -14,7 +14,7 @@ public class PersonRequestRepositoryTests : IDisposable
     public PersonRequestRepositoryTests()
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void EnsureSchema_OnPreExistingTableWithoutMarkedColumn_AddsColumnWithoutDataLoss()
+    public void Baseline_OnPreExistingTableWithoutMarkedColumn_AddsColumnWithoutDataLoss()
     {
         // Simulates a database created before the Marked column existed.
         using (var connection = new SqliteConnection($"Data Source={dbPath}"))
@@ -163,7 +163,7 @@ public class PersonRequestRepositoryTests : IDisposable
         }
         var preExistingId = repository.Insert(NewRequest("msg-old"));
 
-        repository.EnsureSchema(); // re-run migration, as happens on every app startup
+        TestDatabase.RerunBaseline(dbPath); // re-adopt the rewritten legacy table
 
         var stored = repository.FindById(preExistingId);
         Assert.NotNull(stored);
@@ -193,7 +193,7 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void EnsureSchema_OnPreExistingTableWithUniqueSourceMessageId_RemovesConstraintWithoutDataLoss()
+    public void Baseline_OnPreExistingTableWithUniqueSourceMessageId_RemovesConstraintWithoutDataLoss()
     {
         // Simulates a database created before multi-contributor emails were supported, where
         // SourceMessageId was still a UNIQUE column.
@@ -239,7 +239,7 @@ public class PersonRequestRepositoryTests : IDisposable
             command.ExecuteNonQuery();
         }
 
-        repository.EnsureSchema(); // re-run migration, as happens on every app startup
+        TestDatabase.RerunBaseline(dbPath); // re-adopt the rewritten legacy table
 
         // Old row preserved, including its Marked flag.
         var preExisting = repository.FindById(preExistingId);
@@ -343,7 +343,7 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void EnsureSchema_OnPreExistingTableWithoutSectorPdfGeneratedAtColumn_AddsColumnWithoutDataLoss()
+    public void Baseline_OnPreExistingTableWithoutSectorPdfGeneratedAtColumn_AddsColumnWithoutDataLoss()
     {
         // Simulates a database created before the SectorPdfGeneratedAt column existed.
         using (var connection = new SqliteConnection($"Data Source={dbPath}"))
@@ -376,7 +376,7 @@ public class PersonRequestRepositoryTests : IDisposable
         }
         var preExistingId = repository.Insert(NewRequest("msg-old"));
 
-        repository.EnsureSchema(); // re-run migration, as happens on every app startup
+        TestDatabase.RerunBaseline(dbPath); // re-adopt the rewritten legacy table
 
         var stored = repository.FindById(preExistingId);
         Assert.NotNull(stored);
@@ -669,7 +669,7 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void EnsureSchema_LegacyDatabaseRebuild_PreservesBoxId()
+    public void Baseline_LegacyDatabaseRebuild_PreservesBoxId()
     {
         // Simulates a database still on the pre-multi-contributor schema (SourceMessageId
         // UNIQUE), which EnsureSchema rebuilds via a hand-written column list — this test locks
@@ -708,7 +708,7 @@ public class PersonRequestRepositoryTests : IDisposable
         }
 
         var legacyRepository = new PersonRequestRepository($"Data Source={dbPath}");
-        legacyRepository.EnsureSchema();
+        TestDatabase.RerunBaseline(dbPath);
 
         // BoxId is added (as NULL) by EnsureColumnExists before the rebuild strips the UNIQUE
         // constraint, so this proves the rebuild's hand-written column list still carries it —
@@ -719,7 +719,7 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void EnsureSchema_CalledTwice_IsIdempotent()
+    public void Baseline_CalledTwice_IsIdempotent()
     {
         // Full backfill-from-old-MovedToF8At-data testing is skipped here: simulating a
         // pre-migration database with real MovedToF8At values populated via raw SQL is awkward
@@ -730,7 +730,7 @@ public class PersonRequestRepositoryTests : IDisposable
         var id = repository.Insert(NewRequest("msg-1"));
         repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
 
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
 
         var stored = repository.FindById(id)!;
         Assert.Equal(CaseDestination.F8, stored.Destination);
@@ -787,7 +787,7 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void EnsureSchema_OnPreExistingTableWithoutPenultimasCarpetasPdfGeneratedAtColumn_AddsColumnWithoutDataLoss()
+    public void Baseline_OnPreExistingTableWithoutPenultimasCarpetasPdfGeneratedAtColumn_AddsColumnWithoutDataLoss()
     {
         // Simulates a database created before the PenultimasCarpetasPdfGeneratedAt column existed.
         using (var connection = new SqliteConnection($"Data Source={dbPath}"))
@@ -821,7 +821,7 @@ public class PersonRequestRepositoryTests : IDisposable
         }
         var preExistingId = repository.Insert(NewRequest("msg-old"));
 
-        repository.EnsureSchema(); // re-run migration, as happens on every app startup
+        TestDatabase.RerunBaseline(dbPath); // re-adopt the rewritten legacy table
 
         var stored = repository.FindById(preExistingId);
         Assert.NotNull(stored);
@@ -1057,12 +1057,5 @@ public class PersonRequestRepositoryTests : IDisposable
         Status = RequestStatus.Pending
     };
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        if (File.Exists(dbPath))
-        {
-            File.Delete(dbPath);
-        }
-    }
+    public void Dispose() => TestDatabase.Cleanup(dbPath);
 }

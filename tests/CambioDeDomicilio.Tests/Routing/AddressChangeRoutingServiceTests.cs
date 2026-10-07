@@ -30,9 +30,9 @@ public class AddressChangeRoutingServiceTests : IDisposable
     public AddressChangeRoutingServiceTests()
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
         discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
-        discardedRepository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
 
         var options = new RouterOptions
         {

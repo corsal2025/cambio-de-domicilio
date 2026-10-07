@@ -13,7 +13,7 @@ public class DiscardedEmailRepositoryTests : IDisposable
     public DiscardedEmailRepositoryTests()
     {
         repository = new DiscardedEmailRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
     }
 
     [Fact]

@@ -7,6 +7,7 @@ using CambioDeDomicilio.Ews;
 using CambioDeDomicilio.Mail;
 using CambioDeDomicilio.Notifications;
 using CambioDeDomicilio.Persistence;
+using CambioDeDomicilio.Persistence.Migrations;
 using CambioDeDomicilio.Reporting;
 using CambioDeDomicilio.Routing;
 
@@ -97,8 +98,17 @@ if (args.Contains("--smoke-test"))
     return;
 }
 
-app.Services.GetRequiredService<IPersonRequestRepository>().EnsureSchema();
-app.Services.GetRequiredService<IDiscardedEmailRepository>().EnsureSchema();
+
+// Upgrade the database before anything can read or write it (the browser launch below and the
+// listeners only start at app.Run). Failure throws and stops startup: never serve a half-upgraded
+// database. Runs after the smoke test, which promises no side effects.
+var migration = SchemaMigrator.ForApplication($"Data Source={routerOptions.SqliteDbPath}").Migrate();
+if (migration.AppliedVersions.Count > 0)
+{
+    app.Logger.LogInformation(
+        "Database upgraded from schema v{From} to v{To}; backup: {BackupPath}",
+        migration.StartVersion, migration.FinalVersion, migration.BackupPath ?? "(none, new database)");
+}
 
 _ = Task.Run(async () =>
 {

@@ -103,6 +103,29 @@ act on it again":
 - `ProcessedBounce` (`BounceMessageId`, `ProcessedAt`): a non-delivery report already scanned, so a
   later poll never re-flags a case from the same NDR (the message stays in the inbox).
 
+## Schema versioning and migrations
+
+The schema version is stored in the database file itself (`PRAGMA user_version`). On every startup,
+`SchemaMigrator` (`Persistence/Migrations/`) applies the migrations newer than that version — each
+one once, in order, inside its own immediate transaction — before the application serves anything.
+
+- **Adding a schema change**: create `V00N_<Name>.cs` implementing `IMigration` with the next
+  version number and append it to `Migrations.All`. Use plain `ALTER`/`CREATE` statements; assign
+  every command to the supplied transaction.
+- **Never edit a shipped migration.** Production databases have already recorded its version, so a
+  fix is a new migration. `V001_Baseline` is deliberately frozen: it is the former `EnsureSchema`
+  (including the legacy table rebuild and its hand-written column list) and adopts every database
+  created before versioning, as well as building the full schema on a fresh file.
+- **Data backfills belong to the migration that introduces them** and run once. They used to be
+  re-run on every startup; after the baseline adoption a restart no longer reclassifies cases.
+- **Backup**: before the first pending migration on a database that already has tables, the file is
+  copied (SQLite online backup, safe in WAL mode) to `<db>.bak-v<currentVersion>-<yyyyMMddHHmmss>`.
+  No backup is made for a new database or when nothing is pending.
+- **Failure**: the failing migration is rolled back, the version stays at the last applied one, and
+  startup aborts with an error naming the version. A database whose version is higher than this
+  release knows is refused untouched (an old executable never writes to a newer database).
+- Additive-schema convention still applies: existing columns are not dropped or renamed.
+
 ## Entity Relationship
 
 ```

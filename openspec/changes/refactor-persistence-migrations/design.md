@@ -41,7 +41,7 @@ The four `UPDATE` statements currently re-run on each startup with observable si
 If any migration is pending and the file exists, copy it with SQLite's online backup API (`SqliteConnection.BackupDatabase`) to `<db>.bak-v<currentVersion>-<yyyyMMddHHmmss>`. The backup API is safe in WAL mode, unlike a raw file copy. Old backups are not pruned automatically (a short note in `deploy/README.md` tells the operator to delete them once the upgrade is verified). Alternative: `VACUUM INTO` — equivalent but rewrites the file and is slower on large databases.
 
 ### D6. Migrations run before the host starts serving
-`Program.cs` calls the migrator after `builder.Build()` and before `app.Run()`, and before `--smoke-test` returns. A failure throws and the process exits non-zero, so Task Scheduler's restart policy shows the error instead of serving a half-upgraded database. A database whose `user_version` exceeds the latest known version is refused (protects against running an old executable on a newer database).
+`Program.cs` calls the migrator after `builder.Build()` and before `app.Run()`, but after the `--smoke-test` branch (that mode promises no side effects, so it must not migrate or back up). A failure throws and the process exits non-zero, so Task Scheduler's restart policy shows the error instead of serving a half-upgraded database. A database whose `user_version` exceeds the latest known version is refused (protects against running an old executable on a newer database).
 
 ### D7. Repository split along existing seams
 - `IPersonRequestRepository` (cases): everything keyed on `PersonRequest`, including state transitions and the new queries (D8).

@@ -15,7 +15,7 @@ public class CajaModelTests : IDisposable
     public CajaModelTests()
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
         model = new CajaModel(repository);
     }
 

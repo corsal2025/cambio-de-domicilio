@@ -88,6 +88,33 @@ Confirmar que `data/reporte.csv` se crea/actualiza tras la primera sincronizaci�
 `https://localhost:5001` (o `https://<nombre-del-pc>:5001` desde otro equipo
 de la red) muestra el dashboard.
 
+## Actualización de la base de datos y respaldo
+
+Al iniciar, la aplicación actualiza `data/router.db` al esquema más reciente (versión guardada en
+`PRAGMA user_version`). Si hay migraciones pendientes y la base ya tiene datos, **antes de migrar**
+deja una copia junto al archivo: `router.db.bak-v<versión>-<fecha>` (por ejemplo
+`router.db.bak-v0-20261007153000` en la primera actualización de una instalación antigua).
+
+Después de actualizar:
+
+1. Abrir el dashboard y verificar que los casos de Casos, F8, Caja, Subidas y Sin carpetas coinciden con lo esperado.
+2. Si todo está bien, borrar el archivo `.bak-v*` (contiene datos personales).
+
+**Si la actualización falla**, la aplicación no inicia y el error indica la versión que falló; la base
+queda en la última versión aplicada. **Para volver atrás**:
+
+```powershell
+Stop-ScheduledTask -TaskName CambioDeDomicilio
+# Reemplazar la base por el respaldo y eliminar los archivos auxiliares de WAL
+Copy-Item data\router.db.bak-v0-<fecha> data\router.db -Force
+Remove-Item data\router.db-wal, data\router.db-shm -ErrorAction SilentlyContinue
+# Reinstalar el ejecutable anterior y volver a iniciar
+Start-ScheduledTask -TaskName CambioDeDomicilio
+```
+
+Una base creada por una versión más nueva no se abre con un ejecutable antiguo: la aplicación se
+niega a iniciar sin modificarla.
+
 ## 9. Acceso directo de escritorio (opcional)
 
 Para que el operador tenga un ícono que abra el dashboard directamente:

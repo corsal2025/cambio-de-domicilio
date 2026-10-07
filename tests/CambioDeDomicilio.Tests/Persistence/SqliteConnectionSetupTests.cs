@@ -9,9 +9,9 @@ public class SqliteConnectionSetupTests : IDisposable
     private readonly string dbPath = Path.Combine(Path.GetTempPath(), $"pragma-test-{Guid.NewGuid():N}.db");
 
     [Fact]
-    public void EnsureSchema_EnablesWriteAheadLogging()
+    public void Migrate_EnablesWriteAheadLogging()
     {
-        new PersonRequestRepository($"Data Source={dbPath}").EnsureSchema();
+        TestDatabase.Migrate(dbPath);
 
         using var connection = new SqliteConnection($"Data Source={dbPath}");
         connection.Open();
@@ -34,7 +34,7 @@ public class SqliteConnectionSetupTests : IDisposable
     public async Task ConcurrentWritesFromSeveralConnections_DoNotFailWithDatabaseLocked()
     {
         var repository = new PersonRequestRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
 
         var writers = Enumerable.Range(0, 8).Select(worker => Task.Run(() =>
         {

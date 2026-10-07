@@ -17,12 +17,12 @@
 
 ## 2. Baseline migration V1 and legacy adoption — spec: adoption without data loss, backfills run once
 
-- [ ] 2.1 RED: `LegacyDatabaseAdoptionTests` builds fixture databases for each historical layout (original schema with `UNIQUE` on `SourceMessageId`; schema before `SoloCaja`/`Destination`; rows with `MovedToF8At`, `Destination='Certificado'`, Uploaded/Confirmed with `Destination='None'`, closed-without-folder rows) and asserts every row/column value survives adoption
-- [ ] 2.2 GREEN: `Migrations/V001_Baseline` containing the current `EnsureSchema` logic verbatim (tables `PersonRequest`, `DeletedSourceMessage`, `ProcessedBounce`, `Box`, `DiscardedEmail`; additive columns; `UNIQUE` rebuild; four backfills); verify 2.1 passes
-- [ ] 2.3 RED+GREEN: backfills are one-shot — restarting an adopted database leaves an Uploaded/`None` case untouched, and adoption itself moves it to Subidas exactly once
-- [ ] 2.4 Wire `Program.cs`: run `SchemaMigrator` after `Build()` and before `--smoke-test`/`app.Run()`; remove `EnsureSchema()` from `IPersonRequestRepository`, `IDiscardedEmailRepository`, `PersonRequestRepository`, `DiscardedEmailRepository` and `RouterWorker`; verify the solution builds
-- [ ] 2.5 Add `TestDatabase` test helper (creates a temp file, runs the migrator, cleans `-wal`/`-shm`) and move the 12 test files that call `EnsureSchema()` onto it; verify full suite is green with the same test count as the baseline plus the new tests
-- [ ] 2.6 Document in `docs/data-model.md` the versioning policy (how to add `V00N`, never edit a shipped migration, backfills belong to their own migration) and in `deploy/README.md` the backup/restore procedure; verify the documented restore steps against a scratch database
+- [x] 2.1 RED: `LegacyDatabaseAdoptionTests` builds fixture databases for each historical layout (original schema with `UNIQUE` on `SourceMessageId`; schema before `SoloCaja`/`Destination`; rows with `MovedToF8At`, `Destination='Certificado'`, Uploaded/Confirmed with `Destination='None'`, closed-without-folder rows) and asserts every row/column value survives adoption
+- [x] 2.2 GREEN: `Migrations/V001_Baseline` containing the current `EnsureSchema` logic verbatim (tables `PersonRequest`, `DeletedSourceMessage`, `ProcessedBounce`, `Box`, `DiscardedEmail`; additive columns; `UNIQUE` rebuild; four backfills); verify 2.1 passes
+- [x] 2.3 RED+GREEN: backfills are one-shot — restarting an adopted database leaves an Uploaded/`None` case untouched, and adoption itself moves it to Subidas exactly once
+- [x] 2.4 Wire `Program.cs`: run `SchemaMigrator` after `Build()` and the `--smoke-test` branch, before `app.Run()`; remove `EnsureSchema()` from `IPersonRequestRepository`, `IDiscardedEmailRepository`, `PersonRequestRepository`, `DiscardedEmailRepository` and `RouterWorker`; verify the solution builds
+- [x] 2.5 Add `TestDatabase` test helper (creates a temp file, runs the migrator, cleans `-wal`/`-shm`) and move the 12 test files that call `EnsureSchema()` onto it; verify full suite is green with the same test count as the baseline plus the new tests
+- [x] 2.6 Document in `docs/data-model.md` the versioning policy (how to add `V00N`, never edit a shipped migration, backfills belong to their own migration) and in `deploy/README.md` the backup/restore procedure; verify the documented restore steps against a scratch database
 
 ## 3. Split the repositories — one concern per commit
 
