@@ -103,6 +103,20 @@ act on it again":
 - `ProcessedBounce` (`BounceMessageId`, `ProcessedAt`): a non-delivery report already scanned, so a
   later poll never re-flags a case from the same NDR (the message stays in the inbox).
 
+## Repository boundaries
+
+Persistence is split by concern; each caller depends only on the interface it needs:
+
+| Interface | Owns | Used by |
+|---|---|---|
+| `IPersonRequestRepository` | `PersonRequest` rows: intake, edits, status/destination transitions, Caja queue (`GetCajaQueue`, `SendToCaja`) | routing service, worker, every dashboard page |
+| `IBoxRepository` | `Box` rows and box-level operations: `CloseBox`, `ReopenBox`, `RemoveCaseFromClosedBox`, `GetBoxes`, `FindBoxById`, `GetCasesByBoxId` | `Caja`, `Index` (search location) |
+| `IMessageTombstoneRepository` | `DeletedSourceMessage` and `ProcessedBounce` write-once logs | routing service, `Index`, `F8` |
+| `IDiscardedEmailRepository` | `DiscardedEmail` rows | routing service, `Discarded`, statistics |
+
+All of them open short-lived connections through `SqliteConnectionSetup` and map cases through
+`PersonRequestMapper`. Schema creation is not a repository concern (see below).
+
 ## Schema versioning and migrations
 
 The schema version is stored in the database file itself (`PRAGMA user_version`). On every startup,

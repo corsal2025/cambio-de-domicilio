@@ -26,12 +26,12 @@
 
 ## 3. Split the repositories — one concern per commit
 
-- [ ] 3.1 RED+GREEN: `IMessageTombstoneRepository` + implementation for the deleted-source and processed-bounce tables, with tests moved from `PersonRequestRepositoryTests`; `PersonRequestRepository` temporarily implements it by delegation so no caller changes; verify suite green
-- [ ] 3.2 Move `AddressChangeRoutingService` (and its tests) to `IMessageTombstoneRepository`; remove the four tombstone methods from `IPersonRequestRepository`; verify build and tests
-- [ ] 3.3 RED+GREEN: `IBoxRepository` + implementation for `GetBoxes`, `FindBoxById`, `GetCasesByBoxId`, `CloseBox`, `ReopenBox`, `RemoveCaseFromClosedBox` (transactions preserved); verify the existing Caja repository tests pass unchanged against the new class
-- [ ] 3.4 Move `CajaModel` (and `CajaModelTests`) to `IBoxRepository`; remove box methods from `IPersonRequestRepository`; verify build and tests
-- [ ] 3.5 Register the three interfaces in `Program.cs` as singletons over the same connection string; delete dead code left in `PersonRequestRepository`; verify `PersonRequestRepository.cs` is under 700 lines and the interface lists only case operations
-- [ ] 3.6 Update the README "Estructura" section and `docs/data-model.md` repository boundaries; verify links and file names match the tree
+- [x] 3.1 RED+GREEN: `IMessageTombstoneRepository` + implementation for the deleted-source and processed-bounce tables, with tests moved from `PersonRequestRepositoryTests`; `PersonRequestRepository` temporarily implements it by delegation so no caller changes; verify suite green
+- [x] 3.2 Move `AddressChangeRoutingService` (and its tests) to `IMessageTombstoneRepository`; remove the four tombstone methods from `IPersonRequestRepository`; verify build and tests
+- [x] 3.3 RED+GREEN: `IBoxRepository` + implementation for `GetBoxes`, `FindBoxById`, `GetCasesByBoxId`, `CloseBox`, `ReopenBox`, `RemoveCaseFromClosedBox` (transactions preserved); verify the existing Caja repository tests pass unchanged against the new class
+- [x] 3.4 Move `CajaModel` (and `CajaModelTests`) to `IBoxRepository`; remove box methods from `IPersonRequestRepository`; verify build and tests
+- [x] 3.5 Register the three interfaces in `Program.cs` as singletons over the same connection string; delete dead code left in `PersonRequestRepository`; verify `PersonRequestRepository.cs` is under 700 lines and the interface lists only case operations
+- [x] 3.6 Update the README "Estructura" section and `docs/data-model.md` repository boundaries; verify links and file names match the tree
 
 ## 4. SQL-side case queries — dashboard reads
 

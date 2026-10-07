@@ -9,7 +9,7 @@ namespace CambioDeDomicilio.Dashboard.Pages;
 /// when the operator presses "Caja" in Casos or F8. "Cerrar Caja"
 /// snapshots everything currently queued into a new, sequentially-numbered box; the next case to
 /// arrive starts filling the next one. F8 cases never appear here — see PersonRequest.BoxId.</summary>
-public class CajaModel(IPersonRequestRepository repository) : PageModel
+public class CajaModel(IPersonRequestRepository repository, IBoxRepository boxes) : PageModel
 {
     public IReadOnlyList<PersonRequest> Queue { get; private set; } = [];
     public IReadOnlyList<Box> ClosedBoxes { get; private set; } = [];
@@ -36,7 +36,7 @@ public class CajaModel(IPersonRequestRepository repository) : PageModel
     /// then goes straight to that box's printable detail so the operator can print/save it right away.</summary>
     public IActionResult OnPostCerrarCaja([FromForm] string? boxNumber, [FromForm] string? boxCode)
     {
-        var existingBoxes = repository.GetBoxes();
+        var existingBoxes = boxes.GetBoxes();
         var nextNum = existingBoxes.Count > 0 ? existingBoxes.Max(b => b.Number) + 1 : 1;
         var raw = !string.IsNullOrWhiteSpace(boxNumber) ? boxNumber : boxCode;
         var normalizedCode = FormatBoxCode(raw, nextNum);
@@ -44,7 +44,7 @@ public class CajaModel(IPersonRequestRepository repository) : PageModel
         // Reusing an existing code is allowed on purpose: several closes can go into the same
         // physical box (e.g. three batches all packed into box A1-CD).
 
-        var box = repository.CloseBox(normalizedCode, DateTimeOffset.UtcNow);
+        var box = boxes.CloseBox(normalizedCode, DateTimeOffset.UtcNow);
         Message = $"Caja {box.Code} cerrada exitosamente.";
         return RedirectToPage(new { boxId = box.Id });
     }
@@ -52,9 +52,9 @@ public class CajaModel(IPersonRequestRepository repository) : PageModel
     /// <summary>Reopens a closed box, sending all its folders back to the open queue so the operator can adjust it.</summary>
     public IActionResult OnPostReopenBox([FromForm] long boxId)
     {
-        var box = repository.FindBoxById(boxId);
+        var box = boxes.FindBoxById(boxId);
         var code = box?.Code ?? $"#{boxId}";
-        repository.ReopenBox(boxId);
+        boxes.ReopenBox(boxId);
         Message = $"Caja {code} reabierta con éxito. Sus carpetas volvieron a la cola para que puedas quitar las que sobren o corregirlas.";
         return RedirectToPage("/Caja", new { boxId = (long?)null });
     }
@@ -62,7 +62,7 @@ public class CajaModel(IPersonRequestRepository repository) : PageModel
     /// <summary>Removes an individual folder from an already closed box and returns it back to Casos.</summary>
     public IActionResult OnPostRemoveFromClosedBox([FromForm] long id, [FromForm] long boxId)
     {
-        repository.RemoveCaseFromClosedBox(id);
+        boxes.RemoveCaseFromClosedBox(id);
         Message = "Carpeta quitada de la caja y devuelta a Casos.";
         return RedirectToPage(new { boxId });
     }
@@ -117,14 +117,14 @@ public class CajaModel(IPersonRequestRepository repository) : PageModel
     private void Load(long? boxId)
     {
         Queue = repository.GetCajaQueue();
-        ClosedBoxes = repository.GetBoxes();
+        ClosedBoxes = boxes.GetBoxes();
         NextBoxNumber = ClosedBoxes.Count > 0 ? ClosedBoxes.Max(b => b.Number) + 1 : 1;
-        BoxCounts = ClosedBoxes.ToDictionary(b => b.Id, b => repository.GetCasesByBoxId(b.Id).Count);
+        BoxCounts = ClosedBoxes.ToDictionary(b => b.Id, b => boxes.GetCasesByBoxId(b.Id).Count);
 
         if (boxId is { } id)
         {
-            SelectedBox = repository.FindBoxById(id);
-            SelectedBoxCases = SelectedBox is null ? [] : repository.GetCasesByBoxId(id);
+            SelectedBox = boxes.FindBoxById(id);
+            SelectedBoxCases = SelectedBox is null ? [] : boxes.GetCasesByBoxId(id);
         }
     }
 }

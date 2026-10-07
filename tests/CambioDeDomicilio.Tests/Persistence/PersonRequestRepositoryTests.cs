@@ -10,6 +10,7 @@ public class PersonRequestRepositoryTests : IDisposable
 {
     private readonly string dbPath = Path.Combine(Path.GetTempPath(), $"router-test-{Guid.NewGuid():N}.db");
     private readonly IPersonRequestRepository repository;
+    private IBoxRepository Boxes => new BoxRepository($"Data Source={dbPath}");
 
     public PersonRequestRepositoryTests()
     {
@@ -458,9 +459,9 @@ public class PersonRequestRepositoryTests : IDisposable
         repository.SetFechaUltimaCarpeta(second, new DateOnly(2018, 1, 1));
         repository.SetDestination(second, CaseDestination.Caja, sentAt.AddMinutes(1));
 
-        var box = repository.CloseBox("A1-CD", sentAt.AddHours(1));
+        var box = Boxes.CloseBox("A1-CD", sentAt.AddHours(1));
 
-        Assert.Equal([first, second], repository.GetCasesByBoxId(box.Id).Select(c => c.Id));
+        Assert.Equal([first, second], Boxes.GetCasesByBoxId(box.Id).Select(c => c.Id));
     }
 
     [Fact]
@@ -469,40 +470,40 @@ public class PersonRequestRepositoryTests : IDisposable
         var id = repository.Insert(NewRequest("msg-1"));
         repository.SetDestination(id, CaseDestination.Caja, DateTimeOffset.UtcNow);
 
-        var firstBox = repository.CloseBox("A1-CD", DateTimeOffset.UtcNow);
+        var firstBox = Boxes.CloseBox("A1-CD", DateTimeOffset.UtcNow);
         Assert.Equal(1, firstBox.Number);
         Assert.Equal("A1-CD", firstBox.Code);
         Assert.Empty(repository.GetCajaQueue());
-        Assert.Equal(id, Assert.Single(repository.GetCasesByBoxId(firstBox.Id)).Id);
+        Assert.Equal(id, Assert.Single(Boxes.GetCasesByBoxId(firstBox.Id)).Id);
 
         var idTwo = repository.Insert(NewRequest("msg-2", rut: "12.345.678-5"));
         repository.SetDestination(idTwo, CaseDestination.Caja, DateTimeOffset.UtcNow);
-        var secondBox = repository.CloseBox("A2-CD", DateTimeOffset.UtcNow);
+        var secondBox = Boxes.CloseBox("A2-CD", DateTimeOffset.UtcNow);
 
         Assert.Equal(2, secondBox.Number);
         Assert.Equal("A2-CD", secondBox.Code);
-        Assert.Equal(idTwo, Assert.Single(repository.GetCasesByBoxId(secondBox.Id)).Id);
+        Assert.Equal(idTwo, Assert.Single(Boxes.GetCasesByBoxId(secondBox.Id)).Id);
         // Closing a second box must not reassign what's already settled in the first one.
-        Assert.Equal(id, Assert.Single(repository.GetCasesByBoxId(firstBox.Id)).Id);
+        Assert.Equal(id, Assert.Single(Boxes.GetCasesByBoxId(firstBox.Id)).Id);
     }
 
     [Fact]
     public void CloseBox_EmptyQueue_StillCreatesABoxWithDefaultCode()
     {
-        var box = repository.CloseBox("", DateTimeOffset.UtcNow);
+        var box = Boxes.CloseBox("", DateTimeOffset.UtcNow);
 
         Assert.Equal(1, box.Number);
         Assert.Equal("A1-CD", box.Code);
-        Assert.Empty(repository.GetCasesByBoxId(box.Id));
+        Assert.Empty(Boxes.GetCasesByBoxId(box.Id));
     }
 
     [Fact]
     public void GetBoxes_ReturnsMostRecentlyClosedFirst()
     {
-        repository.CloseBox("A1-CD", DateTimeOffset.UtcNow);
-        repository.CloseBox("A2-CD", DateTimeOffset.UtcNow);
+        Boxes.CloseBox("A1-CD", DateTimeOffset.UtcNow);
+        Boxes.CloseBox("A2-CD", DateTimeOffset.UtcNow);
 
-        var boxes = repository.GetBoxes();
+        var boxes = Boxes.GetBoxes();
 
         Assert.Equal(2, boxes.Count);
         Assert.Equal(2, boxes[0].Number);
@@ -583,15 +584,15 @@ public class PersonRequestRepositoryTests : IDisposable
         repository.MarkUploaded(id2, DateTimeOffset.UtcNow);
         repository.SendToCaja([id1, id2], DateTimeOffset.UtcNow);
 
-        var box = repository.CloseBox("A3-CD", DateTimeOffset.UtcNow);
+        var box = Boxes.CloseBox("A3-CD", DateTimeOffset.UtcNow);
         Assert.Empty(repository.GetCajaQueue());
-        Assert.Equal(2, repository.GetCasesByBoxId(box.Id).Count);
+        Assert.Equal(2, Boxes.GetCasesByBoxId(box.Id).Count);
 
-        repository.ReopenBox(box.Id);
+        Boxes.ReopenBox(box.Id);
 
         var queue = repository.GetCajaQueue();
         Assert.Equal(2, queue.Count);
-        Assert.Null(repository.FindBoxById(box.Id));
+        Assert.Null(Boxes.FindBoxById(box.Id));
         Assert.Null(repository.FindById(id1)!.BoxId);
         Assert.Equal(CaseDestination.Caja, repository.FindById(id1)!.Destination);
     }
@@ -605,10 +606,10 @@ public class PersonRequestRepositoryTests : IDisposable
         repository.MarkUploaded(id2, DateTimeOffset.UtcNow);
         repository.SendToCaja([id1, id2], DateTimeOffset.UtcNow);
 
-        var box = repository.CloseBox("A3-CD", DateTimeOffset.UtcNow);
-        repository.RemoveCaseFromClosedBox(id1);
+        var box = Boxes.CloseBox("A3-CD", DateTimeOffset.UtcNow);
+        Boxes.RemoveCaseFromClosedBox(id1);
 
-        var remainingInBox = repository.GetCasesByBoxId(box.Id);
+        var remainingInBox = Boxes.GetCasesByBoxId(box.Id);
         Assert.Single(remainingInBox);
         Assert.Equal(id2, remainingInBox[0].Id);
 
@@ -641,7 +642,7 @@ public class PersonRequestRepositoryTests : IDisposable
         repository.SetDestination(id, CaseDestination.Caja, DateTimeOffset.UtcNow);
         repository.MarkUploaded(id, DateTimeOffset.UtcNow);
         repository.UpdateStatusToConfirmed(id, DateTimeOffset.UtcNow);
-        var box = repository.CloseBox("A1-CD", DateTimeOffset.UtcNow);
+        var box = Boxes.CloseBox("A1-CD", DateTimeOffset.UtcNow);
 
         repository.RevertConfirmedToPending(id);
 
@@ -656,7 +657,7 @@ public class PersonRequestRepositoryTests : IDisposable
         var id = repository.Insert(NewRequest("msg-1"));
         repository.SetDestination(id, CaseDestination.Caja, DateTimeOffset.UtcNow);
         repository.MarkUploaded(id, DateTimeOffset.UtcNow);
-        var box = repository.CloseBox("A1-CD", DateTimeOffset.UtcNow);
+        var box = Boxes.CloseBox("A1-CD", DateTimeOffset.UtcNow);
 
         repository.RevertUploadedBySourceMessageId("msg-1");
 

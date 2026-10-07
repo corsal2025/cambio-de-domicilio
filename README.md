@@ -111,7 +111,7 @@ src/CambioDeDomicilio/
   Ews/                 # Cliente EWS (SOAP crudo): lectura, envío, mover ítem, marcar no leído
   Mail/                # Interfaces de transporte de correo (IEmailReader, IEmailMover, IMailSender)
   Notifications/       # Plantillas de correo, canal de toast (Windows) y canal de correo
-  Persistence/         # Repositorio SQLite (sin ORM)
+  Persistence/         # SQLite sin ORM: migraciones versionadas (Migrations/), casos, cajas, descartados y tombstones
   Reporting/           # Escritor del reporte CSV (incluye sector derivado)
   Routing/             # Servicio central: detección, extracción, dedup, marcado de subida, confirmación
   Statistics/          # Cálculos de la pantalla de Estadísticas

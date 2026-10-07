@@ -9,6 +9,7 @@ namespace CambioDeDomicilio.Tests.Dashboard.Pages;
 public class CajaModelTests : IDisposable
 {
     private readonly string dbPath = Path.Combine(Path.GetTempPath(), $"caja-page-test-{Guid.NewGuid():N}.db");
+    private IBoxRepository Boxes => new BoxRepository($"Data Source={dbPath}");
     private readonly IPersonRequestRepository repository;
     private readonly CajaModel model;
 
@@ -16,19 +17,19 @@ public class CajaModelTests : IDisposable
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
         TestDatabase.Migrate(dbPath);
-        model = new CajaModel(repository);
+        model = new CajaModel(repository, new BoxRepository($"Data Source={dbPath}"));
     }
 
     [Fact]
     public void OnPostCerrarCaja_SameCodeAsExistingBox_IsAllowedForSamePhysicalBox()
     {
         QueueCase("msg-1", "12.345.678-5");
-        repository.CloseBox("A1-CD", DateTimeOffset.UtcNow);
+        Boxes.CloseBox("A1-CD", DateTimeOffset.UtcNow);
         var queuedId = QueueCase("msg-2", "9.868.019-K");
 
         model.OnPostCerrarCaja(boxNumber: "1", boxCode: null);
 
-        Assert.Equal(2, repository.GetBoxes().Count(b => b.Code == "A1-CD"));
+        Assert.Equal(2, Boxes.GetBoxes().Count(b => b.Code == "A1-CD"));
         Assert.DoesNotContain(repository.GetCajaQueue(), c => c.Id == queuedId);
     }
 
@@ -36,13 +37,13 @@ public class CajaModelTests : IDisposable
     public void OnPostCerrarCaja_NewCode_ClosesBox()
     {
         QueueCase("msg-1", "12.345.678-5");
-        repository.CloseBox("A1-CD", DateTimeOffset.UtcNow);
+        Boxes.CloseBox("A1-CD", DateTimeOffset.UtcNow);
         var queuedId = QueueCase("msg-2", "9.868.019-K");
 
         model.OnPostCerrarCaja(boxNumber: "2", boxCode: null);
 
-        var newBox = repository.GetBoxes().Single(b => b.Code == "A2-CD");
-        Assert.Equal(queuedId, Assert.Single(repository.GetCasesByBoxId(newBox.Id)).Id);
+        var newBox = Boxes.GetBoxes().Single(b => b.Code == "A2-CD");
+        Assert.Equal(queuedId, Assert.Single(Boxes.GetCasesByBoxId(newBox.Id)).Id);
     }
 
     [Fact]

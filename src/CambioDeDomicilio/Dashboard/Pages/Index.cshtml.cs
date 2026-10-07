@@ -13,6 +13,7 @@ public class IndexModel(
     IPersonRequestRepository repository,
     IDiscardedEmailRepository discardedRepository,
     IMessageTombstoneRepository tombstones,
+    IBoxRepository boxes,
     AddressChangeRoutingService routingService,
     RouterWorker routerWorker,
     RouterOptions options,
@@ -577,8 +578,8 @@ public class IndexModel(
     {
         if (match.BoxId is { } boxId)
         {
-            var box = repository.FindBoxById(boxId);
-            var position = IndexOf(repository.GetCasesByBoxId(boxId), match.Id);
+            var box = boxes.FindBoxById(boxId);
+            var position = IndexOf(boxes.GetCasesByBoxId(boxId), match.Id);
             return new CajaLocation(match.Id, match.FullName, boxId, box?.Code ?? $"#{boxId}", box?.ClosedAt, position);
         }
 
