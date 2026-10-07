@@ -99,7 +99,7 @@
 
   <footer>
     <span>Modelo de dominio del sistema Cambio de Domicilio · Autor: <strong>Raúl Salazar</strong></span>
-    <span>Fuente: especificaciones OpenSpec del proyecto (septiembre 2026)</span>
+    <span>Fuente: especificaciones OpenSpec y código del proyecto (octubre 2026)</span>
   </footer>
 </div>
 
@@ -109,50 +109,56 @@
 
   var views = {
     destinos: {
-      intro: { title: 'Destinos del caso', text: 'El destino dice en qué pantalla y en qué lugar físico está el caso. Es independiente del estado del trámite. Ninguna de estas acciones envía correos.' },
-      legend: [['Casos', C.navy], ['F8', C.f8], ['Caja', C.caja], ['Cerrado', C.closed]],
+      intro: { title: 'Destinos del caso', text: 'El destino dice en qué pantalla y en qué lugar físico está el caso (Casos, F8, Subidas a Sistema, Caja o Sin Carpetas). Es independiente del estado del trámite. Solo «Marcar subida» y «Confirmar» envían correo a la comuna; el resto de las acciones no.' },
+      legend: [['Casos', C.navy], ['F8', C.f8], ['Subidas a Sistema', C.upload], ['Caja', C.caja], ['Sin Carpetas', C.closed]],
       nodes: [
-        { id: 'correo', x: 20, y: 250, w: 140, t: 'Correo', s: 'CARP. PARA PEDIR', c: C.muted, info: 'Correo de otra municipalidad. El sistema lo revisa cada 30 minutos y extrae nombre, RUT y comuna. Si no es una solicitud válida, queda en Correos descartados con su motivo.' },
-        { id: 'casos', x: 230, y: 250, w: 160, t: 'Casos', s: 'pantalla principal', c: C.navy, info: 'Todo caso nuevo nace aquí como Pendiente. Aquí se digita la fecha de última carpeta, que define el sector: antes de julio 2023 es Archivo; desde entonces, Oficina 43.' },
+        { id: 'correo', x: 20, y: 250, w: 140, t: 'Correo', s: 'CARP. PARA PEDIR', c: C.muted, info: 'Correo de otra municipalidad. El sistema lo lee solo cuando el operador presiona «Sincronizar ahora» (no hay sondeo automático) y extrae nombre, RUT y comuna. Si no es una solicitud válida, queda en Correos descartados con su motivo.' },
+        { id: 'casos', x: 230, y: 250, w: 160, t: 'Casos', s: 'pantalla principal', c: C.navy, info: 'Todo caso nuevo nace aquí como Pendiente. Aquí se digita la fecha de última carpeta, que define el sector: antes del 1 de julio de 2023 es Archivo; desde esa fecha, Oficina 43. Las filas se colorean: blanca sin trabajar, azul terminada, amarilla Marcar, morada Pendiente carpeta, roja si requiere revisión o rebotó.' },
         { id: 'f8', x: 480, y: 60, w: 150, t: 'F8', s: 'carpeta no encontrada', c: C.f8, info: 'Casos cuya carpeta física no aparece. Se gestionan con su propio código F8 y fecha de penúltima carpeta.' },
         { id: 'cola', x: 475, y: 250, w: 160, t: 'Cola de Caja', s: 'orden de llegada', c: C.caja, info: 'Carpetas físicas esperando ser empacadas, en el orden en que se enviaron. Cada una ya tiene su N° provisorio.' },
-        { id: 'caja', x: 475, y: 450, w: 160, t: 'Caja cerrada', s: 'listado A1-CD', c: C.caja, info: 'Listado congelado con rótulo y fecha de cierre. El N° de cada carpeta es su posición física en la caja. Varios cierres pueden compartir rótulo si van a la misma caja física.' },
-        { id: 'cerrado', x: 730, y: 60, w: 150, t: 'Cerrado', s: 'sin carpeta', c: C.closed, info: 'El proceso terminó sin carpeta física. El caso sigue visible en Casos, sin acciones, y nunca puede entrar a Caja.' },
+        { id: 'caja', x: 475, y: 450, w: 160, t: 'Caja cerrada', s: 'listado A1-CD', c: C.caja, info: 'Listado congelado con rótulo y fecha de cierre. Desde aquí se puede reabrir la caja o quitar una carpeta, que vuelve a Casos. El N° de cada carpeta es su posición física en la caja. Varios cierres pueden compartir rótulo si van a la misma caja física.' },
+        { id: 'subidas', x: 230, y: 450, w: 170, t: 'Subidas a Sistema', s: 'subido y confirmado', c: C.upload, info: 'Pantalla donde queda el caso tras Marcar subida o Confirmar. Desde aquí se decide: enviarlo a Caja, cerrarlo Sin carpeta, o Rectificar si se confirmó por error.' },
+        { id: 'cerrado', x: 730, y: 250, w: 150, t: 'Sin Carpetas', s: 'lista final', c: C.closed, info: 'Casos cerrados sin carpeta física. Es una lista terminal de solo lectura: sin acciones, sin vuelta atrás y sin entrada a Caja. Solo se puede imprimir o guardar como PDF.' },
         { id: 'descartado', x: 20, y: 450, w: 140, t: 'Descartados', s: 'correo inválido', c: C.closed, info: 'Correos que no son solicitudes (dominio desconocido, formato inesperado). Se guardan con el motivo para revisión.' }
       ],
       edges: [
         { from: 'correo', to: 'casos', label: 'Extraer', info: 'Automático. Una fila por persona y comuna; sin duplicados.', mail: false },
         { from: 'correo', to: 'descartado', label: 'Descartar', info: 'Automático cuando el correo no corresponde a una comuna del directorio o no trae datos extraíbles.' },
-        { from: 'casos', to: 'f8', label: 'Traspaso a F8', info: 'Solo si la casilla F8 está marcada. Borra la fecha de última carpeta: en F8 se usa la penúltima.', bend: -40 },
+        { from: 'casos', to: 'f8', label: 'Traspaso a F8', info: 'Solo si la casilla F8 está marcada (carpeta no encontrada). Borra la fecha de última carpeta: en F8 se usa la penúltima.', bend: -40 },
+        { from: 'casos', to: 'subidas', label: 'Marcar subida', info: 'Un clic: mueve el correo a CARP. YA SUBIDAS, envía la confirmación y deja el caso en Subidas a Sistema. También ocurre con «Enviar confirmación» sobre un caso ya Subido.', mail: true, bend: -40 },
+        { from: 'subidas', to: 'casos', label: 'Rectificar', info: 'Confirmación hecha por error: envía un correo de rectificación a la comuna y el caso vuelve a Casos como Pendiente.', mail: true, bend: -40 },
+        { from: 'subidas', to: 'cola', label: 'Caja', info: 'Envía la carpeta física a la cola de Caja. Sin correo.' },
+        { from: 'subidas', to: 'cerrado', label: 'Sin carpeta', info: 'Cierra el proceso sin carpeta física. El caso pasa a Sin Carpetas y no puede volver. Sin correo.', bend: 40 },
         { from: 'f8', to: 'casos', label: 'Revertir', info: 'Para un F8 pedido por error. Borra todos los datos F8, incluido el código, esté subido o no. El caso vuelve con una sola acción: Caja. Sin correo.', bend: -40 },
-        { from: 'casos', to: 'cola', label: 'Caja', info: 'Para casos Subidos o Confirmados, o revertidos desde F8. Sin correo. El caso sale de Casos.' },
+        { from: 'casos', to: 'cola', label: 'Caja', info: 'Para casos Subidos o Confirmados, o revertidos desde F8 (Solo Caja). Sin correo. El caso sale de Casos.' },
         { from: 'f8', to: 'cola', label: 'Caja', info: 'La carpeta apareció. Va directo a la cola de Caja como Confirmado. Sin correo.' },
         { from: 'cola', to: 'casos', label: 'Devolver', info: 'Corrige un envío por error: el caso vuelve a Casos con su botón Caja.', bend: 60 },
         { from: 'cola', to: 'caja', label: 'Cerrar Caja', info: 'Congela la cola en un listado con rótulo. Se puede reabrir para corregir; las carpetas vuelven a la cola sin perder su orden.' },
-        { from: 'f8', to: 'cerrado', label: 'Sin carpeta', info: 'Cierra el proceso sin carpeta física y limpia la marca F8. El caso vuelve a Casos como "Cerrado sin carpeta".' }
+        { from: 'f8', to: 'cerrado', label: 'Sin carpeta', info: 'Cierra el proceso sin carpeta física (también se logra escribiendo S/C como fecha en F8) y limpia la marca F8. El caso pasa a Sin Carpetas, lista final de solo lectura. Sin correo.' }
       ]
     },
     estados: {
       intro: { title: 'Estados del trámite', text: 'El estado describe el trámite ante la comuna. Solo avanza con un clic del operador, y Confirmado siempre significa que salió un correo real.' },
       legend: [['Pendiente', C.muted], ['Subido', C.upload], ['Confirmado', C.caja]],
       nodes: [
-        { id: 'pend', x: 20, y: 240, w: 170, t: 'Pendiente', s: 'extraído del correo', c: C.muted, info: 'Caso registrado desde CARP. PARA PEDIR. Corre el plazo legal de 15 días hábiles desde la recepción del correo.' },
-        { id: 'sub', x: 365, y: 240, w: 170, t: 'Subido', s: 'carpeta en Conaset', c: C.upload, info: 'La carpeta se escaneó y subió a Conaset; el correo se movió a CARP. YA SUBIDAS. Aún no se avisa a la comuna.' },
-        { id: 'conf', x: 710, y: 240, w: 170, t: 'Confirmado', s: 'correo enviado', c: C.caja, info: 'Se envió la confirmación estándar a la comuna. Si el correo rebota, el caso queda marcado como Rebotó hasta que el operador lo resuelva.' }
+        { id: 'pend', x: 20, y: 240, w: 170, t: 'Pendiente', s: 'extraído del correo', c: C.muted, info: 'Caso registrado desde CARP. PARA PEDIR. Corre el plazo legal de 15 días hábiles (lunes a viernes, sin descontar feriados) desde la recepción del correo.' },
+        { id: 'sub', x: 365, y: 240, w: 170, t: 'Subido', s: 'carpeta en Conaset', c: C.upload, info: 'La carpeta se escaneó y subió a Conaset; el correo se movió a CARP. YA SUBIDAS. Aún no se avisa a la comuna. Se alcanza al mover el correo a YA SUBIDAS y sincronizar; con Marcar subida se pasa directo a Confirmado.' },
+        { id: 'conf', x: 710, y: 240, w: 170, t: 'Confirmado', s: 'correo enviado', c: C.caja, info: 'Se envió la confirmación estándar a la comuna y el caso pasa a Subidas a Sistema. Si el correo rebota, el caso queda marcado como Rebotó hasta que el operador lo resuelva.' }
       ],
       edges: [
         { from: 'pend', to: 'sub', label: 'Marcar subida', info: 'El operador marca la carpeta como subida. En la pantalla principal esto también envía la confirmación.', mail: true, bend: -70 },
         { from: 'sub', to: 'conf', label: 'Confirmar', info: 'Envía el correo estándar a la comuna: "ya se subió la carpeta de [Nombre], RUT [X]". Nada se envía sin este clic.', mail: true, bend: -70 },
-        { from: 'conf', to: 'pend', label: 'Rectificar', info: 'Confirmación hecha por error: envía un correo de rectificación a la comuna y vuelve el caso a Pendiente. Pide doble confirmación.', mail: true, bend: 120 },
+        { from: 'conf', to: 'pend', label: 'Rectificar', info: 'Confirmación hecha por error: envía un correo de rectificación a la comuna y vuelve el caso a Pendiente en Casos. Pide doble confirmación.', mail: true, bend: 120 },
         { from: 'sub', to: 'pend', label: 'Correo reaparece', info: 'Automático: si el correo original vuelve a CARP. PARA PEDIR, se deshace la subida. Nunca toca casos Confirmados.', bend: -70 }
       ]
     }
   };
 
   var entities = [
-    { t: 'Caso', c: C.navy, attrs: ['Nombre, RUT, comuna', 'Recibido y plazo (15 días hábiles)', 'Fecha última carpeta y sector derivado', 'Estado: Pendiente · Subido · Confirmado', 'Destino: Casos · F8 · Caja', 'Marcas: Marcar, Pendiente carpeta, Solo Caja, Cerrado sin carpeta'], rel: 'Pertenece a una Comuna. Puede estar en una Caja (0 o 1).' },
+    { t: 'Caso', c: C.navy, attrs: ['Nombre, RUT, comuna', 'Recibido y plazo (15 días hábiles)', 'Fecha última carpeta (o S/C) y sector derivado', 'Estado: Pendiente · Subido · Confirmado', 'Destino: Casos · F8 · Subidas · Caja · Sin Carpetas', 'Marcas: Marcar, Pendiente carpeta, carpeta no encontrada (F8), Solo Caja', 'Código F8 y fecha de cierre sin carpeta', 'Rebote de la confirmación'], rel: 'Pertenece a una Comuna. Puede estar en una Caja (0 o 1).' },
     { t: 'Caja', c: C.caja, attrs: ['Número correlativo interno', 'Rótulo (ej. A1-CD), puede repetirse', 'Fecha de cierre', 'Casos en orden de llegada, con N°'], rel: 'Agrupa muchos Casos. Se puede reabrir.' },
     { t: 'Comuna', c: C.f8, attrs: ['Nombre', 'Correo de contacto', 'Dominio de correo'], rel: 'Recibe las confirmaciones de sus Casos.' },
+    { t: 'Correo ya tratado', c: C.closed, attrs: ['Correo de solicitud borrado (no se recrea)', 'Informe de rebote ya procesado', 'Solo identificador y fecha'], rel: 'Evita reprocesar un mismo correo en cada sincronización.' },
     { t: 'Correo descartado', c: C.closed, attrs: ['Identificador del correo', 'Asunto y remitente', 'Motivo del descarte'], rel: 'Trazabilidad de lo que no se convirtió en Caso.' }
   ];
 

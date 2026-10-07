@@ -1,6 +1,6 @@
 # Diagrama del sistema — CambioDeDomicilio
 
-**Última actualización:** 2026-09-03
+**Última actualización:** 2026-10-07
 **Propósito:** referencia rápida para reportar el flujo del sistema (jefatura, auditoría, onboarding). Refleja el comportamiento real del código a esta fecha, no el diseño original.
 
 > Nota de vigencia: el sondeo de correo **ya no es automático cada 30 min** — corre solo cuando el operador presiona "Sincronizar ahora" en el dashboard (`RouterWorker.RunCycleAsync`, disparado por `IndexModel.OnPostSyncNowAsync`). Otros documentos del proyecto (`reporte-tecnico.md`) todavía describen el sondeo periódico viejo; este diagrama es la versión actualizada.
@@ -42,14 +42,21 @@ flowchart TB
     subgraph DASH["Dashboard web (HTTPS, sin login — acceso por red)"]
         CASOS["/Index — Casos<br/>(Cambio de Domicilio)"]
         F8P["/F8 — Casos F8"]
+        SUBP["/SubidasASistema"]
+        CAJAP["/Caja — cola y cajas cerradas"]
+        SINP["/SinCarpetas — lista final, solo lectura"]
         DISCP["/Discarded"]
         COMU["/Comunas"]
     end
 
     CASOS -->|"Traspaso a F8<br/>(TransferredAt, Destination=F8)"| F8P
+    CASOS -->|"Marcar subida / Enviar confirmación<br/>(Destination=Subidas)"| SUBP
+    SUBP -->|"Caja"| CAJAP
+    F8P -->|"Caja"| CAJAP
+    F8P -->|"Sin carpeta"| SINP
+    SUBP -->|"Sin carpeta"| SINP
     DISC --> DISCP
 ```
-
 ## 2. Ciclo de vida de un caso (Casos / Index)
 
 ```mermaid
@@ -60,12 +67,9 @@ stateDiagram-v2
     Pending --> Confirmed: Camino B (1 clic) — botón "Marcar subida":<br/>mueve el correo él mismo + confirma de inmediato
 
     Uploaded --> Confirmed: botón "Enviar confirmación"<br/>(envía correo real a la comuna,<br/>requiere confirmación de diálogo JS)
+    Uploaded --> Pending: el correo reaparece en CARP. PARA PEDIR<br/>(se deshace la subida; nunca toca Confirmed)
 
-    Confirmed --> Uploaded: "Rectificar confirmación"<br/>(revierte, para corregir un error)
-
-    Pending --> [*]: Traspaso a F8<br/>(sale de Casos, TransferredAt fijado)
-    Uploaded --> [*]: Traspaso a F8
-    Confirmed --> [*]: Traspaso a F8
+    Confirmed --> Pending: "Rectificar confirmación"<br/>(envía correo de rectificación<br/>y limpia UploadedAt/ConfirmedAt/rebote)
 
     note right of Confirmed
         Reglas clave:
@@ -75,8 +79,46 @@ stateDiagram-v2
           con acción explícita del operador.
         - Nunca dos filas para la misma
           persona+comuna (deduplicación).
+        - El Estado (esta vista) es independiente
+          del Destino (siguiente vista).
     end note
 ```
+
+### Destinos del caso (eje independiente del estado)
+
+`PersonRequest.Destination` indica en qué pantalla está el caso. Valores: `None` (Casos), `F8`, `Subidas`, `Caja`, `SinCarpetas`.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Casos: correo extraído<br/>(Destination = None)
+
+    Casos --> Subidas: "Marcar subida" o "Enviar confirmación"<br/>(Destination = Subidas)
+    Casos --> F8: "Traspaso a F8" (requiere casilla F8)
+    Casos --> Caja: "Caja" (Subido/Confirmado o Solo Caja)
+
+    Subidas --> Casos: "Rectificar confirmación"
+    Subidas --> Caja: "Caja"
+    Subidas --> SinCarpetas: "Sin carpeta"
+
+    F8 --> Caja: "Caja" (apareció la carpeta)
+    F8 --> SinCarpetas: "Sin carpeta" o fecha "S/C"
+    F8 --> Casos: "Revertir" (Pending + SoloCaja,<br/>solo acción Caja)
+
+    Caja --> Casos: "Devolver a casos" (cola abierta)<br/>o "Quitar de caja" (caja cerrada)
+    Caja --> Caja: "Cerrar Caja" (asigna BoxId)<br/>"Reabrir caja" (BoxId = NULL)
+
+    SinCarpetas --> [*]: terminal, solo lectura<br/>(sin acciones ni vuelta atrás)
+
+    note right of SinCarpetas
+        Un caso con ClosedWithoutFolderAt
+        nunca entra a Caja. Ninguna de
+        estas transiciones envía correo,
+        salvo Marcar subida / Confirmar
+        y Rectificar.
+    end note
+```
+
+**Colores de fila en Casos:** blanco = sin trabajar; azul = terminado (`IsActionCompleted`: Subido/Confirmado, en Caja o cerrado sin carpeta); amarillo = "Marcar"; morado = "Pendiente carpeta"; gris pizarra = casilla F8 marcada; rojo/rosado = requiere revisión o la confirmación rebotó (REBOTÓ).
 
 ## 3. Extracción de datos de un correo
 
@@ -109,8 +151,8 @@ flowchart LR
 
     subgraph F8flow["F8"]
         F8 --> F8sector{"Fecha última<br/>carpeta (S/C admitido)"}
-        F8sector -->|"< jul 2023"| ARCH["Sector: Archivo"]
-        F8sector -->|"≥ jul 2023"| OF43["Sector: Oficina 43"]
+        F8sector -->|"< 1 jul 2023"| ARCH["Sector: Archivo"]
+        F8sector -->|"≥ 1 jul 2023"| OF43["Sector: Oficina 43"]
         ARCH --> MARCA["Operador marca casos<br/>(orden = orden de marcado)"]
         OF43 --> MARCA
         MARCA --> PDFARCH["PDF Archivo"]
@@ -123,21 +165,25 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph Proceso[".NET 10 — un solo proceso"]
-        BG["BackgroundService<br/>(RouterWorker)<br/>solo arranca el schema;<br/>el ciclo corre bajo demanda"]
+        BG["BackgroundService<br/>(RouterWorker)<br/>ExecuteAsync no hace nada;<br/>el ciclo corre solo con<br/>'Sincronizar ahora'"]
         RP["ASP.NET Core Razor Pages<br/>Dashboard HTTPS :5001"]
     end
     EWS["Cliente EWS propio (SOAP)<br/>Exchange Server 2016 on-premise"]
-    SQLITE["SQLite<br/>(casos + correos descartados,<br/>sin ORM)"]
+    SQLITE["SQLite (sin ORM)<br/>PersonRequest, Box, DiscardedEmail,<br/>DeletedSourceMessage, ProcessedBounce<br/>PRAGMA user_version + migraciones"]
+    MIG["SchemaMigrator<br/>V001_Baseline, V002_CaseListIndex<br/>respaldo en línea previo"]
     CSVDIR["CSV editable<br/>directorio de comunas<br/>(300+ filas)"]
     CSVOUT["CSV de reporte<br/>regenerado cada ciclo"]
 
     RP -->|"Sincronizar ahora"| BG
     BG <--> EWS
+    MIG -->|"al arrancar, antes de atender"| SQLITE
     BG <--> SQLITE
     BG --> CSVDIR
     BG --> CSVOUT
     RP <--> SQLITE
 ```
+
+La capa de persistencia está dividida por responsabilidad: `PersonRequestRepository` (casos, con filtros del lado SQL mediante `CaseQuery`), `BoxRepository` (cajas cerradas), `MessageTombstoneRepository` (correos ya tratados), `DiscardedEmailRepository` y `PersonRequestMapper` (mapeo de fila a entidad compartido). Antes de la primera migración pendiente se escribe un respaldo en línea `<base>.bak-v<versión>-<fecha>` (máximo 3 por versión).
 
 ## 6. Estadísticas — pantalla de solo lectura (2026-07-28)
 
