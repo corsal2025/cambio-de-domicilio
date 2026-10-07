@@ -88,3 +88,26 @@ a regression; the smoke above uses `Development`.
 
 The `deploy/README.md` restore procedure (copy `.bak-v*` over the database, delete `-wal`/`-shm`) was executed on a scratch
 SQLite file: after the restore the file held the pre-upgrade row count again.
+
+## Adversarial review (task 5.6) and re-verification
+
+Findings fixed (artifacts updated first, then code, tests first):
+
+| Severity | Finding | Fix |
+|---|---|---|
+| Major | A failing migration + Task Scheduler restarts copied the whole database (PII) on every retry | Keep at most the 3 newest backups per version (spec scenario added; test `Migrate_RepeatedFailedAttempts_KeepAtMostThreeBackups_IncludingTheNewest`) |
+| Major | A failing `Rollback()` replaced the migration error with an unrelated exception (reproduced RED: `InvalidOperationException` escaped) | Rollback guarded; original error reported (`Migrate_FailureWhileRollingBack_StillReportsTheOriginalError`) |
+| Major | `CaseQuery.Sector` compared dates as text in SQL; a row in a non-ISO format that `DateOnly.Parse` accepts would be misclassified | Filter removed; sector derived in LINQ as before (design D8, docs updated) |
+| Minor | Subidas merged two queries read at different instants; a case moved in between could appear twice | `DistinctBy(Id)` |
+| Minor (docs) | `deploy/README.md` claimed an old executable refuses a migrated database; pre-versioning executables do not | Rewritten: rollback must restore the backup; first-upgrade backfill effect and backup retention documented |
+
+Final state: 450 tests passing, Release build 0 warnings / 0 errors.
+
+Re-run of the rehearsal with the final build on a fresh copy of the legacy database: 22 / 22 URLs identical to the **previous
+release** after normalizing the two clock fields the sector/SinCarpetas print headers contain (folio stamp and "Generado" time).
+
+Accepted gaps (Minor / question, not blocking):
+
+- Backup failure path (disk full) aborts startup by construction (the exception propagates before any migration), but has no dedicated test.
+- No golden-schema test guarding `V001_Baseline` against accidental edits; policy is documented in `docs/data-model.md`.
+- First upgrade moves currently-unconfirmed Uploaded cases to Subidas once (same as one restart of the old release); documented in `deploy/README.md`.
