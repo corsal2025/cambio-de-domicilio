@@ -184,7 +184,8 @@
             }
         }
 
-        <div class="card card-manual-entry">
+        <details class="card card-manual-entry" id="manual-entry-panel">
+            <summary class="manual-entry-summary">Agregar caso(s) manualmente</summary>
             <form method="post" asp-page-handler="AddManualCases" id="manual-cases-form" class="manual-entry-form">
                 <div class="form-group">
                     <label class="form-label" for="manual-comuna">Comuna</label>
@@ -220,7 +221,7 @@
                 </label>
                 <button type="submit" class="btn-primary">Agregar caso(s)</button>
             </form>
-        </div>
+        </details>
 
         <script>
             (function () {
@@ -313,13 +314,13 @@
                                no ceiling so the full name is always visible). *@
                             <input type="text" name="nombre" value="@item.FullName" placeholder="Nombre completo" required
                                    size="@Math.Max((item.FullName?.Length ?? 0) + 2, 12)"
-                                   class="input-inline name-input" form="person-form-@item.Id" onchange="savePersonFieldIfDoneEditing(this)"
+                                   class="input-inline name-input" form="person-form-@item.Id" onchange="markPersonDirty(this)" onblur="savePersonFieldIfDoneEditing(this)"
                                    title="@(item.NeedsReview ? $"Requiere revisión — datos no extraíbles del correo (asunto: {item.SourceSubject})" : item.FullName)" />
                             </span>
                         </td>
                         <td class="text-cell rut-cell">
                             <input type="text" name="rut" value="@item.Rut" placeholder="RUT" required size="13"
-                                   class="input-inline rut-input" form="person-form-@item.Id" onchange="savePersonFieldIfDoneEditing(this)"
+                                   class="input-inline rut-input" form="person-form-@item.Id" onchange="markPersonDirty(this)" onblur="savePersonFieldIfDoneEditing(this)"
                                    oncopy="var s=this.value.substring(this.selectionStart,this.selectionEnd)||this.value; event.clipboardData.setData('text/plain', s.replace(/\./g,'')); event.preventDefault();" />
                         </td>
                         <td class="marked-cell">
@@ -557,6 +558,15 @@
         // nombre and rut are two separate inputs sharing one form (person-form-ID), each
         // autosaving independently on change. Submitting via fetch() prevents full page reloads
         // and scroll jumps. Deferring one tick lets focus land on rut first if tabbing.
+        // `change` only fires on the field that was edited, and only once. If focus then moves to the
+        // sibling field (nombre -> rut) the save is deferred, and the sibling never fires its own
+        // `change` because it was not edited — so the edit was lost. The row is therefore flagged
+        // dirty on `change` and saved on the first `blur` that leaves the nombre/rut pair.
+        function markPersonDirty(input) {
+            var tr = input.closest('tr');
+            if (tr) tr.dataset.personDirty = '1';
+        }
+
         function savePersonFieldIfDoneEditing(input) {
             var form = input.form;
             if (!form) return;
@@ -567,12 +577,14 @@
                 if (document.activeElement && document.activeElement.form === form) {
                     return;
                 }
+                if (tr.dataset.personDirty !== '1') return;
                 var nombreInput = tr.querySelector('input[name="nombre"]');
                 var rutInput = tr.querySelector('input[name="rut"]');
                 var nombreVal = (nombreInput ? nombreInput.value : '').trim();
                 var rutVal = (rutInput ? rutInput.value : '').trim();
                 if (nombreVal === '' || rutVal === '') return;
 
+                tr.dataset.personDirty = '';
                 var id = form.querySelector('input[name="id"]').value;
                 var tokenInput = form.querySelector('input[name="__RequestVerificationToken"]');
                 var token = tokenInput ? tokenInput.value : '';
@@ -608,6 +620,7 @@
                     }
                 })
                 .catch(function (err) {
+                    tr.dataset.personDirty = '1';
                     if (nombreInput) flashCellFeedback(nombreInput, false);
                     if (rutInput) flashCellFeedback(rutInput, false);
                     if (err && err.message) {

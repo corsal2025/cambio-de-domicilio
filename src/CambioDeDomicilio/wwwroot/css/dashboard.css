@@ -601,6 +601,19 @@ body.cases-page main {
     border-left: 4px solid var(--color-primary);
 }
 
+.manual-entry-summary {
+    cursor: pointer;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    padding: 4px 0;
+    user-select: none;
+}
+
+.card-manual-entry[open] .manual-entry-summary {
+    margin-bottom: 10px;
+}
+
 .manual-entry-form {
     display: flex;
     gap: 12px;
