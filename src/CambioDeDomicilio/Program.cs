@@ -54,6 +54,8 @@ builder.Services.AddSingleton<IPersonRequestRepository>(_ =>
     new PersonRequestRepository($"Data Source={routerOptions.SqliteDbPath}"));
 builder.Services.AddSingleton<IDiscardedEmailRepository>(_ =>
     new DiscardedEmailRepository($"Data Source={routerOptions.SqliteDbPath}"));
+builder.Services.AddSingleton<IMessageTombstoneRepository>(_ =>
+    new MessageTombstoneRepository($"Data Source={routerOptions.SqliteDbPath}"));
 builder.Services.AddSingleton<IComunaDirectory, ComunaDirectory>();
 builder.Services.AddSingleton<IEwsClient, EwsClient>();
 builder.Services.AddSingleton<EwsEmailReader>();

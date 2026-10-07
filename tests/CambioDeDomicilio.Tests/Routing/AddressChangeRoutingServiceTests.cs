@@ -20,6 +20,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
     ];
 
     private readonly string dbPath = Path.Combine(Path.GetTempPath(), $"routing-test-{Guid.NewGuid():N}.db");
+    private IMessageTombstoneRepository Tombstones => new MessageTombstoneRepository($"Data Source={dbPath}");
     private readonly IPersonRequestRepository repository;
     private readonly IDiscardedEmailRepository discardedRepository;
     private readonly FakeMailSender mailSender = new();
@@ -50,6 +51,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         sut = new AddressChangeRoutingService(
             repository,
             discardedRepository,
+            new MessageTombstoneRepository($"Data Source={dbPath}"),
             new ComunaDirectory(),
             mailSender,
             emailMover,
@@ -233,7 +235,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         // still sitting untouched in the source folder — without a tombstone, the very next
         // poll cycle (auto or manual) would silently recreate the case from scratch, losing
         // whatever the operator had already entered (fecha, corrections, etc.).
-        repository.RecordDeletedSourceMessage("msg-1");
+        Tombstones.RecordDeletedSourceMessage("msg-1");
 
         sut.ProcessIncomingRequest(NewEmail("msg-1", "GUSTAVO ANDRÉS PEÑA CASTRO RUT: 18.785.387-7"), Contacts);
 
@@ -627,13 +629,13 @@ public class AddressChangeRoutingServiceTests : IDisposable
         sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5"), Contacts);
 
         Assert.NotNull(repository.FindById(id)!.ConfirmationBouncedAt);
-        Assert.True(repository.IsBounceProcessed("ndr-1"));
+        Assert.True(Tombstones.IsBounceProcessed("ndr-1"));
     }
 
     [Fact]
     public void ProcessPotentialBounce_AlreadyProcessed_DoesNothing()
     {
-        repository.RecordProcessedBounce("ndr-1");
+        Tombstones.RecordProcessedBounce("ndr-1");
         var id = InsertConfirmed("msg-1", "12.345.678-5");
 
         sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5"), Contacts);
@@ -651,7 +653,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
         sut.ProcessPotentialBounce(reply, Contacts);
 
         Assert.Null(repository.FindById(id)!.ConfirmationBouncedAt);
-        Assert.False(repository.IsBounceProcessed("reply-1"));
+        Assert.False(Tombstones.IsBounceProcessed("reply-1"));
     }
 
     [Fact]
@@ -659,7 +661,7 @@ public class AddressChangeRoutingServiceTests : IDisposable
     {
         sut.ProcessPotentialBounce(Ndr("ndr-1", "12.345.678-5"), Contacts); // no case in the db at all
 
-        Assert.True(repository.IsBounceProcessed("ndr-1"));
+        Assert.True(Tombstones.IsBounceProcessed("ndr-1"));
     }
 
     [Fact]

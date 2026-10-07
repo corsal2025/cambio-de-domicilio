@@ -871,18 +871,6 @@ public class PersonRequestRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void RecordProcessedBounce_IsIdempotentAndQueryable()
-    {
-        Assert.False(repository.IsBounceProcessed("ndr-1"));
-
-        repository.RecordProcessedBounce("ndr-1");
-        Assert.True(repository.IsBounceProcessed("ndr-1"));
-
-        repository.RecordProcessedBounce("ndr-1"); // duplicate must not throw
-        Assert.True(repository.IsBounceProcessed("ndr-1"));
-    }
-
-    [Fact]
     public void RevertF8AndReturnToCasos_ReincorporatesCaseAsSoloCaja()
     {
         var id = repository.Insert(NewRequest("msg-f8"));

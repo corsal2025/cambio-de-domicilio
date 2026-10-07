@@ -55,11 +55,6 @@ public interface IPersonRequestRepository
     void SetConfirmationBounced(long id, DateTimeOffset bouncedAt);
     void ClearConfirmationBounced(long id);
 
-    /// <summary>Tombstones a bounce message so a later poll cycle never re-processes the same NDR
-    /// (it stays in the inbox). Mirrors <see cref="RecordDeletedSourceMessage"/>.</summary>
-    void RecordProcessedBounce(string bounceMessageId);
-    bool IsBounceProcessed(string bounceMessageId);
-
     /// <summary>Reverts every Uploaded row for this source email back to Pending (clearing UploadedAt) —
     /// used when the original email is found again in the source folder, meaning the operator undid an
     /// accidental upload/move. Confirmed rows are never touched by this: a real confirmation email
@@ -110,13 +105,6 @@ public interface IPersonRequestRepository
     /// <summary>Permanently removes a case — operator-triggered, for entries that shouldn't have
     /// been tracked at all (e.g. a mistaken manual entry). Not the same as reverting a status.</summary>
     void Delete(long id);
-
-    /// <summary>Tombstones a source email so the poll cycle never re-inserts it as a new case —
-    /// without this, deleting a case whose original email is still sitting in "CARP. PARA PEDIR"
-    /// gets silently recreated on the very next sync (auto or manual).</summary>
-    void RecordDeletedSourceMessage(string sourceMessageId);
-
-    bool IsSourceMessageDeleted(string sourceMessageId);
 
     IReadOnlyList<PersonRequest> GetAll();
 }
@@ -333,29 +321,6 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.ExecuteNonQuery();
     }
 
-    public void RecordDeletedSourceMessage(string sourceMessageId)
-    {
-        using var connection = Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            INSERT INTO DeletedSourceMessage (SourceMessageId, DeletedAt)
-            VALUES ($id, $deletedAt)
-            ON CONFLICT (SourceMessageId) DO NOTHING
-            """;
-        command.Parameters.AddWithValue("$id", sourceMessageId);
-        command.Parameters.AddWithValue("$deletedAt", DateTimeOffset.UtcNow.ToString("O"));
-        command.ExecuteNonQuery();
-    }
-
-    public bool IsSourceMessageDeleted(string sourceMessageId)
-    {
-        using var connection = Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT 1 FROM DeletedSourceMessage WHERE SourceMessageId = $id";
-        command.Parameters.AddWithValue("$id", sourceMessageId);
-        return command.ExecuteScalar() is not null;
-    }
-
     public IReadOnlyList<PersonRequest> FindConfirmedByRut(string rut)
     {
         using var connection = Open();
@@ -389,29 +354,6 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.CommandText = "UPDATE PersonRequest SET ConfirmationBouncedAt = NULL WHERE Id = $id";
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
-    }
-
-    public void RecordProcessedBounce(string bounceMessageId)
-    {
-        using var connection = Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            INSERT INTO ProcessedBounce (BounceMessageId, ProcessedAt)
-            VALUES ($id, $processedAt)
-            ON CONFLICT (BounceMessageId) DO NOTHING
-            """;
-        command.Parameters.AddWithValue("$id", bounceMessageId);
-        command.Parameters.AddWithValue("$processedAt", DateTimeOffset.UtcNow.ToString("O"));
-        command.ExecuteNonQuery();
-    }
-
-    public bool IsBounceProcessed(string bounceMessageId)
-    {
-        using var connection = Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT 1 FROM ProcessedBounce WHERE BounceMessageId = $id";
-        command.Parameters.AddWithValue("$id", bounceMessageId);
-        return command.ExecuteScalar() is not null;
     }
 
     public void SetMarked(long id, bool marked)

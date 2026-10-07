@@ -43,6 +43,7 @@ public class SubidasASistemaModelTests : IDisposable
         routingService = new AddressChangeRoutingService(
             repository,
             discardedRepository,
+            new MessageTombstoneRepository($"Data Source={dbPath}"),
             new ComunaDirectory(),
             new NoOpMailSender(),
             new NoOpEmailMover(),

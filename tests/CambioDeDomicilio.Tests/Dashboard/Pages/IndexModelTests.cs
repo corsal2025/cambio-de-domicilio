@@ -18,6 +18,7 @@ namespace CambioDeDomicilio.Tests.Dashboard.Pages;
 public class IndexModelTests : IDisposable
 {
     private readonly string dbPath = Path.Combine(Path.GetTempPath(), $"index-page-test-{Guid.NewGuid():N}.db");
+    private IMessageTombstoneRepository Tombstones => new MessageTombstoneRepository($"Data Source={dbPath}");
     private readonly string csvPath = Path.Combine(Path.GetTempPath(), $"index-page-test-{Guid.NewGuid():N}.csv");
     private readonly IPersonRequestRepository repository;
     private readonly AddressChangeRoutingService routingService;
@@ -46,6 +47,7 @@ public class IndexModelTests : IDisposable
         routingService = new AddressChangeRoutingService(
             repository,
             discardedRepository,
+            new MessageTombstoneRepository($"Data Source={dbPath}"),
             new ComunaDirectory(),
             new NoOpMailSender(),
             new NoOpEmailMover(),
@@ -61,7 +63,7 @@ public class IndexModelTests : IDisposable
             options,
             NullLogger<RouterWorker>.Instance);
 
-        newModel = () => new IndexModel(repository, discardedRepository, routingService, routerWorker, options, NullLogger<IndexModel>.Instance)
+        newModel = () => new IndexModel(repository, discardedRepository, new MessageTombstoneRepository($"Data Source={dbPath}"), routingService, routerWorker, options, NullLogger<IndexModel>.Instance)
         {
             PageContext = new PageContext
             {
@@ -351,7 +353,7 @@ public class IndexModelTests : IDisposable
 
         model.OnPostDeleteCase(id);
 
-        Assert.True(repository.IsSourceMessageDeleted("msg-1"));
+        Assert.True(Tombstones.IsSourceMessageDeleted("msg-1"));
     }
 
     [Fact]
@@ -453,7 +455,7 @@ public class IndexModelTests : IDisposable
             NotificationEmailAddress = "raul.salazar1984@gmail.com"
         };
         var worker = new RouterWorker(routingService, reader, repository, new NoOpCsvReportWriter(), workerOptions, NullLogger<RouterWorker>.Instance);
-        var abortedModel = new IndexModel(repository, discardedRepository, routingService, worker, workerOptions, NullLogger<IndexModel>.Instance)
+        var abortedModel = new IndexModel(repository, discardedRepository, new MessageTombstoneRepository($"Data Source={dbPath}"), routingService, worker, workerOptions, NullLogger<IndexModel>.Instance)
         {
             PageContext = new PageContext
             {

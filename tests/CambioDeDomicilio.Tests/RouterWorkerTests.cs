@@ -127,6 +127,7 @@ public class RouterWorkerTests : IDisposable
         var routingService = new AddressChangeRoutingService(
             repository,
             discardedRepository,
+            new MessageTombstoneRepository($"Data Source={dbPath}"),
             new ComunaDirectory(),
             new FakeMailSender(),
             new NoOpEmailMover(),

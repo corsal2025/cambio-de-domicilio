@@ -33,8 +33,8 @@ public class SqliteConnectionSetupTests : IDisposable
     [Fact]
     public async Task ConcurrentWritesFromSeveralConnections_DoNotFailWithDatabaseLocked()
     {
-        var repository = new PersonRequestRepository($"Data Source={dbPath}");
         TestDatabase.Migrate(dbPath);
+        var repository = new MessageTombstoneRepository($"Data Source={dbPath}");
 
         var writers = Enumerable.Range(0, 8).Select(worker => Task.Run(() =>
         {

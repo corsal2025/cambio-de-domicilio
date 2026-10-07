@@ -14,6 +14,7 @@ namespace CambioDeDomicilio.Dashboard.Pages;
 /// not inherit from IndexModel, following this project's one-page-one-model convention).</summary>
 public class F8Model(
     IPersonRequestRepository repository,
+    IMessageTombstoneRepository tombstones,
     AddressChangeRoutingService routingService,
     RouterOptions options,
     TimeProvider? timeProvider = null) : PageModel
@@ -199,7 +200,7 @@ public class F8Model(
         repository.Delete(id);
         if (sourceMessageId is not null)
         {
-            repository.RecordDeletedSourceMessage(sourceMessageId);
+            tombstones.RecordDeletedSourceMessage(sourceMessageId);
         }
 
         Message = "Caso eliminado.";

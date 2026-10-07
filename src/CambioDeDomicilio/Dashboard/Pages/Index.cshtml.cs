@@ -12,6 +12,7 @@ namespace CambioDeDomicilio.Dashboard.Pages;
 public class IndexModel(
     IPersonRequestRepository repository,
     IDiscardedEmailRepository discardedRepository,
+    IMessageTombstoneRepository tombstones,
     AddressChangeRoutingService routingService,
     RouterWorker routerWorker,
     RouterOptions options,
@@ -329,7 +330,7 @@ public class IndexModel(
         repository.Delete(id);
         if (sourceMessageId is not null)
         {
-            repository.RecordDeletedSourceMessage(sourceMessageId);
+            tombstones.RecordDeletedSourceMessage(sourceMessageId);
         }
 
         Message = "Caso eliminado.";

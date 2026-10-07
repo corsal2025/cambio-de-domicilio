@@ -21,6 +21,7 @@ public sealed record ConfirmationResult(bool Sent, string Reason);
 public sealed class AddressChangeRoutingService(
     IPersonRequestRepository repository,
     IDiscardedEmailRepository discardedRepository,
+    IMessageTombstoneRepository tombstones,
     IComunaDirectory directory,
     IMailSender mailSender,
     IEmailMover emailMover,
@@ -59,7 +60,7 @@ public sealed class AddressChangeRoutingService(
     /// <summary>Processes one email found in the source folder ("CARP. PARA PEDIR").</summary>
     public void ProcessIncomingRequest(IncomingEmail email, IReadOnlyList<ComunaContact> contacts)
     {
-        if (repository.IsSourceMessageDeleted(email.MessageId))
+        if (tombstones.IsSourceMessageDeleted(email.MessageId))
         {
             // The operator explicitly deleted every case tracked from this email — as long as it
             // sits unmoved in the source folder, every poll cycle would otherwise recreate it.
@@ -241,7 +242,7 @@ public sealed class AddressChangeRoutingService(
     /// </summary>
     public void ProcessPotentialBounce(IncomingEmail email, IReadOnlyList<ComunaContact> contacts)
     {
-        if (repository.IsBounceProcessed(email.MessageId))
+        if (tombstones.IsBounceProcessed(email.MessageId))
         {
             return;
         }
@@ -279,7 +280,7 @@ public sealed class AddressChangeRoutingService(
             }
         }
 
-        repository.RecordProcessedBounce(email.MessageId);
+        tombstones.RecordProcessedBounce(email.MessageId);
 
         if (flagged > 0)
         {

@@ -44,6 +44,7 @@ public class ConfirmationConcurrencyTests : IDisposable
         sut = new AddressChangeRoutingService(
             repository,
             discardedRepository,
+            new MessageTombstoneRepository($"Data Source={dbPath}"),
             new ComunaDirectory(),
             mailSender,
             new NoopEmailMover(),

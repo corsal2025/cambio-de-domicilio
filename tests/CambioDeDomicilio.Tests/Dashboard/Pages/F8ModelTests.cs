@@ -42,6 +42,7 @@ public class F8ModelTests : IDisposable
         var routingService = new AddressChangeRoutingService(
             repository,
             discardedRepository,
+            new MessageTombstoneRepository($"Data Source={dbPath}"),
             new ComunaDirectory(),
             new NoOpMailSender(),
             new NoOpEmailMover(),
@@ -49,7 +50,7 @@ public class F8ModelTests : IDisposable
             options,
             NullLogger<AddressChangeRoutingService>.Instance);
 
-        model = new F8Model(repository, routingService, options);
+        model = new F8Model(repository, new MessageTombstoneRepository($"Data Source={dbPath}"), routingService, options);
     }
 
     [Fact]
