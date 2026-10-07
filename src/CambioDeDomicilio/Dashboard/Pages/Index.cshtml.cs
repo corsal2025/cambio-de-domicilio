@@ -546,7 +546,7 @@ public class IndexModel(
         // Marked cases (checkbox "Marcar") float to the top; confirmed cases (blue row — folder
         // uploaded, comuna already emailed) sink to the very end, ordered by ConfirmedAt ascending
         // so confirmations show in the order they happened. Within each group the list runs from
-        // the OLDEST request to the newest by ReceivedAt (fecha de ingreso — when the email
+        // the NEWEST request (top) to the oldest by ReceivedAt (fecha de ingreso — when the email
         // actually arrived), not by CreatedAt (when the row was inserted) and not by the order the
         // operator ticked the checkboxes in (MarkedAt): a case re-tracked later (e.g. after being
         // reverted from Uploaded back to Pending) must keep its original position, and ticking
@@ -558,7 +558,7 @@ public class IndexModel(
             .ThenByDescending(c => c.Marked)
             .ThenBy(c => c.FechaUltimaCarpeta is not null)
             .ThenBy(c => c.ConfirmedAt)
-            .ThenBy(c => c.ReceivedAt)
+            .ThenByDescending(c => c.ReceivedAt)
             .ToList();
     }
 

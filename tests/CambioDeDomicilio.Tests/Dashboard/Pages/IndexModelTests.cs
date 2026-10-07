@@ -75,7 +75,7 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
-    public void OnGet_NoFilter_OrdersByReceivedAtOldestFirst()
+    public void OnGet_NoFilter_OrdersByReceivedAtNewestFirst()
     {
         // Order must follow when the email actually arrived (ReceivedAt), not when the row was
         // inserted into the database (CreatedAt) — otherwise a case re-tracked later (e.g. after
@@ -90,17 +90,17 @@ public class IndexModelTests : IDisposable
 
         model.OnGet(status: null);
 
-        // Oldest request first, so the operator works the queue from the oldest one upwards.
+        // Newest request on top, oldest at the bottom.
         Assert.Equal(2, model.Cases.Count);
-        Assert.Equal("msg-1", model.Cases[0].SourceMessageId);
-        Assert.Equal("msg-2", model.Cases[1].SourceMessageId);
+        Assert.Equal("msg-2", model.Cases[0].SourceMessageId);
+        Assert.Equal("msg-1", model.Cases[1].SourceMessageId);
     }
 
     [Fact]
-    public void OnGet_MarkedCases_StayOrderedByReceivedAtOldestFirst_NotByTickOrder()
+    public void OnGet_MarkedCases_StayOrderedByReceivedAtNewestFirst_NotByTickOrder()
     {
         // The order the operator ticked the checkboxes in must not scramble the list: marked cases
-        // are still listed oldest request first.
+        // are still listed newest request first.
         var jan = NewRequest("msg-jan");
         jan.ReceivedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         var mar = NewRequest("msg-mar");
@@ -112,16 +112,16 @@ public class IndexModelTests : IDisposable
         var marId = repository.Insert(mar);
         var junId = repository.Insert(jun);
 
-        // Tick newest first, then oldest, then the middle one.
-        repository.SetMarked(junId, true);
-        Thread.Sleep(20);
+        // Tick the oldest first, then the newest, then the middle one.
         repository.SetMarked(janId, true);
+        Thread.Sleep(20);
+        repository.SetMarked(junId, true);
         Thread.Sleep(20);
         repository.SetMarked(marId, true);
 
         model.OnGet(status: null);
 
-        Assert.Equal(["msg-jan", "msg-mar", "msg-jun"], model.Cases.Select(c => c.SourceMessageId).ToArray());
+        Assert.Equal(["msg-jun", "msg-mar", "msg-jan"], model.Cases.Select(c => c.SourceMessageId).ToArray());
     }
 
     [Fact]
