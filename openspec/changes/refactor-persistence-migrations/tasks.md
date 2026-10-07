@@ -2,18 +2,18 @@
 
 ## 0. Setup (MANDATORY — FIRST STEP)
 
-- [ ] 0.1 Work on the session-designated branch `claude/confident-dirac-boeb8d` (stands in for `feature/refactor-persistence-migrations`); verify with `git branch --show-current`
-- [ ] 0.2 Record the baseline: run `dotnet test` and note the passing count in `reports/baseline.md` (expected ≥ 402, 0 failed) so later groups can prove no regression
+- [x] 0.1 Work on the session-designated branch `claude/confident-dirac-boeb8d` (stands in for `feature/refactor-persistence-migrations`); verify with `git branch --show-current`
+- [x] 0.2 Record the baseline: run `dotnet test` and note the passing count in `reports/baseline.md` (expected ≥ 402, 0 failed) so later groups can prove no regression
 
 ## 1. Migration runner (TDD) — spec: version tracking, apply-once, atomic failure, backup
 
-- [ ] 1.1 RED: `SchemaMigratorTests` — fresh file database ends at the latest version and a second run applies zero migrations (verify the test fails because `SchemaMigrator` does not exist)
-- [ ] 1.2 GREEN: `Persistence/Migrations/IMigration`, `Migrations.All` (empty/test list injectable) and `SchemaMigrator.Migrate(connectionString)` reading/writing `PRAGMA user_version`; verify 1.1 passes
-- [ ] 1.3 RED+GREEN: pending migrations apply in ascending order, each exactly once; runner rejects a list with duplicate or non-contiguous versions (tests with fake migrations record call order)
-- [ ] 1.4 RED+GREEN: a migration that throws midway rolls back all its changes, leaves `user_version` unchanged and surfaces an exception naming the failing version; verify with a fake migration that creates a table then throws
-- [ ] 1.5 RED+GREEN: database with `user_version` greater than the latest known version is refused without modification (hash of the file unchanged)
-- [ ] 1.6 RED+GREEN: backup via `SqliteConnection.BackupDatabase` named `<db>.bak-v<version>-<timestamp>` is created before the first pending migration and only when one is pending; verify the backup opens and contains the pre-upgrade rows
-- [ ] 1.7 Verify concurrency guard: migrator takes `BEGIN IMMEDIATE`; test that a second connection writing during a migration waits/fails per `busy_timeout` instead of interleaving
+- [x] 1.1 RED: `SchemaMigratorTests` — fresh file database ends at the latest version and a second run applies zero migrations (verify the test fails because `SchemaMigrator` does not exist)
+- [x] 1.2 GREEN: `Persistence/Migrations/IMigration`, `Migrations.All` (empty/test list injectable) and `SchemaMigrator.Migrate(connectionString)` reading/writing `PRAGMA user_version`; verify 1.1 passes
+- [x] 1.3 RED+GREEN: pending migrations apply in ascending order, each exactly once; runner rejects a list with duplicate or non-contiguous versions (tests with fake migrations record call order)
+- [x] 1.4 RED+GREEN: a migration that throws midway rolls back all its changes, leaves `user_version` unchanged and surfaces an exception naming the failing version; verify with a fake migration that creates a table then throws
+- [x] 1.5 RED+GREEN: database with `user_version` greater than the latest known version is refused without modification (hash of the file unchanged)
+- [x] 1.6 RED+GREEN: backup via `SqliteConnection.BackupDatabase` named `<db>.bak-v<version>-<timestamp>` is created before the first pending migration and only when one is pending; verify the backup opens and contains the pre-upgrade rows
+- [x] 1.7 Verify concurrency guard: migrator takes `BEGIN IMMEDIATE`; test that a second connection writing during a migration waits/fails per `busy_timeout` instead of interleaving
 
 ## 2. Baseline migration V1 and legacy adoption — spec: adoption without data loss, backfills run once
 

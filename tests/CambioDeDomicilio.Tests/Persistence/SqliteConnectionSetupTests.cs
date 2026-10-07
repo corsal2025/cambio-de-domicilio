@@ -27,6 +27,7 @@ public class SqliteConnectionSetupTests : IDisposable
         SqliteConnectionSetup.Configure(connection);
 
         Assert.Equal("5000", Scalar(connection, "PRAGMA busy_timeout"));
+        Assert.Equal(5, connection.DefaultTimeout); // what Microsoft.Data.Sqlite actually waits on
     }
 
     [Fact]

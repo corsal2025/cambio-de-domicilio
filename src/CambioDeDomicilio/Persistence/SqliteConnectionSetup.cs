@@ -7,13 +7,16 @@ namespace CambioDeDomicilio.Persistence;
 /// writer must wait for the lock instead of failing with "database is locked".</summary>
 internal static class SqliteConnectionSetup
 {
-    private const int BusyTimeoutMilliseconds = 5000;
+    private const int BusyTimeoutSeconds = 5;
 
-    /// <summary>busy_timeout is per connection and must be applied on every open.</summary>
+    /// <summary>Per-connection and must be applied on every open. Microsoft.Data.Sqlite retries a
+    /// locked database for the command timeout (30 s by default) and that, not the PRAGMA alone,
+    /// decides how long a writer really waits — so both are set to the same value.</summary>
     public static void Configure(SqliteConnection connection)
     {
+        connection.DefaultTimeout = BusyTimeoutSeconds;
         using var command = connection.CreateCommand();
-        command.CommandText = $"PRAGMA busy_timeout = {BusyTimeoutMilliseconds}";
+        command.CommandText = $"PRAGMA busy_timeout = {BusyTimeoutSeconds * 1000}";
         command.ExecuteNonQuery();
     }
 
