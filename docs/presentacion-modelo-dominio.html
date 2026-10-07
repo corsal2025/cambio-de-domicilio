@@ -36,7 +36,7 @@
 </div>
 
 </section>
-<section class="slide" data-notes="El modelo nace de un proceso manual con plazo legal: 15 días hábiles desde que llega el correo." id="problema" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:56px">
+<section class="slide" data-notes="El modelo nace de un proceso manual con plazo legal: 15 días hábiles (lunes a viernes, sin descontar feriados) desde que llega el correo." id="problema" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:56px">
 <p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#16803C">El problema</p>
 <h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#0F2A44">Otra comuna pide una carpeta y hay 15 días hábiles para subirla</h2>
 <div style="display:flex; gap:32px">
@@ -55,17 +55,17 @@
 </div>
 
 </section>
-<section class="slide" data-notes="Este es el proceso acordado con el operador. Ningún correo sale sin un clic del operador." id="proceso" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:56px">
+<section class="slide" data-notes="Este es el proceso acordado con el operador. Ningún correo sale sin un clic del operador, y el buzón solo se lee cuando el operador presiona Sincronizar ahora (no hay sondeo automático)." id="proceso" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:56px">
 <p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#16803C">El proceso</p>
 <h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#0F2A44">De correo a caja en siete pasos</h2>
 <table style="font-family:'Public Sans', Arial, sans-serif; font-size:28px; color:#1B2B3A">
 <tr><th style="width:10%; text-align:left">Paso</th><th style="width:40%; text-align:left">Qué pasa</th><th style="width:22%; text-align:left">Quién</th><th style="width:28%; text-align:left">Resultado</th></tr>
 <tr><td>1–2</td><td>Llega el correo y se clasifica</td><td>Operador</td><td>CARP. PARA PEDIR</td></tr>
-<tr style="background:#EEF2F0"><td>3</td><td>Se extrae nombre, RUT y comuna</td><td>Sistema</td><td>Caso Pendiente</td></tr>
+<tr style="background:#EEF2F0"><td>3</td><td>Al presionar «Sincronizar ahora», se extrae nombre, RUT y comuna</td><td>Sistema</td><td>Caso Pendiente</td></tr>
 <tr><td>4</td><td>Se digita la fecha de última carpeta</td><td>Operador</td><td>Sector calculado</td></tr>
 <tr style="background:#EEF2F0"><td>5</td><td>PDF por sector para pedir carpetas</td><td>Sistema</td><td>Listado impreso</td></tr>
 <tr><td>6</td><td>Se escanea y sube a Conaset</td><td>Operador</td><td>Caso Subido</td></tr>
-<tr style="background:#EEF2F0"><td>7</td><td>Confirmación a la comuna y envío a Caja</td><td>Operador + sistema</td><td>Confirmado, en Caja</td></tr>
+<tr style="background:#EEF2F0"><td>7</td><td>Confirmación a la comuna; luego Caja o Sin carpeta</td><td>Operador + sistema</td><td>Confirmado, en Subidas a Sistema</td></tr>
 </table>
 
 </section>
@@ -114,10 +114,10 @@
 </div>
 <div style="flex:1; display:flex; flex-direction:column; gap:12px; background:#FFFFFF; padding:32px; border:1px solid #DDE3E8; border-radius:14px">
 <h3 style="font-size:32px; font-weight:700; color:#0F2A44">Destino</h3>
-<p style="font-size:26px; line-height:1.5; color:#4A5A6A">Casos<br>F8<br>Caja</p>
+<p style="font-size:26px; line-height:1.5; color:#4A5A6A">Casos · F8 · Subidas<br>Caja · Sin carpetas</p>
 </div>
 </div>
-<p style="font-size:28px; line-height:1.45; color:#4A5A6A">Además, marcas de trabajo del operador: Marcar, Pendiente carpeta, Solo Caja y Cerrado sin carpeta.</p>
+<p style="font-size:28px; line-height:1.45; color:#4A5A6A">Además, marcas del operador: Marcar (fila amarilla), Pendiente carpeta (morada), carpeta no encontrada (F8), Solo Caja y cierre sin carpeta. Las filas sin trabajar se ven blancas, las terminadas en azul y las que requieren revisión o rebotaron en rojo.</p>
 
 </section>
 <section class="slide" data-notes="Nada se envía a una comuna sin que el operador presione el botón. El estado Confirmado siempre implica un correo real enviado." id="estados" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:64px">
@@ -139,34 +139,37 @@
 <p style="font-size:26px; color:#4A5A6A">Correo enviado a la comuna</p>
 </div>
 </div>
-<p style="font-size:30px; line-height:1.45; color:#4A5A6A">Si se confirmó por error, <b>Rectificar</b> envía un correo de corrección y devuelve el caso a Pendiente.</p>
+<p style="font-size:30px; line-height:1.45; color:#4A5A6A">Con <b>Marcar subida</b> (1 clic) los pasos Subido y Confirmado ocurren juntos. Si se confirmó por error, <b>Rectificar</b> envía un correo de corrección y devuelve el caso a Pendiente.</p>
 
 </section>
-<section class="slide" data-notes="Ninguna de estas acciones envía correos. El caso cerrado sin carpeta nunca puede entrar a Caja." id="destinos" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:48px">
+<section class="slide" data-notes="Solo Marcar subida y Confirmar envían correo a la comuna. Un caso en Sin Carpetas no tiene acciones: no vuelve a F8 ni a Casos y nunca entra a Caja." id="destinos" data-transition="fade" style="background:#F6F7F4; color:#1B2B3A; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:48px">
 <p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#16803C">Destinos</p>
 <h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#0F2A44">Cada acción mueve el caso a un lugar concreto</h2>
 <table style="font-family:'Public Sans', Arial, sans-serif; font-size:28px; color:#1B2B3A">
 <tr><th style="width:18%; text-align:left">Desde</th><th style="width:24%; text-align:left">Acción</th><th style="width:22%; text-align:left">Hacia</th><th style="width:36%; text-align:left">Efecto</th></tr>
 <tr><td>Casos</td><td>Traspaso a F8</td><td>F8</td><td>Carpeta no encontrada</td></tr>
-<tr style="background:#EEF2F0"><td>Casos</td><td>Caja</td><td>Cola de Caja</td><td>Subido o confirmado; sin correo</td></tr>
-<tr><td>F8</td><td>Caja</td><td>Cola de Caja</td><td>Apareció la carpeta</td></tr>
-<tr style="background:#EEF2F0"><td>F8</td><td>Sin carpeta</td><td>Casos (cerrado)</td><td>Proceso termina sin carpeta</td></tr>
-<tr><td>F8</td><td>Revertir</td><td>Casos (solo Caja)</td><td>Borra todos los datos F8</td></tr>
-<tr style="background:#EEF2F0"><td>Cola de Caja</td><td>Devolver a casos</td><td>Casos</td><td>Corrige un envío por error</td></tr>
-<tr><td>Cola de Caja</td><td>Cerrar Caja</td><td>Caja cerrada</td><td>Listado numerado e imprimible</td></tr>
+<tr style="background:#EEF2F0"><td>Casos</td><td>Marcar subida / Confirmar</td><td>Subidas a Sistema</td><td>Confirmado; correo real a la comuna</td></tr>
+<tr><td>Casos o Subidas</td><td>Caja</td><td>Cola de Caja</td><td>Subido o confirmado; sin correo</td></tr>
+<tr style="background:#EEF2F0"><td>F8</td><td>Caja</td><td>Cola de Caja</td><td>Apareció la carpeta</td></tr>
+<tr><td>F8 o Subidas</td><td>Sin carpeta</td><td>Sin Carpetas</td><td>Cierre final, lista de solo lectura</td></tr>
+<tr style="background:#EEF2F0"><td>F8</td><td>Revertir</td><td>Casos (solo Caja)</td><td>Borra todos los datos F8</td></tr>
+<tr><td>Cola de Caja</td><td>Devolver a casos</td><td>Casos</td><td>Corrige un envío por error</td></tr>
+<tr style="background:#EEF2F0"><td>Cola de Caja</td><td>Cerrar Caja</td><td>Caja cerrada</td><td>Listado numerado e imprimible</td></tr>
 </table>
 
 </section>
 <section class="slide" data-notes="Cada regla está cubierta por pruebas automáticas y documentada en las especificaciones OpenSpec del proyecto." id="reglas" data-transition="fade" style="background:#0F2A44; color:#F6F7F4; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; gap:48px">
 <p style="font-size:28px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#7DD3A8">Reglas de negocio</p>
-<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#F6F7F4">Seis reglas que el sistema hace cumplir</h2>
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:72px; font-weight:700; line-height:1.15; color:#F6F7F4">Ocho reglas que el sistema hace cumplir</h2>
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px 48px">
 <p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Sector por fecha.</b> Antes de julio 2023 va a Archivo; desde entonces, a Oficina 43.</p>
-<p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Plazo legal.</b> 15 días hábiles desde que llega el correo.</p>
+<p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Plazo legal.</b> 15 días hábiles (lunes a viernes, sin descontar feriados) desde que llega el correo.</p>
 <p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Sin clic, sin correo.</b> Ningún aviso sale a una comuna de forma automática.</p>
 <p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Una fila por persona.</b> Sin duplicados por persona y comuna.</p>
 <p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Orden de ingreso.</b> La caja lista las carpetas en el orden en que llegaron.</p>
 <p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Rótulo compartido.</b> Varios cierres pueden ir a la misma caja física.</p>
+<p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Sincronización manual.</b> El buzón se lee solo con «Sincronizar ahora»; no hay sondeo automático.</p>
+<p style="font-size:30px; line-height:1.45; color:#C9D6E3"><b style="color:#F6F7F4">Sin carpetas es final.</b> El caso cerrado sin carpeta no se revierte ni entra a Caja.</p>
 </div>
 
 </section>
@@ -216,7 +219,7 @@
 <p style="font-size:30px; line-height:1.4; color:#4A5A6A">correos enviados sin la decisión del operador</p>
 </div>
 </div>
-<p style="font-size:28px; line-height:1.45; color:#4A5A6A">Base de datos local respaldada antes de cada actualización; historial completo en GitHub.</p>
+<p style="font-size:28px; line-height:1.45; color:#4A5A6A">Esquema de base de datos versionado: antes de migrar se hace un respaldo en línea de la base; historial completo en GitHub.</p>
 
 </section>
 <section class="slide" data-notes="Cierre de la presentación. Espacio para preguntas." id="autoria" data-transition="fade" style="background:#0F2A44; color:#F6F7F4; font-family:'Public Sans', Arial, sans-serif; padding:128px; display:flex; flex-direction:column; justify-content:center; gap:40px">
