@@ -49,11 +49,24 @@ public sealed class AddressChangeRoutingService(
         {
             return await action();
         }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // A mailbox/SMTP failure (rejected credentials, server down, DNS) used to escape as an
+            // unhandled exception and turn the dashboard action into an HTTP 500 page. Report it to
+            // the operator instead; nothing past the failing call has been written.
+            logger.LogError(ex, "Falló una operación de correo para el caso {RequestId}", requestId);
+            return new ConfirmationResult(false, DescribeMailFailure(ex));
+        }
         finally
         {
             confirmationsInFlight.TryRemove(requestId, out _);
         }
     }
+
+    private static string DescribeMailFailure(Exception ex) =>
+        ex is HttpRequestException { StatusCode: System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden }
+            ? "El servidor de correo rechazó las credenciales (error 401/403). Actualice la contraseña del buzón en la configuración (Router:Ews) y reinicie la aplicación. El caso no fue modificado."
+            : $"No se pudo comunicar con el servidor de correo: {ex.Message}. Revise la conexión e intente de nuevo.";
 
     public IReadOnlyList<ComunaContact> LoadDirectory() => directory.LoadFromCsv(options.ComunaDirectoryCsvPath);
 

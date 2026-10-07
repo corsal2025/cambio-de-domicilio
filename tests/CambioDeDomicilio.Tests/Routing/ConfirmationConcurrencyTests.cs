@@ -77,7 +77,8 @@ public class ConfirmationConcurrencyTests : IDisposable
         mailSender.Release.SetResult();
         mailSender.FailNextSend = true;
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.SendConfirmationAsync(id, Contacts, CancellationToken.None));
+        var failed = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);
+        Assert.False(failed.Sent);
         Assert.Equal(RequestStatus.Uploaded, repository.FindById(id)!.Status);
 
         var retry = await sut.SendConfirmationAsync(id, Contacts, CancellationToken.None);

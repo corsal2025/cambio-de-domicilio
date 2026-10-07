@@ -335,6 +335,46 @@ public class AddressChangeRoutingServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task MarkUploadedAndConfirmAsync_MailboxRejectsCredentials_FailsGracefullyAndLeavesCasePending()
+    {
+        var id = InsertPending();
+        emailMover.ThrowOnMove = new HttpRequestException("Unauthorized", null, System.Net.HttpStatusCode.Unauthorized);
+
+        var result = await sut.MarkUploadedAndConfirmAsync(id, Contacts, CancellationToken.None);
+
+        Assert.False(result.Sent);
+        Assert.Contains("credenciales", result.Reason);
+        Assert.Equal(RequestStatus.Pending, repository.FindById(id)!.Status);
+        Assert.Empty(mailSender.SentMessages);
+    }
+
+    [Fact]
+    public async Task MarkUploadedAndConfirmAsync_MailServerUnreachable_FailsGracefullyWithTheCause()
+    {
+        var id = InsertPending();
+        emailMover.ThrowOnMove = new HttpRequestException("Host desconocido");
+
+        var result = await sut.MarkUploadedAndConfirmAsync(id, Contacts, CancellationToken.None);
+
+        Assert.False(result.Sent);
+        Assert.Contains("servidor de correo", result.Reason);
+        Assert.Equal(RequestStatus.Pending, repository.FindById(id)!.Status);
+    }
+
+    [Fact]
+    public async Task MarkUploadedAndConfirmAsync_SendFails_KeepsCaseUploadedSoItCanBeConfirmedLater()
+    {
+        var id = InsertPending();
+        mailSender.ThrowOnSend = new HttpRequestException("Unauthorized", null, System.Net.HttpStatusCode.Unauthorized);
+
+        var result = await sut.MarkUploadedAndConfirmAsync(id, Contacts, CancellationToken.None);
+
+        Assert.False(result.Sent);
+        Assert.Equal(RequestStatus.Uploaded, repository.FindById(id)!.Status);
+        Assert.Null(repository.FindById(id)!.ConfirmedAt);
+    }
+
+    [Fact]
     public async Task MarkUploadedAndConfirmAsync_MovesToSubidasDestinationUntilExplicitlySentToCaja()
     {
         var id = InsertPending();
@@ -705,9 +745,15 @@ public class AddressChangeRoutingServiceTests : IDisposable
     private sealed class FakeMailSender : IMailSender
     {
         public List<(string To, string Subject, string Body)> SentMessages { get; } = [];
+        public Exception? ThrowOnSend { get; set; }
 
         public Task SendAsync(string toAddress, string subject, string body, CancellationToken cancellationToken)
         {
+            if (ThrowOnSend is not null)
+            {
+                throw ThrowOnSend;
+            }
+
             SentMessages.Add((toAddress, subject, body));
             return Task.CompletedTask;
         }
@@ -716,10 +762,16 @@ public class AddressChangeRoutingServiceTests : IDisposable
     private sealed class FakeEmailMover : IEmailMover
     {
         public bool NextResult { get; set; } = true;
+        public Exception? ThrowOnMove { get; set; }
         public List<(string MessageId, string SourceFolder, string DestinationFolder)> MoveCalls { get; } = [];
 
         public Task<bool> MoveAndMarkUnreadAsync(string messageId, string sourceFolderDisplayName, string destinationFolderDisplayName, CancellationToken cancellationToken)
         {
+            if (ThrowOnMove is not null)
+            {
+                throw ThrowOnMove;
+            }
+
             MoveCalls.Add((messageId, sourceFolderDisplayName, destinationFolderDisplayName));
             return Task.FromResult(NextResult);
         }
