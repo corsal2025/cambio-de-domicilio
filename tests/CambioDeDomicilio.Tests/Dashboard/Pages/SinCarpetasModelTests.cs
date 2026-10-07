@@ -14,7 +14,7 @@ public class SinCarpetasModelTests : IDisposable
     public SinCarpetasModelTests()
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
         model = new SinCarpetasModel(repository);
     }
 
@@ -47,8 +47,7 @@ public class SinCarpetasModelTests : IDisposable
 
     public void Dispose()
     {
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        if (File.Exists(dbPath)) File.Delete(dbPath);
+        TestDatabase.Cleanup(dbPath);
     }
 
     private static PersonRequest NewRequest(string sourceMessageId) => new()
