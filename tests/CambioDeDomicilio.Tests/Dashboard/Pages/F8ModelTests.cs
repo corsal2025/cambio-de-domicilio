@@ -23,9 +23,9 @@ public class F8ModelTests : IDisposable
     public F8ModelTests()
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
         var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
-        discardedRepository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
         File.WriteAllText(csvPath, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
 
         var options = new RouterOptions
@@ -42,6 +42,7 @@ public class F8ModelTests : IDisposable
         var routingService = new AddressChangeRoutingService(
             repository,
             discardedRepository,
+            new MessageTombstoneRepository($"Data Source={dbPath}"),
             new ComunaDirectory(),
             new NoOpMailSender(),
             new NoOpEmailMover(),
@@ -49,7 +50,7 @@ public class F8ModelTests : IDisposable
             options,
             NullLogger<AddressChangeRoutingService>.Instance);
 
-        model = new F8Model(repository, routingService, options);
+        model = new F8Model(repository, new MessageTombstoneRepository($"Data Source={dbPath}"), routingService, options);
     }
 
     [Fact]

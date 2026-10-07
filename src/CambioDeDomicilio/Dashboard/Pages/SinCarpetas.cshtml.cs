@@ -28,9 +28,7 @@ public class SinCarpetasModel(IPersonRequestRepository repository) : PageModel
 
     private void Load()
     {
-        var all = repository.GetAll();
-        var sinCarpetaCases = all
-            .Where(c => c.Destination == CaseDestination.SinCarpetas || c.ClosedWithoutFolderAt is not null || c.SinCarpeta)
+        var sinCarpetaCases = repository.Find(new CaseQuery { InSinCarpetasBucket = true })
             .OrderByDescending(c => c.ClosedWithoutFolderAt ?? c.TransferredAt ?? c.ReceivedAt)
             .ToList();
 

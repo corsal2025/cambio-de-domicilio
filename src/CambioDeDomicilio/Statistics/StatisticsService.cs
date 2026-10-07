@@ -26,9 +26,11 @@ public sealed record F8PdfStatus(int Generated, int Pending);
 
 /// <summary>Read-only aggregations over already-loaded case/discarded-email lists, feeding the
 /// /Estadisticas dashboard. Mirrors the in-memory LINQ pattern every other dashboard page already
-/// uses over IPersonRequestRepository.GetAll() — no new SQL, no new tables.</summary>
-public sealed class StatisticsService(RouterOptions options)
+/// uses over IPersonRequestRepository.GetAll() — whole-table by nature, so it stays on GetAll.</summary>
+public sealed class StatisticsService(RouterOptions options, TimeProvider? timeProvider = null)
 {
+    private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
+
     public StatusCounts GetStatusCounts(IReadOnlyList<PersonRequest> cases) => new(
         Pending: cases.Count(c => c.Status == RequestStatus.Pending),
         Uploaded: cases.Count(c => c.Status == RequestStatus.Uploaded),
@@ -115,14 +117,14 @@ public sealed class StatisticsService(RouterOptions options)
     /// (F8.cshtml.cs's "restantes" via DeadlineCalculator + RouterOptions.PlazoDiasHabiles).</summary>
     public F8DeadlineBacklog GetF8DeadlineBacklog(IReadOnlyList<PersonRequest> cases)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
         var f8Cases = cases.Where(c => c.Destination == CaseDestination.F8).ToList();
 
         var withinDeadline = 0;
         var pastDeadline = 0;
         foreach (var c in f8Cases)
         {
-            var received = DateOnly.FromDateTime(c.ReceivedAt.UtcDateTime);
+            var received = DateOnly.FromDateTime(c.ReceivedAt.ToLocalTime().DateTime); // same day the F8 badge uses
             var deadline = DeadlineCalculator.AddBusinessDays(received, options.PlazoDiasHabiles);
             var remaining = DeadlineCalculator.BusinessDaysRemaining(today, deadline);
             if (remaining < 0)

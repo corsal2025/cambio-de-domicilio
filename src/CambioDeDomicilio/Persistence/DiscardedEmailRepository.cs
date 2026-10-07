@@ -5,7 +5,6 @@ namespace CambioDeDomicilio.Persistence;
 
 public interface IDiscardedEmailRepository
 {
-    void EnsureSchema();
     bool ExistsBySourceMessageId(string sourceMessageId);
     void Insert(DiscardedEmail email);
     void DeleteBySourceMessageId(string sourceMessageId);
@@ -14,28 +13,12 @@ public interface IDiscardedEmailRepository
     void Delete(long id);
 
     IReadOnlyList<DiscardedEmail> GetAll();
+
+    int Count();
 }
 
 public sealed class DiscardedEmailRepository(string connectionString) : IDiscardedEmailRepository
 {
-    public void EnsureSchema()
-    {
-        using var connection = new SqliteConnection(connectionString);
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            CREATE TABLE IF NOT EXISTS DiscardedEmail (
-                Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                SourceMessageId TEXT NOT NULL UNIQUE,
-                SourceSubject TEXT NOT NULL,
-                SourceSender TEXT NOT NULL,
-                Reason TEXT NOT NULL,
-                DiscardedAt TEXT NOT NULL
-            );
-            """;
-        command.ExecuteNonQuery();
-    }
-
     public bool ExistsBySourceMessageId(string sourceMessageId)
     {
         using var connection = Open();
@@ -93,11 +76,17 @@ public sealed class DiscardedEmailRepository(string connectionString) : IDiscard
         return results;
     }
 
+    public int Count()
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM DiscardedEmail";
+        return Convert.ToInt32(command.ExecuteScalar());
+    }
+
     private SqliteConnection Open()
     {
-        var connection = new SqliteConnection(connectionString);
-        connection.Open();
-        return connection;
+        return SqliteConnectionSetup.OpenConfigured(connectionString);
     }
 
     private static DiscardedEmail Map(SqliteDataReader reader) => new()

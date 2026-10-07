@@ -19,8 +19,7 @@ public class SectorF8Model(IPersonRequestRepository repository) : PageModel
     {
         SelectedSector = sector;
         // Ordered by MarkedAt (the order the operator ticked "Marcar" in), matching Sector.cshtml.cs.
-        Cases = repository.GetAll()
-            .Where(c => c.Destination == CaseDestination.F8 && c.Sector == sector && (c.Marked || c.PendienteCarpeta) && c.SectorPdfGeneratedAt is null)
+        Cases = PendingForPrint(sector)
             .OrderBy(c => c.MarkedAt)
             .ToList();
     }
@@ -43,10 +42,15 @@ public class SectorF8Model(IPersonRequestRepository repository) : PageModel
         return RedirectToPage(new { sector });
     }
 
+    /// <summary>In F8, in this sector, marked or pending retrieval, and not yet printed.</summary>
+    private IEnumerable<PersonRequest> PendingForPrint(FolderSector sector) =>
+        repository.Find(new CaseQuery { Destinations = [CaseDestination.F8] })
+            .Where(c => c.Sector == sector && (c.Marked || c.PendienteCarpeta) && c.SectorPdfGeneratedAt is null);
+
     private void MarkAllVisibleAsPrinted(FolderSector sector)
     {
         var now = DateTimeOffset.UtcNow;
-        foreach (var item in repository.GetAll().Where(c => c.Destination == CaseDestination.F8 && c.Sector == sector && (c.Marked || c.PendienteCarpeta) && c.SectorPdfGeneratedAt is null))
+        foreach (var item in PendingForPrint(sector))
         {
             repository.SetSectorPdfGenerated(item.Id, now);
         }

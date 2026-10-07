@@ -12,7 +12,6 @@ public sealed class RouterOptions
 
     /// <summary>Legal deadline to upload the folder, in business days from the request email's received date.</summary>
     public int PlazoDiasHabiles { get; set; } = 15;
-    public int PollIntervalMinutes { get; set; } = 30;
 
     /// <summary>How far back (in days) each sync scans the mailbox inbox for non-delivery reports of
     /// confirmation emails. A bounce arrives within minutes to hours of the send, so a short window
@@ -24,10 +23,6 @@ public sealed class RouterOptions
     public required string NotificationEmailAddress { get; set; }
 
     public bool ToastNotificationsEnabled { get; set; } = true;
-
-    /// <summary>Base URL used to build password-reset links in emails — adjust per machine if the
-    /// dashboard is reached via a LAN hostname instead of localhost.</summary>
-    public string PublicBaseUrl { get; set; } = "https://localhost:5001";
 }
 
 public sealed class EwsOptions

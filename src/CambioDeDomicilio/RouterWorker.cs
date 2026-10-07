@@ -33,12 +33,8 @@ public sealed class RouterWorker(
 
     /// <summary>No automatic polling — sync only runs when the operator presses "Sincronizar
     /// ahora" on the dashboard (see IndexModel.OnPostSyncNowAsync), which calls RunCycleAsync
-    /// directly. This method just ensures the schema exists at startup.</summary>
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        repository.EnsureSchema();
-        return Task.CompletedTask;
-    }
+    /// directly. The schema is created once at startup in Program.cs.</summary>
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) => Task.CompletedTask;
 
     /// <summary>Development runs point EWS at a reserved ".invalid" host on purpose so they never touch the
     /// real mailbox. Detecting it lets the dashboard explain that instead of showing a DNS error.</summary>

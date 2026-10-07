@@ -79,7 +79,7 @@ public sealed class PersonRequest
 
     /// <summary>Physical location of the folder, derived from the última-carpeta date. Null until the date is entered.</summary>
     public FolderSector? Sector => FechaUltimaCarpeta is { } fecha
-        ? fecha < new DateOnly(2023, 7, 1) ? FolderSector.Archivo : FolderSector.Oficina43
+        ? FolderSectorRule.For(fecha)
         : null;
 
     /// <summary>Operator-ticked flag: the physical folder could not be located, so the case is

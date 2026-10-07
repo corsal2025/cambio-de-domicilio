@@ -3,7 +3,7 @@
 # Commands:
 #   docker compose build    # build the image
 #   docker compose run --rm build    # build the project
-#   docker compose run --rm test     # run tests (105 should pass)
+#   docker compose run --rm test     # run tests
 #   docker compose run --rm publish  # publish single-file exe (output in ./publish/)
 #
 # Notes:

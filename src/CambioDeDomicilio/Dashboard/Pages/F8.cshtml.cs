@@ -14,9 +14,13 @@ namespace CambioDeDomicilio.Dashboard.Pages;
 /// not inherit from IndexModel, following this project's one-page-one-model convention).</summary>
 public class F8Model(
     IPersonRequestRepository repository,
+    IMessageTombstoneRepository tombstones,
     AddressChangeRoutingService routingService,
-    RouterOptions options) : PageModel
+    RouterOptions options,
+    TimeProvider? timeProvider = null) : PageModel
 {
+    private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
+
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
     public string? Message { get; set; }
     public bool MessageIsError { get; set; }
@@ -89,7 +93,7 @@ public class F8Model(
         repository.SetFechaUltimaCarpeta(id, parsed);
         if (isAjax)
         {
-            var sector = parsed < new DateOnly(2023, 7, 1) ? "Archivo" : "Oficina 43";
+            var sector = FolderSectorRule.For(parsed).ToDisplayName();
             return new JsonResult(new { success = true, fecha = parsed.ToString("yyyy-MM-dd"), sector });
         }
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
@@ -196,7 +200,7 @@ public class F8Model(
         repository.Delete(id);
         if (sourceMessageId is not null)
         {
-            repository.RecordDeletedSourceMessage(sourceMessageId);
+            tombstones.RecordDeletedSourceMessage(sourceMessageId);
         }
 
         Message = "Caso eliminado.";
@@ -243,14 +247,13 @@ public class F8Model(
     {
         var received = DateOnly.FromDateTime(request.ReceivedAt.LocalDateTime);
         var deadline = DeadlineCalculator.AddBusinessDays(received, options.PlazoDiasHabiles);
-        return DeadlineCalculator.BusinessDaysRemaining(DateOnly.FromDateTime(DateTime.Today), deadline);
+        return DeadlineCalculator.BusinessDaysRemaining(DateOnly.FromDateTime(clock.GetLocalNow().DateTime), deadline);
     }
 
     private void Load()
     {
-        var all = repository.GetAll();
-        var f8Cases = all
-            .Where(c => c.Destination == CaseDestination.F8 && !c.SinCarpeta && c.ClosedWithoutFolderAt is null)
+        var f8Cases = repository.Find(new CaseQuery { Destinations = [CaseDestination.F8] })
+            .Where(c => !c.SinCarpeta && c.ClosedWithoutFolderAt is null)
             .OrderBy(c => c.Status == RequestStatus.Confirmed)
             .ThenBy(c => c.ConfirmedAt)
             .ThenByDescending(c => c.ReceivedAt)
@@ -263,7 +266,7 @@ public class F8Model(
             var query = Search.Trim().ToUpperInvariant();
             var matches = f8Cases.Where(c => MatchesQuery(c, query)).ToList();
             Cases = matches;
-            CasosMatchCount = all.Count(c => c.TransferredAt is null && MatchesQuery(c, query));
+            CasosMatchCount = repository.Find(new CaseQuery { Transferred = false }).Count(c => MatchesQuery(c, query));
             if (!HighlightId.HasValue && matches.Count > 0)
             {
                 HighlightId = matches[0].Id;

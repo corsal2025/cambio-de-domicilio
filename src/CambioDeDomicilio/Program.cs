@@ -7,6 +7,7 @@ using CambioDeDomicilio.Ews;
 using CambioDeDomicilio.Mail;
 using CambioDeDomicilio.Notifications;
 using CambioDeDomicilio.Persistence;
+using CambioDeDomicilio.Persistence.Migrations;
 using CambioDeDomicilio.Reporting;
 using CambioDeDomicilio.Routing;
 
@@ -40,12 +41,23 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 
 var routerOptions = builder.Configuration.GetSection(RouterOptions.SectionName).Get<RouterOptions>()
     ?? throw new InvalidOperationException($"Missing '{RouterOptions.SectionName}' configuration section.");
+var optionsValidation = RouterOptionsValidator.Validate(routerOptions);
+if (optionsValidation.Errors.Count > 0)
+{
+    throw new InvalidOperationException(
+        $"Invalid '{RouterOptions.SectionName}' configuration:{Environment.NewLine}- {string.Join($"{Environment.NewLine}- ", optionsValidation.Errors)}");
+}
 builder.Services.AddSingleton(routerOptions);
+builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services.AddSingleton<IPersonRequestRepository>(_ =>
     new PersonRequestRepository($"Data Source={routerOptions.SqliteDbPath}"));
 builder.Services.AddSingleton<IDiscardedEmailRepository>(_ =>
     new DiscardedEmailRepository($"Data Source={routerOptions.SqliteDbPath}"));
+builder.Services.AddSingleton<IMessageTombstoneRepository>(_ =>
+    new MessageTombstoneRepository($"Data Source={routerOptions.SqliteDbPath}"));
+builder.Services.AddSingleton<IBoxRepository>(_ =>
+    new BoxRepository($"Data Source={routerOptions.SqliteDbPath}"));
 builder.Services.AddSingleton<IComunaDirectory, ComunaDirectory>();
 builder.Services.AddSingleton<IEwsClient, EwsClient>();
 builder.Services.AddSingleton<EwsEmailReader>();
@@ -70,6 +82,11 @@ builder.Services.AddRazorPages(options => options.RootDirectory = "/Dashboard/Pa
 
 var app = builder.Build();
 
+foreach (var warning in optionsValidation.Warnings)
+{
+    app.Logger.LogWarning("{ConfigurationWarning}", warning);
+}
+
 // Deployment verification mode: reads the mailbox through the real EWS pipeline and
 // prints only counts and sender domains (no personal data), then exits.
 if (args.Contains("--smoke-test"))
@@ -85,8 +102,17 @@ if (args.Contains("--smoke-test"))
     return;
 }
 
-app.Services.GetRequiredService<IPersonRequestRepository>().EnsureSchema();
-app.Services.GetRequiredService<IDiscardedEmailRepository>().EnsureSchema();
+
+// Upgrade the database before anything can read or write it (the browser launch below and the
+// listeners only start at app.Run). Failure throws and stops startup: never serve a half-upgraded
+// database. Runs after the smoke test, which promises no side effects.
+var migration = SchemaMigrator.ForApplication($"Data Source={routerOptions.SqliteDbPath}").Migrate();
+if (migration.AppliedVersions.Count > 0)
+{
+    app.Logger.LogInformation(
+        "Database upgraded from schema v{From} to v{To}; backup: {BackupPath}",
+        migration.StartVersion, migration.FinalVersion, migration.BackupPath ?? "(none, new database)");
+}
 
 _ = Task.Run(async () =>
 {

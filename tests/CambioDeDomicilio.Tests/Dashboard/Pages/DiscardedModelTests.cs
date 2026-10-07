@@ -15,7 +15,7 @@ public class DiscardedModelTests : IDisposable
     public DiscardedModelTests()
     {
         repository = new DiscardedEmailRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
         model = new DiscardedModel(repository);
     }
 

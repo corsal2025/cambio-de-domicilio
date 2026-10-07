@@ -16,4 +16,5 @@ FROM build AS test
 RUN dotnet test -c Release --no-build --verbosity normal
 
 FROM build AS publish
-RUN dotnet publish src/OutlookComunaRouter -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o /app/publish --no-build
+# A runtime-specific publish needs its own restore, so no --no-build/--no-restore here.
+RUN dotnet publish src/CambioDeDomicilio -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o /app/publish

@@ -23,7 +23,7 @@ public class RouterWorkerTests : IDisposable
     public RouterWorkerTests()
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
     }
 
     [Fact]
@@ -138,11 +138,12 @@ public class RouterWorkerTests : IDisposable
         };
 
         var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
-        discardedRepository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
 
         var routingService = new AddressChangeRoutingService(
             repository,
             discardedRepository,
+            new MessageTombstoneRepository($"Data Source={dbPath}"),
             new ComunaDirectory(),
             new FakeMailSender(),
             new NoOpEmailMover(),

@@ -1,0 +1,39 @@
+using Microsoft.Data.Sqlite;
+
+namespace CambioDeDomicilio.Persistence;
+
+/// <summary>Per-connection SQLite settings shared by every repository. The sync cycle and the
+/// dashboard write from different threads, each through its own short-lived connection, so a
+/// writer must wait for the lock instead of failing with "database is locked".</summary>
+internal static class SqliteConnectionSetup
+{
+    private const int BusyTimeoutSeconds = 5;
+
+    /// <summary>Per-connection and must be applied on every open. Microsoft.Data.Sqlite retries a
+    /// locked database for the command timeout (30 s by default) and that, not the PRAGMA alone,
+    /// decides how long a writer really waits — so both are set to the same value.</summary>
+    public static void Configure(SqliteConnection connection)
+    {
+        connection.DefaultTimeout = BusyTimeoutSeconds;
+        using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA busy_timeout = {BusyTimeoutSeconds * 1000}";
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>Write-ahead logging is stored in the database file, so it only needs to be switched on once
+    /// (from the schema migrator). Readers then no longer block the single writer and vice versa.</summary>
+    public static void EnableWriteAheadLogging(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA journal_mode = WAL";
+        command.ExecuteNonQuery();
+    }
+
+    public static SqliteConnection OpenConfigured(string connectionString)
+    {
+        var connection = new SqliteConnection(connectionString);
+        connection.Open();
+        Configure(connection);
+        return connection;
+    }
+}

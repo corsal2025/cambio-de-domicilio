@@ -18,6 +18,8 @@ namespace CambioDeDomicilio.Tests.Dashboard.Pages;
 public class IndexModelTests : IDisposable
 {
     private readonly string dbPath = Path.Combine(Path.GetTempPath(), $"index-page-test-{Guid.NewGuid():N}.db");
+    private IMessageTombstoneRepository Tombstones => new MessageTombstoneRepository($"Data Source={dbPath}");
+    private IBoxRepository Boxes => new BoxRepository($"Data Source={dbPath}");
     private readonly string csvPath = Path.Combine(Path.GetTempPath(), $"index-page-test-{Guid.NewGuid():N}.csv");
     private readonly IPersonRequestRepository repository;
     private readonly AddressChangeRoutingService routingService;
@@ -27,9 +29,9 @@ public class IndexModelTests : IDisposable
     public IndexModelTests()
     {
         repository = new PersonRequestRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
         var discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
-        discardedRepository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
         File.WriteAllText(csvPath, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
 
         var options = new RouterOptions
@@ -46,6 +48,7 @@ public class IndexModelTests : IDisposable
         routingService = new AddressChangeRoutingService(
             repository,
             discardedRepository,
+            new MessageTombstoneRepository($"Data Source={dbPath}"),
             new ComunaDirectory(),
             new NoOpMailSender(),
             new NoOpEmailMover(),
@@ -61,7 +64,7 @@ public class IndexModelTests : IDisposable
             options,
             NullLogger<RouterWorker>.Instance);
 
-        newModel = () => new IndexModel(repository, discardedRepository, routingService, routerWorker, options, NullLogger<IndexModel>.Instance)
+        newModel = () => new IndexModel(repository, discardedRepository, new MessageTombstoneRepository($"Data Source={dbPath}"), new BoxRepository($"Data Source={dbPath}"), routingService, routerWorker, options, NullLogger<IndexModel>.Instance)
         {
             PageContext = new PageContext
             {
@@ -351,7 +354,7 @@ public class IndexModelTests : IDisposable
 
         model.OnPostDeleteCase(id);
 
-        Assert.True(repository.IsSourceMessageDeleted("msg-1"));
+        Assert.True(Tombstones.IsSourceMessageDeleted("msg-1"));
     }
 
     [Fact]
@@ -453,7 +456,7 @@ public class IndexModelTests : IDisposable
             NotificationEmailAddress = "raul.salazar1984@gmail.com"
         };
         var worker = new RouterWorker(routingService, reader, repository, new NoOpCsvReportWriter(), workerOptions, NullLogger<RouterWorker>.Instance);
-        var abortedModel = new IndexModel(repository, discardedRepository, routingService, worker, workerOptions, NullLogger<IndexModel>.Instance)
+        var abortedModel = new IndexModel(repository, discardedRepository, new MessageTombstoneRepository($"Data Source={dbPath}"), new BoxRepository($"Data Source={dbPath}"), routingService, worker, workerOptions, NullLogger<IndexModel>.Instance)
         {
             PageContext = new PageContext
             {
@@ -760,7 +763,7 @@ public class IndexModelTests : IDisposable
         var id = repository.Insert(NewRequest("msg-1"));
         repository.MarkUploaded(id, DateTimeOffset.UtcNow);
         repository.SendToCaja([id], DateTimeOffset.UtcNow);
-        repository.CloseBox("A7-CD", DateTimeOffset.UtcNow);
+        Boxes.CloseBox("A7-CD", DateTimeOffset.UtcNow);
 
         model.OnGet(status: null, search: "18.785.387-7");
 
@@ -906,14 +909,14 @@ public class IndexModelTests : IDisposable
         var sentAt = new DateTimeOffset(2026, 9, 24, 10, 0, 0, TimeSpan.Zero);
         var firstBoxCase = repository.Insert(OtherPerson("msg-a", "12.345.678-5"));
         repository.SetDestination(firstBoxCase, CaseDestination.Caja, sentAt);
-        repository.CloseBox("A1-CD", sentAt.AddMinutes(1));
+        Boxes.CloseBox("A1-CD", sentAt.AddMinutes(1));
 
         var before = repository.Insert(OtherPerson("msg-b", "9.868.019-K"));
         repository.SetDestination(before, CaseDestination.Caja, sentAt.AddMinutes(2));
         var target = repository.Insert(NewRequest("msg-target"));
         repository.SetDestination(target, CaseDestination.Caja, sentAt.AddMinutes(3));
         var secondClosedAt = sentAt.AddMinutes(4);
-        var secondBox = repository.CloseBox("A1-CD", secondClosedAt);
+        var secondBox = Boxes.CloseBox("A1-CD", secondClosedAt);
 
         model.OnGet(status: null, search: "18.785.387-7");
 

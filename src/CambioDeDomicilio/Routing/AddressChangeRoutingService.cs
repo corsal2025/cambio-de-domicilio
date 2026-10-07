@@ -21,6 +21,7 @@ public sealed record ConfirmationResult(bool Sent, string Reason);
 public sealed class AddressChangeRoutingService(
     IPersonRequestRepository repository,
     IDiscardedEmailRepository discardedRepository,
+    IMessageTombstoneRepository tombstones,
     IComunaDirectory directory,
     IMailSender mailSender,
     IEmailMover emailMover,
@@ -28,12 +29,38 @@ public sealed class AddressChangeRoutingService(
     RouterOptions options,
     ILogger<AddressChangeRoutingService> logger)
 {
+    /// <summary>Cases whose confirmation email is being sent right now. The app is a single process
+    /// (guarded by a named mutex in Program.cs), so an in-memory claim is enough to stop a double
+    /// click or a second browser tab from sending the same email twice: both requests would
+    /// otherwise read Status == Uploaded before either one persists Confirmed.</summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<long, byte> confirmationsInFlight = new();
+
+    private static readonly ConfirmationResult ConfirmationAlreadyInProgress =
+        new(false, "Ya hay una confirmación en curso para este caso, espere unos segundos");
+
+    private async Task<ConfirmationResult> RunExclusivelyAsync(long requestId, Func<Task<ConfirmationResult>> action)
+    {
+        if (!confirmationsInFlight.TryAdd(requestId, 0))
+        {
+            return ConfirmationAlreadyInProgress;
+        }
+
+        try
+        {
+            return await action();
+        }
+        finally
+        {
+            confirmationsInFlight.TryRemove(requestId, out _);
+        }
+    }
+
     public IReadOnlyList<ComunaContact> LoadDirectory() => directory.LoadFromCsv(options.ComunaDirectoryCsvPath);
 
     /// <summary>Processes one email found in the source folder ("CARP. PARA PEDIR").</summary>
     public void ProcessIncomingRequest(IncomingEmail email, IReadOnlyList<ComunaContact> contacts)
     {
-        if (repository.IsSourceMessageDeleted(email.MessageId))
+        if (tombstones.IsSourceMessageDeleted(email.MessageId))
         {
             // The operator explicitly deleted every case tracked from this email — as long as it
             // sits unmoved in the source folder, every poll cycle would otherwise recreate it.
@@ -215,7 +242,7 @@ public sealed class AddressChangeRoutingService(
     /// </summary>
     public void ProcessPotentialBounce(IncomingEmail email, IReadOnlyList<ComunaContact> contacts)
     {
-        if (repository.IsBounceProcessed(email.MessageId))
+        if (tombstones.IsBounceProcessed(email.MessageId))
         {
             return;
         }
@@ -253,7 +280,7 @@ public sealed class AddressChangeRoutingService(
             }
         }
 
-        repository.RecordProcessedBounce(email.MessageId);
+        tombstones.RecordProcessedBounce(email.MessageId);
 
         if (flagged > 0)
         {
@@ -298,7 +325,10 @@ public sealed class AddressChangeRoutingService(
     /// (e.g. already moved manually, or a mailbox hiccup), the case still advances — the operator
     /// explicitly asked for this outcome, so a mailbox-side inconsistency shouldn't block it.
     /// </summary>
-    public async Task<ConfirmationResult> MarkUploadedAndConfirmAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false)
+    public Task<ConfirmationResult> MarkUploadedAndConfirmAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false) =>
+        RunExclusivelyAsync(requestId, () => MarkUploadedAndConfirmCoreAsync(requestId, contacts, cancellationToken, viaF8));
+
+    private async Task<ConfirmationResult> MarkUploadedAndConfirmCoreAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8)
     {
         var request = repository.FindById(requestId);
         if (request is null)
@@ -332,11 +362,14 @@ public sealed class AddressChangeRoutingService(
 
         repository.MarkUploaded(request.Id, DateTimeOffset.UtcNow);
 
-        return await SendConfirmationAsync(requestId, contacts, cancellationToken, viaF8);
+        return await SendConfirmationCoreAsync(requestId, contacts, cancellationToken, viaF8);
     }
 
     /// <summary>Operator-triggered (button): sends the confirmation email for an Uploaded case.</summary>
-    public async Task<ConfirmationResult> SendConfirmationAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false)
+    public Task<ConfirmationResult> SendConfirmationAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8 = false) =>
+        RunExclusivelyAsync(requestId, () => SendConfirmationCoreAsync(requestId, contacts, cancellationToken, viaF8));
+
+    private async Task<ConfirmationResult> SendConfirmationCoreAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken, bool viaF8)
     {
         var request = repository.FindById(requestId);
         if (request is null)
@@ -394,7 +427,10 @@ public sealed class AddressChangeRoutingService(
     /// resets the case to Pending. Only Confirmed cases can be rectified this way — an Uploaded
     /// case that was never confirmed has nothing to retract, since no email ever reached the comuna.
     /// </summary>
-    public async Task<ConfirmationResult> RectifyConfirmationAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken)
+    public Task<ConfirmationResult> RectifyConfirmationAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken) =>
+        RunExclusivelyAsync(requestId, () => RectifyConfirmationCoreAsync(requestId, contacts, cancellationToken));
+
+    private async Task<ConfirmationResult> RectifyConfirmationCoreAsync(long requestId, IReadOnlyList<ComunaContact> contacts, CancellationToken cancellationToken)
     {
         var request = repository.FindById(requestId);
         if (request is null)

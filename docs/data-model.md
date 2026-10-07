@@ -103,6 +103,67 @@ act on it again":
 - `ProcessedBounce` (`BounceMessageId`, `ProcessedAt`): a non-delivery report already scanned, so a
   later poll never re-flags a case from the same NDR (the message stays in the inbox).
 
+## Repository boundaries
+
+Persistence is split by concern; each caller depends only on the interface it needs:
+
+| Interface | Owns | Used by |
+|---|---|---|
+| `IPersonRequestRepository` | `PersonRequest` rows: intake, edits, status/destination transitions, Caja queue (`GetCajaQueue`, `SendToCaja`) | routing service, worker, every dashboard page |
+| `IBoxRepository` | `Box` rows and box-level operations: `CloseBox`, `ReopenBox`, `RemoveCaseFromClosedBox`, `GetBoxes`, `FindBoxById`, `GetCasesByBoxId` | `Caja`, `Index` (search location) |
+| `IMessageTombstoneRepository` | `DeletedSourceMessage` and `ProcessedBounce` write-once logs | routing service, `Index`, `F8` |
+| `IDiscardedEmailRepository` | `DiscardedEmail` rows | routing service, `Discarded`, statistics |
+
+All of them open short-lived connections through `SqliteConnectionSetup` and map cases through
+`PersonRequestMapper`. Schema creation is not a repository concern (see below).
+
+## Reading cases: `Find` vs `GetAll`
+
+`IPersonRequestRepository.Find(CaseQuery)` and `Count(CaseQuery)` run the filter in SQL and always return
+rows ordered by `Id` (the same order as `GetAll()`, so a page that sorts afterwards with a stable LINQ
+`OrderBy` keeps its tie order). Filters combine with AND and a null property does not filter:
+
+```csharp
+// Casos list: only cases still in Casos that need review
+repository.Find(new CaseQuery { Destinations = [CaseDestination.None], NeedsReview = true });
+
+// Sector print list: marked cases that were never transferred (the sector itself is derived in LINQ)
+repository.Find(new CaseQuery { Marked = true, Transferred = false })
+    .Where(c => c.Sector == FolderSector.Archivo);
+```
+
+Available filters: `Destinations`, `Statuses`, `NeedsReview`, `Bounced`, `Marked`, `Transferred` and
+`InSinCarpetasBucket`. The sector is deliberately not a filter: it derives from `FechaUltimaCarpeta`, and comparing
+dates as text in SQL would misclassify any row stored in a non-ISO format that `DateOnly.Parse` accepts. The `(Destination, Status)` index (migration V002) backs the common listings.
+Predicates that have no filter (for example `SectorPdfGeneratedAt is null`, free-text search) stay in LINQ
+over the already-reduced rows. Use `GetAll()` only for genuinely whole-table work: the CSV report
+(`RouterWorker`) and the statistics screen. `CaseQueryTests` compares every filter with an in-memory
+oracle over a fixture covering the cross product of the flags the pages branch on — add a case there
+whenever a filter is added.
+
+## Schema versioning and migrations
+
+The schema version is stored in the database file itself (`PRAGMA user_version`). On every startup,
+`SchemaMigrator` (`Persistence/Migrations/`) applies the migrations newer than that version — each
+one once, in order, inside its own immediate transaction — before the application serves anything.
+
+- **Adding a schema change**: create `V00N_<Name>.cs` implementing `IMigration` with the next
+  version number and append it to `Migrations.All`. Use plain `ALTER`/`CREATE` statements; assign
+  every command to the supplied transaction.
+- **Never edit a shipped migration.** Production databases have already recorded its version, so a
+  fix is a new migration. `V001_Baseline` is deliberately frozen: it is the former `EnsureSchema`
+  (including the legacy table rebuild and its hand-written column list) and adopts every database
+  created before versioning, as well as building the full schema on a fresh file.
+- **Data backfills belong to the migration that introduces them** and run once. They used to be
+  re-run on every startup; after the baseline adoption a restart no longer reclassifies cases.
+- **Backup**: before the first pending migration on a database that already has tables, the file is
+  copied (SQLite online backup, safe in WAL mode) to `<db>.bak-v<currentVersion>-<yyyyMMddHHmmss>`.
+  No backup is made for a new database or when nothing is pending.
+- **Failure**: the failing migration is rolled back, the version stays at the last applied one, and
+  startup aborts with an error naming the version. A database whose version is higher than this
+  release knows is refused untouched (an old executable never writes to a newer database).
+- Additive-schema convention still applies: existing columns are not dropped or renamed.
+
 ## Entity Relationship
 
 ```

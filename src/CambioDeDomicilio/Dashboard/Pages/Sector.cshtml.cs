@@ -18,8 +18,7 @@ public class SectorModel(IPersonRequestRepository repository) : PageModel
         SelectedSector = sector;
         // Ordered by MarkedAt (the order the operator ticked "Marcar" in on Casos), so the PDF
         // prints in the same order the cases appear at the top of that list.
-        Cases = repository.GetAll()
-            .Where(c => c.Sector == sector && c.Marked && c.SectorPdfGeneratedAt is null && c.TransferredAt is null)
+        Cases = PendingForPrint(sector)
             .OrderBy(c => c.MarkedAt)
             .ToList();
     }
@@ -51,10 +50,15 @@ public class SectorModel(IPersonRequestRepository repository) : PageModel
         return RedirectToPage(new { sector });
     }
 
+    /// <summary>Marked, not yet printed, still in Casos, and in this sector.</summary>
+    private IEnumerable<PersonRequest> PendingForPrint(FolderSector sector) =>
+        repository.Find(new CaseQuery { Marked = true, Transferred = false })
+            .Where(c => c.Sector == sector && c.SectorPdfGeneratedAt is null);
+
     private void MarkAllVisibleAsPrinted(FolderSector sector)
     {
         var now = DateTimeOffset.UtcNow;
-        foreach (var item in repository.GetAll().Where(c => c.Sector == sector && c.Marked && c.SectorPdfGeneratedAt is null && c.TransferredAt is null))
+        foreach (var item in PendingForPrint(sector))
         {
             repository.SetSectorPdfGenerated(item.Id, now);
         }

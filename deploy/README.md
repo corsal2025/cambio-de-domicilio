@@ -83,10 +83,48 @@ Start-ScheduledTask -TaskName CambioDeDomicilio
 Get-ScheduledTask -TaskName CambioDeDomicilio | Get-ScheduledTaskInfo
 ```
 
-Confirmar que `data/reporte.csv` se crea/actualiza tras el primer ciclo
-(hasta `PollIntervalMinutes` minutos después de iniciar), y que
+Confirmar que `data/reporte.csv` se crea/actualiza tras la primera sincronización
+(el sondeo es manual: botón "Sincronizar ahora" del dashboard), y que
 `https://localhost:5001` (o `https://<nombre-del-pc>:5001` desde otro equipo
 de la red) muestra el dashboard.
+
+## Actualización de la base de datos y respaldo
+
+Al iniciar, la aplicación actualiza `data/router.db` al esquema más reciente (versión guardada en
+`PRAGMA user_version`). Si hay migraciones pendientes y la base ya tiene datos, **antes de migrar**
+deja una copia junto al archivo: `router.db.bak-v<versión>-<fecha>` (por ejemplo
+`router.db.bak-v0-20261007153000` en la primera actualización de una instalación antigua).
+
+Después de actualizar:
+
+1. Abrir el dashboard y verificar que los casos de Casos, F8, Caja, Subidas y Sin carpetas coinciden con lo esperado.
+2. Si todo está bien, borrar el archivo `.bak-v*` (contiene datos personales).
+
+**Si la actualización falla**, la aplicación no inicia y el error indica la versión que falló; la base
+queda en la última versión aplicada. **Para volver atrás**:
+
+```powershell
+Stop-ScheduledTask -TaskName CambioDeDomicilio
+# Reemplazar la base por el respaldo y eliminar los archivos auxiliares de WAL
+Copy-Item data\router.db.bak-v0-<fecha> data\router.db -Force
+Remove-Item data\router.db-wal, data\router.db-shm -ErrorAction SilentlyContinue
+# Reinstalar el ejecutable anterior y volver a iniciar
+Start-ScheduledTask -TaskName CambioDeDomicilio
+```
+
+**Importante al volver atrás**: el ejecutable anterior a esta actualización no conoce el versionado
+de la base y *no* se niega a abrir una base ya migrada (la abriría y la modificaría). Por eso, para
+volver a un ejecutable antiguo hay que restaurar siempre el respaldo `.bak-v*` como se indica arriba.
+Desde esta versión en adelante, un ejecutable más antiguo que la base **sí** se niega a iniciar sin
+tocarla.
+
+Si el inicio falla y el programador de tareas lo reintenta, se conservan como máximo los 3 respaldos
+más recientes de esa versión (cada uno es una copia completa con datos personales; borrarlos al terminar).
+
+**Primera actualización de una instalación existente**: igual que ocurría con cada reinicio de la
+versión anterior, esa primera vez los casos *Subidos* o *Confirmados* que seguían en Casos pasan a
+**Subidas a Sistema**. Es una única vez: desde entonces reiniciar la aplicación ya no mueve casos de
+una pantalla a otra.
 
 ## 9. Acceso directo de escritorio (opcional)
 

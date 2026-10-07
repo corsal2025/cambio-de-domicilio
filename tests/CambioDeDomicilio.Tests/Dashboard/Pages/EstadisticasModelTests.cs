@@ -19,8 +19,8 @@ public class EstadisticasModelTests : IDisposable
         repository = new PersonRequestRepository($"Data Source={dbPath}");
         discardedRepository = new DiscardedEmailRepository($"Data Source={dbPath}");
 
-        repository.EnsureSchema();
-        discardedRepository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
+        TestDatabase.Migrate(dbPath);
 
         var options = new RouterOptions
         {

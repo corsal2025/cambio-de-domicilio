@@ -13,7 +13,7 @@ public class DiscardedEmailRepositoryTests : IDisposable
     public DiscardedEmailRepositoryTests()
     {
         repository = new DiscardedEmailRepository($"Data Source={dbPath}");
-        repository.EnsureSchema();
+        TestDatabase.Migrate(dbPath);
     }
 
     [Fact]
@@ -23,6 +23,17 @@ public class DiscardedEmailRepositoryTests : IDisposable
 
         Assert.True(repository.ExistsBySourceMessageId("msg-1"));
         Assert.False(repository.ExistsBySourceMessageId("msg-unknown"));
+    }
+
+    [Fact]
+    public void Count_ReflectsInsertedRowsWithoutLoadingThem()
+    {
+        Assert.Equal(0, repository.Count());
+
+        repository.Insert(NewDiscarded("msg-1"));
+        repository.Insert(NewDiscarded("msg-2"));
+
+        Assert.Equal(2, repository.Count());
     }
 
     [Fact]
