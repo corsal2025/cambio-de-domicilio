@@ -40,6 +40,12 @@ public sealed class RouterWorker(
         return Task.CompletedTask;
     }
 
+    /// <summary>Development runs point EWS at a reserved ".invalid" host on purpose so they never touch the
+    /// real mailbox. Detecting it lets the dashboard explain that instead of showing a DNS error.</summary>
+    private bool IsMailDisabledEnvironment() =>
+        Uri.TryCreate(options.Ews.Url, UriKind.Absolute, out var ewsUri)
+        && ewsUri.Host.EndsWith(".invalid", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Runs one poll cycle. Returns false only when a cycle was already running and this call was skipped
     /// (used by the dashboard's manual "sync now" action to report accurate feedback).</summary>
     internal async Task<SyncCycleResult> RunCycleAsync(CancellationToken cancellationToken)
@@ -48,6 +54,12 @@ public sealed class RouterWorker(
         {
             logger.LogWarning("Ciclo anterior aún en ejecución, se omite este tick");
             return new SyncCycleResult(Success: false, AlreadyRunning: true, ErrorMessage: "Ya hay una sincronización en curso, intente en unos segundos.");
+        }
+
+        if (IsMailDisabledEnvironment())
+        {
+            cycleGuard.Release();
+            return new SyncCycleResult(Success: false, AlreadyRunning: false, ErrorMessage: "El correo está desactivado en este entorno (modo desarrollo): no se sincroniza ni se envían correos. Para sincronizar, usa la aplicación de producción.");
         }
 
         try

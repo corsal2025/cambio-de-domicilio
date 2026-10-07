@@ -106,11 +106,27 @@ public class RouterWorkerTests : IDisposable
         File.Delete(csvPath);
     }
 
-    private RouterWorker BuildWorker(string comunaDirectoryCsvPath, IEmailReader? emailReaderOverride = null)
+    [Fact]
+    public async Task RunCycleAsync_MailDisabledEnvironment_ExplainsItInsteadOfFailingOnDns()
+    {
+        var csvPath = Path.Combine(Path.GetTempPath(), $"worker-comunas-{Guid.NewGuid():N}.csv");
+        File.WriteAllText(csvPath, "Comuna,ContactEmail,Domain\nCatemu,rfloresc@municatemu.cl,municatemu.cl\n");
+        var sut = BuildWorker(csvPath, ewsUrl: "https://ews-disabled-in-development.invalid/EWS/Exchange.asmx");
+
+        var result = await sut.RunCycleAsync(CancellationToken.None);
+
+        Assert.False(emailReader.WasCalled);
+        Assert.False(result.Success);
+        Assert.Contains("desactivado", result.ErrorMessage);
+        Assert.DoesNotContain("Host desconocido", result.ErrorMessage);
+        File.Delete(csvPath);
+    }
+
+    private RouterWorker BuildWorker(string comunaDirectoryCsvPath, IEmailReader? emailReaderOverride = null, string ewsUrl = "https://mail.munivalpo.cl/EWS/Exchange.asmx")
     {
         var options = new RouterOptions
         {
-            Ews = new EwsOptions { Url = "https://mail.munivalpo.cl/EWS/Exchange.asmx", Username = "u", Password = "p" },
+            Ews = new EwsOptions { Url = ewsUrl, Username = "u", Password = "p" },
             MailboxAddress = "cambiodedomicilio@munivalpo.cl",
             OwnDomain = "munivalpo.cl",
             SourceFolderName = "CARP. PARA PEDIR",
