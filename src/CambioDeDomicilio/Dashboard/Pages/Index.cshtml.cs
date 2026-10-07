@@ -543,24 +543,22 @@ public class IndexModel(
             CajaMatchBoxCode = CajaMatches.FirstOrDefault()?.BoxCode;
         }
 
-        // Marked cases (checkbox "Marcar") float to the very top, ordered by MarkedAt ascending —
-        // the order the operator ticked them in — so the marked set on screen lines up with the
-        // order they'll print in on the next PDF run (see SetMarked/Sector.cshtml.cs). Confirmed
-        // cases (blue row — folder uploaded, comuna already emailed) sink to the very end, ordered
-        // by ConfirmedAt ascending, so confirmations show in the order they happened instead of
-        // mixed in with outstanding work. Everything else stays in the middle, ordered by
-        // ReceivedAt (fecha de ingreso — when the email actually arrived), not by CreatedAt (when
-        // the row was inserted): a case re-tracked later (e.g. after being reverted from Uploaded
-        // back to Pending) must stay in its original position instead of jumping to the top just
-        // because its database row is newer.
+        // Marked cases (checkbox "Marcar") float to the top; confirmed cases (blue row — folder
+        // uploaded, comuna already emailed) sink to the very end, ordered by ConfirmedAt ascending
+        // so confirmations show in the order they happened. Within each group the list runs from
+        // the OLDEST request to the newest by ReceivedAt (fecha de ingreso — when the email
+        // actually arrived), not by CreatedAt (when the row was inserted) and not by the order the
+        // operator ticked the checkboxes in (MarkedAt): a case re-tracked later (e.g. after being
+        // reverted from Uploaded back to Pending) must keep its original position, and ticking
+        // rows in any order must not scramble the queue. The printed sector PDFs still follow
+        // MarkedAt (see Sector.cshtml.cs).
         Cases = all
             .OrderBy(c => c.Status == RequestStatus.Confirmed)
             .ThenByDescending(c => c.Marked && c.SectorPdfGeneratedAt is null)
             .ThenByDescending(c => c.Marked)
-            .ThenBy(c => c.MarkedAt)
             .ThenBy(c => c.FechaUltimaCarpeta is not null)
             .ThenBy(c => c.ConfirmedAt)
-            .ThenByDescending(c => c.ReceivedAt)
+            .ThenBy(c => c.ReceivedAt)
             .ToList();
     }
 
