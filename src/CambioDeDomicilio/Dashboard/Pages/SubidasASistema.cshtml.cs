@@ -74,13 +74,16 @@ public class SubidasASistemaModel(IPersonRequestRepository repository, AddressCh
 
     private void Load()
     {
-        var all = repository.GetAll();
-        var subidas = all
-            .Where(c => (c.Destination == CaseDestination.Subidas ||
-                         (c.Destination == CaseDestination.None && (c.Status == RequestStatus.Uploaded || c.Status == RequestStatus.Confirmed)))
-                        && c.ClosedWithoutFolderAt is null
-                        && !c.SinCarpeta
-                        && c.Destination != CaseDestination.SinCarpetas)
+        // Transferred to Subidas, plus uploaded/confirmed cases still sitting in Casos. Two SQL slices,
+        // merged back into Id order so ties sort exactly as they did when everything came from GetAll().
+        var subidas = repository.Find(new CaseQuery { Destinations = [CaseDestination.Subidas] })
+            .Concat(repository.Find(new CaseQuery
+            {
+                Destinations = [CaseDestination.None],
+                Statuses = [RequestStatus.Uploaded, RequestStatus.Confirmed]
+            }))
+            .OrderBy(c => c.Id)
+            .Where(c => c.ClosedWithoutFolderAt is null && !c.SinCarpeta)
             .OrderByDescending(c => c.ConfirmedAt ?? c.UploadedAt ?? c.ReceivedAt)
             .ToList();
 

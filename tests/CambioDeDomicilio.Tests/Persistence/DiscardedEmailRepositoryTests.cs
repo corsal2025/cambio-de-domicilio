@@ -26,6 +26,17 @@ public class DiscardedEmailRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void Count_ReflectsInsertedRowsWithoutLoadingThem()
+    {
+        Assert.Equal(0, repository.Count());
+
+        repository.Insert(NewDiscarded("msg-1"));
+        repository.Insert(NewDiscarded("msg-2"));
+
+        Assert.Equal(2, repository.Count());
+    }
+
+    [Fact]
     public void GetAll_MultipleInserts_ReturnsNewestFirst()
     {
         repository.Insert(NewDiscarded("msg-1"));

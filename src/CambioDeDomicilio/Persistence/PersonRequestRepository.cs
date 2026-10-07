@@ -86,6 +86,13 @@ public interface IPersonRequestRepository
     void Delete(long id);
 
     IReadOnlyList<PersonRequest> GetAll();
+
+    /// <summary>Cases matching <paramref name="query"/>, ordered by Id. Prefer this over
+    /// <see cref="GetAll"/> + LINQ for any screen that only needs a slice of the table.</summary>
+    IReadOnlyList<PersonRequest> Find(CaseQuery query);
+
+    /// <summary>Number of cases <see cref="Find"/> would return, without materializing them.</summary>
+    int Count(CaseQuery query);
 }
 
 public sealed class PersonRequestRepository(string connectionString) : IPersonRequestRepository
@@ -494,6 +501,30 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             results.Add(PersonRequestMapper.Map(reader));
         }
         return results;
+    }
+
+    public IReadOnlyList<PersonRequest> Find(CaseQuery query)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        var where = CaseQuerySql.BuildWhere(query, command);
+        command.CommandText = $"SELECT * FROM PersonRequest{where} ORDER BY Id";
+        using var reader = command.ExecuteReader();
+        var results = new List<PersonRequest>();
+        while (reader.Read())
+        {
+            results.Add(PersonRequestMapper.Map(reader));
+        }
+        return results;
+    }
+
+    public int Count(CaseQuery query)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        var where = CaseQuerySql.BuildWhere(query, command);
+        command.CommandText = $"SELECT COUNT(*) FROM PersonRequest{where}";
+        return Convert.ToInt32(command.ExecuteScalar());
     }
 
     public IReadOnlyList<PersonRequest> GetCajaQueue()

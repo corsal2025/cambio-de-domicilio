@@ -500,35 +500,27 @@ public class IndexModel(
 
     private void Load()
     {
-        var everything = repository.GetAll();
-        NeedsReviewCount = everything.Count(c => c.NeedsReview);
-        BouncedCount = everything.Count(c => c.ConfirmationBouncedAt is not null);
-        DiscardedCount = discardedRepository.GetAll().Count;
+        NeedsReviewCount = repository.Count(new CaseQuery { NeedsReview = true });
+        BouncedCount = repository.Count(new CaseQuery { Bounced = true });
+        DiscardedCount = discardedRepository.Count();
         ComunaOptions = routingService.LoadDirectory()
             .DistinctBy(c => c.Comuna, StringComparer.OrdinalIgnoreCase)
             .OrderBy(c => c.Comuna)
             .ToList();
 
-        var all = everything.AsEnumerable();
-
         // Cases transferred out of Casos (to F8, Subidas a Sistema, Caja, or Sin Carpetas)
-        // live on their respective dedicated pages instead.
-        all = all.Where(c => c.TransferredAt is null && c.ClosedWithoutFolderAt is null && !c.SinCarpeta && c.Destination == CaseDestination.None);
-
-        if (!string.IsNullOrEmpty(StatusFilter) && Enum.TryParse<RequestStatus>(StatusFilter, out var status))
+        // live on their respective dedicated pages instead. Destination, status, review and
+        // bounce filters run in SQL; the flags that have no query equivalent are applied below.
+        IReadOnlyList<RequestStatus>? statuses = !string.IsNullOrEmpty(StatusFilter) && Enum.TryParse<RequestStatus>(StatusFilter, out var status)
+            ? [status]
+            : null;
+        var all = repository.Find(new CaseQuery
         {
-            all = all.Where(c => c.Status == status);
-        }
-
-        if (OnlyNeedsReview)
-        {
-            all = all.Where(c => c.NeedsReview);
-        }
-
-        if (OnlyBounced)
-        {
-            all = all.Where(c => c.ConfirmationBouncedAt is not null);
-        }
+            Destinations = [CaseDestination.None],
+            Statuses = statuses,
+            NeedsReview = OnlyNeedsReview ? true : null,
+            Bounced = OnlyBounced ? true : null
+        }).Where(c => c.TransferredAt is null && c.ClosedWithoutFolderAt is null && !c.SinCarpeta);
 
         // Search by name or RUT (case-insensitive, partial match)
         if (!string.IsNullOrWhiteSpace(SearchQuery))
@@ -538,14 +530,14 @@ public class IndexModel(
 
             // Cross-screen matches: transferred cases are hidden from Casos, so the banners
             // tell the operator where the person actually is.
-            var f8Matches = everything.Where(c => c.Destination == CaseDestination.F8 && MatchesQuery(c, query)).ToList();
+            var f8Matches = repository.Find(new CaseQuery { Destinations = [CaseDestination.F8] }).Where(c => MatchesQuery(c, query)).ToList();
             F8MatchCount = f8Matches.Count;
             F8FirstMatchId = f8Matches.FirstOrDefault()?.Id;
 
-            var subidasMatches = everything.Where(c => c.Destination == CaseDestination.Subidas && MatchesQuery(c, query)).ToList();
+            var subidasMatches = repository.Find(new CaseQuery { Destinations = [CaseDestination.Subidas] }).Where(c => MatchesQuery(c, query)).ToList();
             SubidasMatchCount = subidasMatches.Count;
 
-            var cajaMatches = everything.Where(c => c.Destination == CaseDestination.Caja && MatchesQuery(c, query)).ToList();
+            var cajaMatches = repository.Find(new CaseQuery { Destinations = [CaseDestination.Caja] }).Where(c => MatchesQuery(c, query)).ToList();
             CajaMatches = cajaMatches.Select(LocateInCaja).ToList();
             CajaMatchCount = CajaMatches.Count;
             CajaMatchBoxCode = CajaMatches.FirstOrDefault()?.BoxCode;

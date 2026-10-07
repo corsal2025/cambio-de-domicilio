@@ -26,7 +26,7 @@ public sealed record F8PdfStatus(int Generated, int Pending);
 
 /// <summary>Read-only aggregations over already-loaded case/discarded-email lists, feeding the
 /// /Estadisticas dashboard. Mirrors the in-memory LINQ pattern every other dashboard page already
-/// uses over IPersonRequestRepository.GetAll() — no new SQL, no new tables.</summary>
+/// uses over IPersonRequestRepository.GetAll() — whole-table by nature, so it stays on GetAll.</summary>
 public sealed class StatisticsService(RouterOptions options, TimeProvider? timeProvider = null)
 {
     private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;

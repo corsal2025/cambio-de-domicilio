@@ -117,6 +117,28 @@ Persistence is split by concern; each caller depends only on the interface it ne
 All of them open short-lived connections through `SqliteConnectionSetup` and map cases through
 `PersonRequestMapper`. Schema creation is not a repository concern (see below).
 
+## Reading cases: `Find` vs `GetAll`
+
+`IPersonRequestRepository.Find(CaseQuery)` and `Count(CaseQuery)` run the filter in SQL and always return
+rows ordered by `Id` (the same order as `GetAll()`, so a page that sorts afterwards with a stable LINQ
+`OrderBy` keeps its tie order). Filters combine with AND and a null property does not filter:
+
+```csharp
+// Casos list: only cases still in Casos that need review
+repository.Find(new CaseQuery { Destinations = [CaseDestination.None], NeedsReview = true });
+
+// Sector print list: marked cases of one sector that were never transferred
+repository.Find(new CaseQuery { Sector = FolderSector.Archivo, Marked = true, Transferred = false });
+```
+
+Available filters: `Destinations`, `Statuses`, `NeedsReview`, `Bounced`, `Marked`, `Transferred`, `Sector`,
+`InSinCarpetasBucket`. The `(Destination, Status)` index (migration V002) backs the common listings.
+Predicates that have no filter (for example `SectorPdfGeneratedAt is null`, free-text search) stay in LINQ
+over the already-reduced rows. Use `GetAll()` only for genuinely whole-table work: the CSV report
+(`RouterWorker`) and the statistics screen. `CaseQueryTests` compares every filter with an in-memory
+oracle over a fixture covering the cross product of the flags the pages branch on — add a case there
+whenever a filter is added.
+
 ## Schema versioning and migrations
 
 The schema version is stored in the database file itself (`PRAGMA user_version`). On every startup,

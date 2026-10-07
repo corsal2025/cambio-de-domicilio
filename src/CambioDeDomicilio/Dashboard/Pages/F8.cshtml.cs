@@ -252,9 +252,8 @@ public class F8Model(
 
     private void Load()
     {
-        var all = repository.GetAll();
-        var f8Cases = all
-            .Where(c => c.Destination == CaseDestination.F8 && !c.SinCarpeta && c.ClosedWithoutFolderAt is null)
+        var f8Cases = repository.Find(new CaseQuery { Destinations = [CaseDestination.F8] })
+            .Where(c => !c.SinCarpeta && c.ClosedWithoutFolderAt is null)
             .OrderBy(c => c.Status == RequestStatus.Confirmed)
             .ThenBy(c => c.ConfirmedAt)
             .ThenByDescending(c => c.ReceivedAt)
@@ -267,7 +266,7 @@ public class F8Model(
             var query = Search.Trim().ToUpperInvariant();
             var matches = f8Cases.Where(c => MatchesQuery(c, query)).ToList();
             Cases = matches;
-            CasosMatchCount = all.Count(c => c.TransferredAt is null && MatchesQuery(c, query));
+            CasosMatchCount = repository.Find(new CaseQuery { Transferred = false }).Count(c => MatchesQuery(c, query));
             if (!HighlightId.HasValue && matches.Count > 0)
             {
                 HighlightId = matches[0].Id;

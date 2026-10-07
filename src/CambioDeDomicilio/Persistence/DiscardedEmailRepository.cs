@@ -13,6 +13,8 @@ public interface IDiscardedEmailRepository
     void Delete(long id);
 
     IReadOnlyList<DiscardedEmail> GetAll();
+
+    int Count();
 }
 
 public sealed class DiscardedEmailRepository(string connectionString) : IDiscardedEmailRepository
@@ -72,6 +74,14 @@ public sealed class DiscardedEmailRepository(string connectionString) : IDiscard
             results.Add(Map(reader));
         }
         return results;
+    }
+
+    public int Count()
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM DiscardedEmail";
+        return Convert.ToInt32(command.ExecuteScalar());
     }
 
     private SqliteConnection Open()

@@ -35,13 +35,13 @@
 
 ## 4. SQL-side case queries — dashboard reads
 
-- [ ] 4.1 RED: `CaseQueryTests` — `Find(CaseQuery)` by `Destination`, by `Statuses`, combined, with the same ordering the pages use today (verify against fixture data)
-- [ ] 4.2 GREEN: `CaseQuery` record + `IPersonRequestRepository.Find` + migration `V002_CaseListIndex` (`CREATE INDEX IF NOT EXISTS IX_PersonRequest_DestinationStatus ON PersonRequest (Destination, Status)`); verify `EXPLAIN QUERY PLAN` uses the index in a test
-- [ ] 4.3 Equivalence test harness: for a rich fixture, assert the legacy LINQ filter and `Find` return identical ids in identical order; apply to Index (Casos list and its search counts), then verify green
-- [ ] 4.4 Switch `IndexModel` list + search-match counts to `Find`, keeping `MatchesQuery` text normalization in memory over the reduced set; verify `IndexModelTests` unchanged and green
-- [ ] 4.5 Switch F8, SinCarpetas, SubidasASistema, Sector, SectorF8 and Caja queue reads to `Find`, one page per sub-step, each with its equivalence assertion; verify each page's model tests stay green
-- [ ] 4.6 Keep `GetAll()` only for `Estadisticas`, `RouterWorker` CSV report and `Discarded` (whole-table by nature); verify with a grep that no other page calls it
-- [ ] 4.7 Document the query object and when to use `Find` vs `GetAll` in `docs/data-model.md`; verify the examples compile (copy into a scratch test)
+- [x] 4.1 RED: `CaseQueryTests` — `Find(CaseQuery)` by `Destination`, by `Statuses`, combined, with the same ordering the pages use today (verify against fixture data)
+- [x] 4.2 GREEN: `CaseQuery` record + `IPersonRequestRepository.Find` + migration `V002_CaseListIndex` (`CREATE INDEX IF NOT EXISTS IX_PersonRequest_DestinationStatus ON PersonRequest (Destination, Status)`); verify `EXPLAIN QUERY PLAN` uses the index in a test
+- [x] 4.3 Equivalence test harness: for a rich fixture, assert the legacy LINQ filter and `Find` return identical ids in identical order; apply to Index (Casos list and its search counts), then verify green
+- [x] 4.4 Switch `IndexModel` list + search-match counts to `Find`, keeping `MatchesQuery` text normalization in memory over the reduced set; verify `IndexModelTests` unchanged and green
+- [x] 4.5 Switch F8, SinCarpetas, SubidasASistema, Sector, SectorF8 and Caja queue reads to `Find`, one page per sub-step, each with its equivalence assertion; verify each page's model tests stay green
+- [x] 4.6 Keep `GetAll()` only for `Estadisticas`, `RouterWorker` CSV report and `Discarded` (whole-table by nature); verify with a grep that no other page calls it
+- [x] 4.7 Document the query object and when to use `Find` vs `GetAll` in `docs/data-model.md`; verify the examples compile (copy into a scratch test)
 
 ## 5. Integration checks (agent must execute)
 
