@@ -45,11 +45,11 @@
 
 ## 5. Integration checks (agent must execute)
 
-- [ ] 5.1 Step "Review and Update Existing Unit Tests": confirm no existing test changed meaning (only fixture construction) and that no test touches `data/router.db`; list any test edited and why in the report
-- [ ] 5.2 Step "Run Unit Tests and Verify Database State": run targeted tests per group, then `dotnet test` in Release; capture pre/post row counts of a copy of a representative database (cases per Destination/Status, boxes, tombstones) and confirm they match after adoption except for the documented one-time backfills; write `reports/step-5-unit-test-and-db-verification.md`
-- [ ] 5.3 Manual endpoint testing with curl: start the app against the migrated copy and `curl` `/`, `/F8`, `/Caja`, `/SinCarpetas`, `/SubidasASistema`, `/Sector/Archivo`, `/Estadisticas`; confirm 200 and that rendered case counts equal the pre-upgrade counts from 5.2
-- [ ] 5.4 E2E smoke with Playwright (Chromium preinstalled): load each page above on the migrated copy and confirm the main table renders with the expected row counts and no console errors; save screenshots under `reports/`
-- [ ] 5.5 Upgrade rehearsal: run the application twice on a legacy fixture; confirm first start creates one backup and reaches the latest version, second start creates no backup and applies nothing (matches spec scenarios)
+- [x] 5.1 Step "Review and Update Existing Unit Tests": confirm no existing test changed meaning (only fixture construction) and that no test touches `data/router.db`; list any test edited and why in the report
+- [x] 5.2 Step "Run Unit Tests and Verify Database State": run targeted tests per group, then `dotnet test` in Release; capture pre/post row counts of a copy of a representative database (cases per Destination/Status, boxes, tombstones) and confirm they match after adoption except for the documented one-time backfills; write `reports/step-5-unit-test-and-db-verification.md`
+- [x] 5.3 Manual endpoint testing with curl: start the app against the migrated copy and `curl` `/`, `/F8`, `/Caja`, `/SinCarpetas`, `/SubidasASistema`, `/Sector/Archivo`, `/Estadisticas`; confirm 200 and that rendered case counts equal the pre-upgrade counts from 5.2
+- [x] 5.4 E2E smoke with Playwright (Chromium preinstalled): load each page above on the migrated copy and confirm the main table renders with the expected row counts and no console errors; save screenshots under `reports/`
+- [x] 5.5 Upgrade rehearsal: run the application twice on a legacy fixture; confirm first start creates one backup and reaches the latest version, second start creates no backup and applies nothing (matches spec scenarios)
 - [ ] 5.6 Run `/adversarial-review` on the migration runner and V1 before archiving; resolve findings by updating these artifacts first
 
 ## Workflow follow-up
