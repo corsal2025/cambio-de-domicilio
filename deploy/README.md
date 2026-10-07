@@ -112,8 +112,19 @@ Remove-Item data\router.db-wal, data\router.db-shm -ErrorAction SilentlyContinue
 Start-ScheduledTask -TaskName CambioDeDomicilio
 ```
 
-Una base creada por una versión más nueva no se abre con un ejecutable antiguo: la aplicación se
-niega a iniciar sin modificarla.
+**Importante al volver atrás**: el ejecutable anterior a esta actualización no conoce el versionado
+de la base y *no* se niega a abrir una base ya migrada (la abriría y la modificaría). Por eso, para
+volver a un ejecutable antiguo hay que restaurar siempre el respaldo `.bak-v*` como se indica arriba.
+Desde esta versión en adelante, un ejecutable más antiguo que la base **sí** se niega a iniciar sin
+tocarla.
+
+Si el inicio falla y el programador de tareas lo reintenta, se conservan como máximo los 3 respaldos
+más recientes de esa versión (cada uno es una copia completa con datos personales; borrarlos al terminar).
+
+**Primera actualización de una instalación existente**: igual que ocurría con cada reinicio de la
+versión anterior, esa primera vez los casos *Subidos* o *Confirmados* que seguían en Casos pasan a
+**Subidas a Sistema**. Es una única vez: desde entonces reiniciar la aplicación ya no mueve casos de
+una pantalla a otra.
 
 ## 9. Acceso directo de escritorio (opcional)
 

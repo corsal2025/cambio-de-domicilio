@@ -14,6 +14,8 @@
 - [x] 1.5 RED+GREEN: database with `user_version` greater than the latest known version is refused without modification (hash of the file unchanged)
 - [x] 1.6 RED+GREEN: backup via `SqliteConnection.BackupDatabase` named `<db>.bak-v<version>-<timestamp>` is created before the first pending migration and only when one is pending; verify the backup opens and contains the pre-upgrade rows
 - [x] 1.7 Verify concurrency guard: migrator takes `BEGIN IMMEDIATE`; test that a second connection writing during a migration waits/fails per `busy_timeout` instead of interleaving
+- [x] 1.8 RED+GREEN: repeated failed attempts at the same version keep at most three backups, always including the newest; verify with a test that fails a migration five times under an advancing clock and counts the backup files and checks the newest survives
+- [x] 1.9 Rollback failure must not mask the migration error: wrap `Rollback()` so the original exception is the one reported; verify with a test that closes the connection inside a failing migration
 
 ## 2. Baseline migration V1 and legacy adoption — spec: adoption without data loss, backfills run once
 
@@ -42,6 +44,7 @@
 - [x] 4.5 Switch F8, SinCarpetas, SubidasASistema, Sector, SectorF8 and Caja queue reads to `Find`, one page per sub-step, each with its equivalence assertion; verify each page's model tests stay green
 - [x] 4.6 Keep `GetAll()` only for `Estadisticas`, `RouterWorker` CSV report and `Discarded` (whole-table by nature); verify with a grep that no other page calls it
 - [x] 4.7 Document the query object and when to use `Find` vs `GetAll` in `docs/data-model.md`; verify the examples compile (copy into a scratch test)
+- [x] 4.8 Remove the `Sector` filter from `CaseQuery` (sector stays derived in LINQ from the parsed date), de-duplicate the Subidas merge by id, and update `CaseQueryTests`/docs; verify the suite stays green and no text comparison of dates remains in SQL
 
 ## 5. Integration checks (agent must execute)
 
@@ -50,7 +53,7 @@
 - [x] 5.3 Manual endpoint testing with curl: start the app against the migrated copy and `curl` `/`, `/F8`, `/Caja`, `/SinCarpetas`, `/SubidasASistema`, `/Sector/Archivo`, `/Estadisticas`; confirm 200 and that rendered case counts equal the pre-upgrade counts from 5.2
 - [x] 5.4 E2E smoke with Playwright (Chromium preinstalled): load each page above on the migrated copy and confirm the main table renders with the expected row counts and no console errors; save screenshots under `reports/`
 - [x] 5.5 Upgrade rehearsal: run the application twice on a legacy fixture; confirm first start creates one backup and reaches the latest version, second start creates no backup and applies nothing (matches spec scenarios)
-- [ ] 5.6 Run `/adversarial-review` on the migration runner and V1 before archiving; resolve findings by updating these artifacts first
+- [x] 5.6 Run `/adversarial-review` on the migration runner and V1 before archiving; resolve findings by updating these artifacts first
 
 ## Workflow follow-up
 

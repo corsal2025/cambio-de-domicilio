@@ -127,12 +127,14 @@ rows ordered by `Id` (the same order as `GetAll()`, so a page that sorts afterwa
 // Casos list: only cases still in Casos that need review
 repository.Find(new CaseQuery { Destinations = [CaseDestination.None], NeedsReview = true });
 
-// Sector print list: marked cases of one sector that were never transferred
-repository.Find(new CaseQuery { Sector = FolderSector.Archivo, Marked = true, Transferred = false });
+// Sector print list: marked cases that were never transferred (the sector itself is derived in LINQ)
+repository.Find(new CaseQuery { Marked = true, Transferred = false })
+    .Where(c => c.Sector == FolderSector.Archivo);
 ```
 
-Available filters: `Destinations`, `Statuses`, `NeedsReview`, `Bounced`, `Marked`, `Transferred`, `Sector`,
-`InSinCarpetasBucket`. The `(Destination, Status)` index (migration V002) backs the common listings.
+Available filters: `Destinations`, `Statuses`, `NeedsReview`, `Bounced`, `Marked`, `Transferred` and
+`InSinCarpetasBucket`. The sector is deliberately not a filter: it derives from `FechaUltimaCarpeta`, and comparing
+dates as text in SQL would misclassify any row stored in a non-ISO format that `DateOnly.Parse` accepts. The `(Destination, Status)` index (migration V002) backs the common listings.
 Predicates that have no filter (for example `SectorPdfGeneratedAt is null`, free-text search) stay in LINQ
 over the already-reduced rows. Use `GetAll()` only for genuinely whole-table work: the CSV report
 (`RouterWorker`) and the statistics screen. `CaseQueryTests` compares every filter with an in-memory

@@ -50,6 +50,10 @@ The system SHALL copy the database file to a backup next to it before applying a
 - **WHEN** the database is already at the latest version
 - **THEN** no new backup file is created
 
+#### Scenario: Repeated failed upgrade attempts keep backups bounded
+- **WHEN** upgrade attempts at the same version fail repeatedly and the application is restarted each time
+- **THEN** at most three backups of that version are kept, always including the one taken before the most recent attempt
+
 ### Requirement: Failed migration is atomic and stops startup
 The system SHALL run each migration in a single transaction, and if a migration fails SHALL roll it back, leave the database at the last successfully applied version, and stop startup with an error that names the failing version.
 

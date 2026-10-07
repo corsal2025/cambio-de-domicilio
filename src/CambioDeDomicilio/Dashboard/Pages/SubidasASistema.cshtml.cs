@@ -82,6 +82,7 @@ public class SubidasASistemaModel(IPersonRequestRepository repository, AddressCh
                 Destinations = [CaseDestination.None],
                 Statuses = [RequestStatus.Uploaded, RequestStatus.Confirmed]
             }))
+            .DistinctBy(c => c.Id) // the two slices are read at different instants; a case moved in between must not show twice
             .OrderBy(c => c.Id)
             .Where(c => c.ClosedWithoutFolderAt is null && !c.SinCarpeta)
             .OrderByDescending(c => c.ConfirmedAt ?? c.UploadedAt ?? c.ReceivedAt)

@@ -24,6 +24,8 @@ internal sealed class DatabaseNewerThanApplicationException(int databaseVersion,
 /// before the first one an online backup of the existing data is written next to the file.</summary>
 internal sealed class SchemaMigrator
 {
+    private const int MaxBackupsPerVersion = 3;
+
     private readonly string connectionString;
     private readonly IReadOnlyList<IMigration> migrations;
     private readonly TimeProvider clock;
@@ -97,7 +99,17 @@ internal sealed class SchemaMigrator
         }
         catch (Exception ex)
         {
-            transaction.Rollback();
+            try
+            {
+                transaction.Rollback();
+            }
+            catch (Exception rollbackError)
+            {
+                // The migration error is the one the operator needs; a broken connection must not hide it.
+                // SQLite discards an unfinished transaction when the connection closes anyway.
+                System.Diagnostics.Debug.WriteLine($"Rollback of migration {migration.Version} failed: {rollbackError.Message}");
+            }
+
             throw new MigrationFailedException(migration.Version, migration.Description, ex);
         }
     }
@@ -121,7 +133,26 @@ internal sealed class SchemaMigrator
         var backupPath = $"{dataSource}.bak-v{currentVersion}-{stamp}";
         using var destination = new SqliteConnection($"Data Source={backupPath};Pooling=False");
         source.BackupDatabase(destination);
+        PruneOldBackups(dataSource, currentVersion);
         return backupPath;
+    }
+
+    /// <summary>A failing migration rolls back and the scheduler restarts the process, so every retry would
+    /// otherwise copy the whole database (personal data) again. Names embed a sortable UTC stamp, so
+    /// ordering them as text orders them by time.</summary>
+    private static void PruneOldBackups(string dataSource, int version)
+    {
+        var fullPath = Path.GetFullPath(dataSource);
+        var directory = Path.GetDirectoryName(fullPath)!;
+        var prefix = $"{Path.GetFileName(fullPath)}.bak-v{version}-";
+        var backups = Directory.GetFiles(directory, prefix + "*")
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToList();
+
+        foreach (var stale in backups.Take(Math.Max(0, backups.Count - MaxBackupsPerVersion)))
+        {
+            File.Delete(stale);
+        }
     }
 
     private static int ReadVersion(SqliteConnection connection)

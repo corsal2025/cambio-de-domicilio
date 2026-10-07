@@ -24,9 +24,6 @@ public sealed record CaseQuery
     /// <summary>True: TransferredAt is set. False: it is not — independent of the destination column.</summary>
     public bool? Transferred { get; init; }
 
-    /// <summary>Same rule as <see cref="PersonRequest.Sector"/>: cases without a last-folder date never match.</summary>
-    public FolderSector? Sector { get; init; }
-
     /// <summary>True: the SinCarpetas page's definition — destination SinCarpetas, or closed without a
     /// folder, or flagged SinCarpeta — whatever the destination column says. False: none of those.</summary>
     public bool? InSinCarpetasBucket { get; init; }

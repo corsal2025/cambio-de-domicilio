@@ -111,6 +111,51 @@ public class SchemaMigratorTests : IDisposable
     }
 
     [Fact]
+    public void Migrate_RepeatedFailedAttempts_KeepAtMostThreeBackups_IncludingTheNewest()
+    {
+        new SchemaMigrator(ConnectionString, [new CreateTable(1, "Cases")]).Migrate();
+        Exec("INSERT INTO Cases (Id) VALUES (1)");
+        var clock = new AdvancingClock();
+        var migrations = new IMigration[] { new CreateTable(1, "Cases"), new CreateThenThrow(2, "Lost") };
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            Assert.Throws<MigrationFailedException>(() => new SchemaMigrator(ConnectionString, migrations, clock).Migrate());
+        }
+
+        var backups = BackupFiles().OrderBy(f => f, StringComparer.Ordinal).ToArray();
+        Assert.Equal(3, backups.Length);
+        // Names embed the clock reading, so the newest attempt (minute 5) must still be there and minutes 1-2 must be gone.
+        Assert.EndsWith("0005" + "00", Path.GetFileName(backups[^1])[^6..]);
+        Assert.DoesNotContain(backups, f => Path.GetFileName(f).EndsWith("000100", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Migrate_BackupsOfDifferentVersionsAreNotPruned()
+    {
+        var clock = new AdvancingClock();
+        new SchemaMigrator(ConnectionString, [new CreateTable(1, "A")], clock).Migrate();
+        for (var version = 1; version <= 4; version++)
+        {
+            var list = Enumerable.Range(1, version + 1).Select(v => (IMigration)new CreateTable(v, $"T{v}")).ToArray();
+            new SchemaMigrator(ConnectionString, list, clock).Migrate();
+        }
+
+        // One backup per upgrade, each at a different version: none may be pruned.
+        Assert.Equal(4, BackupFiles().Length);
+    }
+
+    [Fact]
+    public void Migrate_FailureWhileRollingBack_StillReportsTheOriginalError()
+    {
+        var ex = Assert.Throws<MigrationFailedException>(
+            () => new SchemaMigrator(ConnectionString, [new CloseConnectionThenThrow(1)]).Migrate());
+
+        Assert.Equal(1, ex.Version);
+        Assert.Contains("boom", ex.Message);
+    }
+
+    [Fact]
     public void Migrate_FreshDatabase_DoesNotCreateBackup()
     {
         var result = new SchemaMigrator(ConnectionString, [new CreateTable(1, "A")]).Migrate();
@@ -233,6 +278,26 @@ public class SchemaMigratorTests : IDisposable
             command.Transaction = transaction;
             command.CommandText = $"CREATE TABLE {table} (Id INTEGER)";
             command.ExecuteNonQuery();
+            throw new InvalidOperationException("boom");
+        }
+    }
+
+    private sealed class AdvancingClock : TimeProvider
+    {
+        private DateTimeOffset now = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+        /// <summary>Each reading is one minute later, so every backup gets a distinct, ordered name.</summary>
+        public override DateTimeOffset GetUtcNow() => now = now.AddMinutes(1);
+    }
+
+    private sealed class CloseConnectionThenThrow(int version) : IMigration
+    {
+        public int Version => version;
+        public string Description => "breaks the connection, then fails";
+
+        public void Apply(SqliteConnection connection, SqliteTransaction transaction)
+        {
+            connection.Close(); // the later Rollback() on the transaction can no longer work
             throw new InvalidOperationException("boom");
         }
     }

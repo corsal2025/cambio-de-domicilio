@@ -44,8 +44,8 @@ public class SectorF8Model(IPersonRequestRepository repository) : PageModel
 
     /// <summary>In F8, in this sector, marked or pending retrieval, and not yet printed.</summary>
     private IEnumerable<PersonRequest> PendingForPrint(FolderSector sector) =>
-        repository.Find(new CaseQuery { Destinations = [CaseDestination.F8], Sector = sector })
-            .Where(c => (c.Marked || c.PendienteCarpeta) && c.SectorPdfGeneratedAt is null);
+        repository.Find(new CaseQuery { Destinations = [CaseDestination.F8] })
+            .Where(c => c.Sector == sector && (c.Marked || c.PendienteCarpeta) && c.SectorPdfGeneratedAt is null);
 
     private void MarkAllVisibleAsPrinted(FolderSector sector)
     {

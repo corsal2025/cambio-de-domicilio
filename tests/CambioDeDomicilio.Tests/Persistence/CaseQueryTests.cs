@@ -85,14 +85,6 @@ public class CaseQueryTests : IDisposable
     }
 
     [Theory]
-    [InlineData(FolderSector.Archivo)]
-    [InlineData(FolderSector.Oficina43)]
-    public void Find_BySector_MatchesTheDomainRule_IncludingTheCutoffDay(FolderSector sector)
-    {
-        AssertSameAsOracle(new CaseQuery { Sector = sector }, c => c.Sector == sector);
-    }
-
-    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void Find_ByTransferred_MatchesOracle(bool value)
@@ -109,11 +101,11 @@ public class CaseQueryTests : IDisposable
     }
 
     [Fact]
-    public void Find_SectorAndMarkedAndDestination_MatchesOracle()
+    public void Find_DestinationAndMarkedAndNotTransferred_MatchesOracle()
     {
         AssertSameAsOracle(
-            new CaseQuery { Destinations = [CaseDestination.F8], Sector = FolderSector.Archivo, Marked = true },
-            c => c.Destination == CaseDestination.F8 && c.Sector == FolderSector.Archivo && c.Marked);
+            new CaseQuery { Destinations = [CaseDestination.F8, CaseDestination.None], Marked = true, Transferred = false },
+            c => c.Destination is CaseDestination.F8 or CaseDestination.None && c.Marked && c.TransferredAt is null);
     }
 
     [Fact]

@@ -1,6 +1,5 @@
 using System.Text;
 using Microsoft.Data.Sqlite;
-using CambioDeDomicilio.Domain;
 
 namespace CambioDeDomicilio.Persistence;
 
@@ -40,15 +39,6 @@ internal static class CaseQuerySql
         if (query.Transferred is { } transferred)
         {
             clauses.Add(transferred ? "TransferredAt IS NOT NULL" : "TransferredAt IS NULL");
-        }
-
-        if (query.Sector is { } sector)
-        {
-            // FechaUltimaCarpeta is stored as yyyy-MM-dd, so text comparison orders like dates.
-            command.Parameters.AddWithValue("$sectorCutoff", FolderSectorRule.Oficina43Since.ToString("yyyy-MM-dd"));
-            clauses.Add(sector == FolderSector.Archivo
-                ? "(FechaUltimaCarpeta IS NOT NULL AND FechaUltimaCarpeta < $sectorCutoff)"
-                : "(FechaUltimaCarpeta IS NOT NULL AND FechaUltimaCarpeta >= $sectorCutoff)");
         }
 
         if (query.InSinCarpetasBucket is { } inBucket)

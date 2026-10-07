@@ -52,8 +52,8 @@ public class SectorModel(IPersonRequestRepository repository) : PageModel
 
     /// <summary>Marked, not yet printed, still in Casos, and in this sector.</summary>
     private IEnumerable<PersonRequest> PendingForPrint(FolderSector sector) =>
-        repository.Find(new CaseQuery { Sector = sector, Marked = true, Transferred = false })
-            .Where(c => c.SectorPdfGeneratedAt is null);
+        repository.Find(new CaseQuery { Marked = true, Transferred = false })
+            .Where(c => c.Sector == sector && c.SectorPdfGeneratedAt is null);
 
     private void MarkAllVisibleAsPrinted(FolderSector sector)
     {
