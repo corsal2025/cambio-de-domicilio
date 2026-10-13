@@ -16,13 +16,43 @@ The system SHALL offer a "Caja" action in Casos for every case whose physical fo
 - **WHEN** a `Caja` transfer is requested for a `Pending` case without `SoloCaja`
 - **THEN** the case is not changed
 
-### Requirement: Send F8 case with found folder to Caja
-The system SHALL offer a "Caja" action on the F8 screen for every F8 case. Executing it SHALL move the case to the Caja open queue with the same effect as the Casos "Caja" action, without sending any email.
+### Requirement: Send F8 case to Última Carpeta
+The F8 screen SHALL NOT offer a "Caja" action. Instead it SHALL offer an "Última carpeta" action. Executing it SHALL move the case to the Última Carpeta module (`Destination = UltimaCarpeta`, `TransferredAt` set), keep every datum already typed (name, RUT, `CodigoF8`, `FechaUltimaCarpeta`) and SHALL NOT send any email. Only an F8 case that is not closed without folder can be moved.
 
-#### Scenario: F8 case sent to Caja
-- **WHEN** the operator presses "Caja" on a case in the F8 screen
-- **THEN** the case has `Destination = Caja`, `BoxId = null`, `TransferredAt` set
-- **AND** the case appears in the Caja open queue and no longer in F8
+#### Scenario: F8 case sent to Última Carpeta
+- **WHEN** the operator presses "Última carpeta" on a case in the F8 screen
+- **THEN** the case has `Destination = UltimaCarpeta`, `TransferredAt` set and `UltimaCarpetaRequestedAt = null`
+- **AND** the case no longer appears in F8 and appears in Última Carpeta
+- **AND** the F8 screen has no "Caja" button
+
+#### Scenario: Case that is not in F8 cannot be sent
+- **WHEN** a transfer to Última Carpeta is requested for a case whose destination is not F8
+- **THEN** the case is not changed
+
+### Requirement: Última Carpeta module
+The system SHALL provide an "Última Carpeta" module, reachable from the Sistemas navigation of every page, that lists the cases sent from F8 (oldest transfer first) with name, RUT, comuna, F8 code, date of the last folder, transfer date and request state. The operator SHALL be able to print the list or save it as PDF, mark a case as requested ("Pedida", recording `UltimaCarpetaRequestedAt`), undo that mark, send a case to the Caja open queue when the last folder arrived, or close it with "Sin carpeta" when the folder does not exist. Closing with "Sin carpeta" moves the case to the Sin Carpetas module, where the process ends. No action in this module SHALL send an email.
+
+#### Scenario: Mark as requested
+- **WHEN** the operator presses "Pedida" on a listed case
+- **THEN** `UltimaCarpetaRequestedAt` is set and the row shows the request date
+
+#### Scenario: Undo requested
+- **WHEN** the operator undoes the request mark
+- **THEN** `UltimaCarpetaRequestedAt` is null again
+
+#### Scenario: Send to Caja from Última Carpeta
+- **WHEN** the operator presses "Caja" on a listed case
+- **THEN** the case has `Destination = Caja`, `Status = Confirmed`, `BoxId = null`, `TransferredAt` set
+- **AND** the case appears in the Caja open queue and no longer in Última Carpeta
+
+#### Scenario: The folder does not exist
+- **WHEN** the operator presses "Sin carpeta" on a listed case
+- **THEN** the case has `ClosedWithoutFolderAt` set, `SinCarpeta = true` and `Destination = SinCarpetas`
+- **AND** the case no longer appears in Última Carpeta and appears in Sin Carpetas, where it has no further actions
+
+#### Scenario: Closed without folder never reaches Caja from here
+- **WHEN** a Caja transfer is requested for a case with `ClosedWithoutFolderAt` set
+- **THEN** the case is not changed
 
 ### Requirement: Close F8 case without folder
 The system SHALL offer a "Sin carpeta" action on the F8 and Subidas screens (also reachable by typing `S/C` as the F8 date). Executing it SHALL record `ClosedWithoutFolderAt`, set `SinCarpeta`, clear `FolderNotFound`, set `Destination = SinCarpetas` and `TransferredAt`, and SHALL NOT send any email. The case is listed on the Sin Carpetas screen.

@@ -85,7 +85,7 @@ header.app-header .brand > span { border-left: 4px solid var(--brand-yellow); pa
 header.app-header .brand small:last-child { color: var(--brand-yellow); }
 
 div.app-subnav { background: #16205a; }
-a.nav-casos, a.nav-f8, a.nav-subidas, a.nav-sin-carpetas, a.nav-caja, a.nav-estadisticas,
+a.nav-casos, a.nav-f8, a.nav-ultima-carpeta, a.nav-subidas, a.nav-sin-carpetas, a.nav-caja, a.nav-estadisticas,
 a.nav-pdf-archivo, a.nav-pdf-oficina43 { border-radius: 999px; padding-left: 14px; padding-right: 14px; }
 nav.app-nav a.active { color: var(--accent-hover); }
 

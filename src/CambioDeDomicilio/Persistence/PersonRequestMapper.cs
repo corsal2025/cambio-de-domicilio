@@ -59,7 +59,8 @@ internal static class PersonRequestMapper
             ConfirmationBouncedAt = reader.IsDBNull(reader.GetOrdinal("ConfirmationBouncedAt")) ? null : DateTimeOffset.Parse(reader.GetString(reader.GetOrdinal("ConfirmationBouncedAt"))),
             BoxId = GetNullableInt64("BoxId"),
             SoloCaja = GetBoolean("SoloCaja"),
-            ClosedWithoutFolderAt = GetNullableDateTimeOffset("ClosedWithoutFolderAt")
+            ClosedWithoutFolderAt = GetNullableDateTimeOffset("ClosedWithoutFolderAt"),
+            UltimaCarpetaRequestedAt = GetNullableDateTimeOffset("UltimaCarpetaRequestedAt")
         };
     }
 }

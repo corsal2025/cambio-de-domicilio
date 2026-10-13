@@ -358,6 +358,7 @@ div.app-subnav span.app-subnav-label {
 
 a.nav-casos,
 a.nav-f8,
+a.nav-ultima-carpeta,
 a.nav-subidas,
 a.nav-sin-carpetas,
 a.nav-caja,
@@ -393,6 +394,14 @@ a.nav-f8 {
 }
 a.nav-f8:hover { background: rgba(251, 191, 36, 0.22); color: #ffffff; }
 a.nav-f8.active { background: #d97706; color: #ffffff; border-color: #fbbf24; font-weight: 700; }
+
+a.nav-ultima-carpeta {
+    background: rgba(45, 212, 191, 0.12);
+    color: #99f6e4;
+    border-color: rgba(45, 212, 191, 0.3);
+}
+a.nav-ultima-carpeta:hover { background: rgba(45, 212, 191, 0.24); color: #ffffff; }
+a.nav-ultima-carpeta.active { background: #0d9488; color: #ffffff; border-color: #2dd4bf; font-weight: 700; }
 
 a.nav-subidas {
     background: rgba(20, 184, 166, 0.14);

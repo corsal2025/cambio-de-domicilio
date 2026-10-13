@@ -78,6 +78,13 @@ public interface IPersonRequestRepository
     /// SinCarpeta or closed-without-folder cases.</summary>
     void SendToCaja(IReadOnlyList<long> ids, DateTimeOffset transferredAt);
 
+    /// <summary>F8 "Última carpeta": moves an F8 case (not closed without folder) to the Última Carpeta
+    /// screen, keeping every typed datum. Any other case is left untouched. No email is sent.</summary>
+    void SendToUltimaCarpeta(long id, DateTimeOffset transferredAt);
+
+    /// <summary>Records (or clears, with null) when the last folder of a case in Última Carpeta was requested.</summary>
+    void SetUltimaCarpetaRequested(long id, DateTimeOffset? requestedAt);
+
     /// <summary>Permanently removes a case — operator-triggered, for entries that shouldn't have
     /// been tracked at all (e.g. a mistaken manual entry). Not the same as reverting a status.</summary>
     void Delete(long id);
@@ -538,12 +545,12 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             command.CommandText = """
                 UPDATE PersonRequest
                 SET Destination = 'Caja',
-                    Status = CASE WHEN SoloCaja = 1 OR Destination = 'F8' THEN 'Confirmed' ELSE Status END,
+                    Status = CASE WHEN SoloCaja = 1 OR Destination IN ('F8', 'UltimaCarpeta') THEN 'Confirmed' ELSE Status END,
                     SoloCaja = 0,
                     TransferredAt = $transferredAt,
                     Marked = 0
                 WHERE Id = $id
-                  AND (Status = 'Uploaded' OR Status = 'Confirmed' OR SoloCaja = 1 OR Destination = 'F8')
+                  AND (Status = 'Uploaded' OR Status = 'Confirmed' OR SoloCaja = 1 OR Destination IN ('F8', 'UltimaCarpeta'))
                   AND SinCarpeta = 0
                   AND ClosedWithoutFolderAt IS NULL;
                 """;
@@ -552,6 +559,36 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
             command.ExecuteNonQuery();
         }
         transaction.Commit();
+    }
+
+    public void SendToUltimaCarpeta(long id, DateTimeOffset transferredAt)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE PersonRequest
+            SET Destination = 'UltimaCarpeta',
+                TransferredAt = $transferredAt,
+                UltimaCarpetaRequestedAt = NULL,
+                Marked = 0
+            WHERE Id = $id
+              AND Destination = 'F8'
+              AND SinCarpeta = 0
+              AND ClosedWithoutFolderAt IS NULL;
+            """;
+        command.Parameters.AddWithValue("$transferredAt", transferredAt.ToString("O"));
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+    }
+
+    public void SetUltimaCarpetaRequested(long id, DateTimeOffset? requestedAt)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE PersonRequest SET UltimaCarpetaRequestedAt = $requestedAt WHERE Id = $id AND Destination = 'UltimaCarpeta'";
+        command.Parameters.AddWithValue("$requestedAt", requestedAt is { } at ? at.ToString("O") : DBNull.Value);
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
     }
 
     private SqliteConnection Open()

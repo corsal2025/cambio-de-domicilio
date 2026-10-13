@@ -79,8 +79,13 @@ Diagrama acordado con el operador (2026-07-03), actualizado a octubre de 2026 co
  cola) o se puede quitar una carpeta, que vuelve a Casos.
 
  Casos en F8 (no se encontró la carpeta):
-   • "Caja"        → apareció la carpeta: va directo a la cola
-                     de Caja.
+   • "Última carpeta" → el caso pasa a la pantalla "Última
+                     Carpeta", donde se pide la última carpeta:
+                     se imprime la lista, se marca "Pedida" y, si
+                     la carpeta llega, "Caja" la manda a la cola
+                     de Caja; si no existe, "Sin carpeta" la
+                     cierra en Sin Carpetas (fin del trámite).
+                     F8 ya no tiene botón "Caja".
    • "Sin carpeta" → se cierra el proceso sin carpeta (también
                      escribiendo S/C como fecha en F8, o desde
                      Subidas a Sistema): el caso pasa a la
@@ -99,9 +104,10 @@ Diagrama acordado con el operador (2026-07-03), actualizado a octubre de 2026 co
    (+ marca "Requiere revisión" si faltan datos extraíbles)
 
  DESTINOS DE UN CASO (en qué pantalla está; eje independiente):
-   Casos → F8 | Subidas a Sistema | Caja | Sin Carpetas
+   Casos → F8 → Última Carpeta → Caja | Sin Carpetas   (y Subidas a Sistema)
    Casos:             caso nuevo, aún en trabajo
    F8:                carpeta no encontrada (Traspaso a F8)
+   Última Carpeta:    se pide la última carpeta de un caso F8
    Subidas a Sistema: ya confirmado, falta decidir Caja o Sin carpeta
    Caja:              cola abierta, luego caja cerrada con rótulo
    Sin Carpetas:      terminal, solo lectura
