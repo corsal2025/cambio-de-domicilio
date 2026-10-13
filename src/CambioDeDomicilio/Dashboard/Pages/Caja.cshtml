@@ -9,6 +9,7 @@
     <title>Caja — CambioDeDomicilio</title>
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tema-lico.css" asp-append-version="true" />
     <style>
         .caja-section {
             margin-bottom: 24px;
@@ -109,7 +110,7 @@
         </div>
         <nav class="app-nav">
             <button type="button" id="btn-guia-global" class="btn-guia-accion" title="Cómo usar el sistema (Guía interactiva)" data-tooltip="Simulador interactivo con flecha explicativa que te enseña paso a paso cómo usar el sistema">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span class="lico-mini" data-lico="saluda" aria-hidden="true"></span>
                 <span>Cómo usar el sistema</span>
             </button>
             <div class="nav-group">
@@ -140,6 +141,17 @@
     </div>
 
     <main>
+        <section class="page-head" aria-labelledby="page-title">
+            <button type="button" class="head-lico" id="btn-lico-saludo" data-lico="saluda" aria-label="Abrir la guía con Lico"><span class="head-lico-burbuja">¡Hola! Me llamo Lico</span></button>
+            <div class="page-head-text">
+                <h1 id="page-title">Caja</h1>
+                <div class="sub">Embalaje físico de carpetas: cola de llegada y cajas cerradas</div>
+            </div>
+            <div class="stat-row" role="group" aria-label="Resumen de Caja">
+                <div class="stat-chip stat-chip--soft"><b class="num">@Model.Queue.Count</b><span>En cola</span></div>
+                <div class="stat-chip stat-chip--ok"><b class="num">@Model.ClosedBoxes.Count</b><span>Cajas cerradas</span></div>
+            </div>
+        </section>
     @if (!string.IsNullOrEmpty(Model.Message))
     {
         <div class="feedback-banner no-print" style="background:rgba(34,197,94,0.14); color:#bbf7d0; border:1px solid rgba(34,197,94,0.32); padding:10px 14px; border-radius:6px; margin-bottom:16px; font-size:0.85rem; font-weight:600;">
@@ -418,7 +430,7 @@
         })();
     </script>
     <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
-    <script src="~/js/system-tour.js" asp-append-version="true"></script>
+    <script src="~/js/guia-interactiva.js" asp-append-version="true"></script>
     <partial name="_AuthorFooter" />
 </body>
 </html>

@@ -551,9 +551,12 @@ public class IndexModel(
         // operator ticked the checkboxes in (MarkedAt): a case re-tracked later (e.g. after being
         // reverted from Uploaded back to Pending) must keep its original position, and ticking
         // rows in any order must not scramble the queue. The printed sector PDFs still follow
-        // MarkedAt (see Sector.cshtml.cs).
+        // Cases requiring review (NeedsReview = true) float to the very top in first row(s);
+        // marked cases float next; confirmed cases (blue row) sink to the very end.
+        // Within each group, order newest to oldest by ReceivedAt.
         Cases = all
             .OrderBy(c => c.Status == RequestStatus.Confirmed)
+            .ThenByDescending(c => c.NeedsReview)
             .ThenByDescending(c => c.Marked && c.SectorPdfGeneratedAt is null)
             .ThenByDescending(c => c.Marked)
             .ThenBy(c => c.FechaUltimaCarpeta is not null)

@@ -131,15 +131,8 @@ _ = Task.Run(async () =>
     }
 });
 
-// Port 5002 is loopback-only (127.0.0.1, see appsettings.json) and exists solely so a local
-// port-forwarding tool (e.g. a VS Code Dev Tunnel) can reach real content over plain HTTP — those
-// tools proxy to a local HTTP port, not TLS, and TLS-terminate themselves at their own public
-// HTTPS endpoint. Since 5002 never leaves the machine, skipping the redirect there doesn't expose
-// anything on the LAN; the public-facing HTTP listener (port 5000, reachable on 0.0.0.0) still
-// only ever redirects, never serves data.
-app.UseWhen(
-    context => context.Connection.LocalPort != 5002,
-    branch => branch.UseHttpsRedirection());
+// The dashboard listens on a single HTTPS endpoint (see Kestrel:Endpoints in appsettings.json); there is
+// no plain-HTTP listener, so no HTTPS redirection middleware is needed.
 app.UseStaticFiles();
 app.MapRazorPages();
 
