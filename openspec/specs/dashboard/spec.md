@@ -5,11 +5,11 @@
 The operator-facing web dashboard for the upload-confirmation flow: case list with lifecycle status, manual data entry, confirmation actions, sector PDF generation, comuna directory management, and portable distribution. It runs on the municipal LAN with no login gate — access is controlled at the network layer, not the application.
 ## Requirements
 ### Requirement: Encrypted transport
-The dashboard SHALL be served over HTTPS only; plain HTTP requests SHALL be redirected to HTTPS, never served with data.
+The dashboard SHALL be served over HTTPS only, on a single listening port (HTTPS 5001); there SHALL be no plain-HTTP listener, so data is never served over a plain connection.
 
-#### Scenario: HTTP request redirected
-- **WHEN** a browser requests `http://<host>:<port>/...`
-- **THEN** the response is a redirect to the equivalent `https://` URL, with no page content served over the plain connection
+#### Scenario: Single HTTPS listener
+- **WHEN** the application starts with the default configuration
+- **THEN** the only endpoint Kestrel binds is `https://0.0.0.0:5001`, and nothing listens on a plain-HTTP port
 
 ### Requirement: Case list reflecting the real lifecycle
 The dashboard SHALL show tracked cases (`PersonRequest`) with their current status (`Pending`/`Uploaded`/`Confirmed`), filterable by status and by "Requiere revisión." Cases transferred to another screen (`TransferredAt` set, e.g. F8 or Caja) SHALL NOT appear in Casos. Cases closed without folder SHALL appear with the label "Cerrado sin carpeta" and no actions. The action column SHALL show only the actions valid for the case state, rendered as icon buttons with a tooltip and accessible label.

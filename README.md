@@ -49,7 +49,7 @@ dotnet run --project src/CambioDeDomicilio -- --smoke-test
 
 ## Dashboard web
 
-El mismo proceso sirve un dashboard en `https://localhost:5001` (el puerto HTTP 5000 solo redirige, nunca entrega datos). No tiene login: corre en la red municipal y el acceso se controla a nivel de red, no de la aplicación.
+El mismo proceso sirve un dashboard en `https://localhost:5001` (único puerto en escucha: HTTPS 5001; no hay listener HTTP) y es accesible desde la red en `https://<nombre-del-pc>:5001`. No tiene login: corre en la red municipal y el acceso se controla a nivel de red, no de la aplicación.
 
 Desde el dashboard (`/Index`) el operador puede: ver los casos con su estado (Pendiente/Subido/Confirmado), filtrar por estado o por "Requiere revisión", marcar casos con un checkbox propio (organización personal, sin efecto en el flujo), editar el nombre/RUT de cualquier caso, editar la fecha de última carpeta (recalcula el sector al instante, se guarda solo al salir del campo), y confirmar con "Enviar confirmación" (casos Subidos) o "Marcar subida" (mueve el correo y confirma en un solo clic, con diálogo de confirmación porque es irreversible). Los casos Confirmados se resaltan en la tabla. Desde `/Sector/Archivo` o `/Sector/Oficina43` se genera el documento imprimible (imprimir del navegador → PDF) con los casos de ese sector.
 
