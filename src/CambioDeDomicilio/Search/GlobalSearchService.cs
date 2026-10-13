@@ -11,6 +11,7 @@ public enum SearchModule
     Casos,
     F8,
     Subidas,
+    UltimaCarpeta,
     Caja,
     SinCarpetas,
     Descartados,
@@ -26,6 +27,7 @@ public static class SearchModuleInfo
         SearchModule.Casos => "Cambio de Domicilio",
         SearchModule.F8 => "F8",
         SearchModule.Subidas => "Subidas a Sistema",
+        SearchModule.UltimaCarpeta => "Última Carpeta",
         SearchModule.Caja => "Caja",
         SearchModule.SinCarpetas => "Sin Carpetas",
         SearchModule.Descartados => "Descartados",
@@ -171,6 +173,10 @@ public sealed class GlobalSearchService(
                 return new SearchHit(module, title, baseDetail, "/SubidasASistema",
                     new Dictionary<string, string?> { ["search"] = query });
 
+            case SearchModule.UltimaCarpeta:
+                return new SearchHit(module, title, baseDetail, "/UltimaCarpeta",
+                    new Dictionary<string, string?> { ["search"] = query });
+
             case SearchModule.SinCarpetas:
                 return new SearchHit(module, title, baseDetail, "/SinCarpetas",
                     new Dictionary<string, string?> { ["search"] = query });
@@ -194,6 +200,7 @@ public sealed class GlobalSearchService(
         {
             CaseDestination.F8 => SearchModule.F8,
             CaseDestination.Subidas => SearchModule.Subidas,
+            CaseDestination.UltimaCarpeta => SearchModule.UltimaCarpeta,
             CaseDestination.Caja => SearchModule.Caja,
             _ => SearchModule.Casos
         };

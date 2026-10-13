@@ -120,6 +120,10 @@ public sealed class PersonRequest
     /// enter Caja. Null means not closed.</summary>
     public DateTimeOffset? ClosedWithoutFolderAt { get; set; }
 
+    /// <summary>When the operator marked the last folder of this case as requested, on the Última Carpeta
+    /// screen. Null means it has not been requested yet.</summary>
+    public DateTimeOffset? UltimaCarpetaRequestedAt { get; set; }
+
     /// <summary>True once the operator finished working this case (folder uploaded, confirmation
     /// sent, sent to Caja or closed without folder). The dashboard greys these rows out so the
     /// untouched (white) ones stand out.</summary>
@@ -140,6 +144,9 @@ public enum CaseDestination
     Caja,
     /// <summary>Transferred to the /SubidasASistema screen once marked as uploaded.</summary>
     Subidas,
+    /// <summary>F8 case whose last folder is being requested: shown on the /UltimaCarpeta screen until the
+    /// operator sends it to Caja (the folder arrived) or closes it without folder (it does not exist).</summary>
+    UltimaCarpeta,
     /// <summary>Closed without folder and transferred to the /SinCarpetas screen.</summary>
     SinCarpetas
 }

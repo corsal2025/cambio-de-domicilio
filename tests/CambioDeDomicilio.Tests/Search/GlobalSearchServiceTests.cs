@@ -45,6 +45,9 @@ public class GlobalSearchServiceTests : IDisposable
         repository.SetDestination(subidas, CaseDestination.Subidas, DateTimeOffset.UtcNow);
         var sin = Insert("sin", "ANA RIVERA SIN", "44.444.444-4");
         repository.CloseWithoutFolder(sin, DateTimeOffset.UtcNow);
+        var ultima = Insert("ultima", "ANA RIVERA ULTIMA", "66.666.666-6");
+        repository.SetDestination(ultima, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.SendToUltimaCarpeta(ultima, DateTimeOffset.UtcNow);
         var caja = Insert("caja", "ANA RIVERA CAJA", "55.555.555-5");
         repository.UpdateStatusToConfirmed(caja, DateTimeOffset.UtcNow);
         repository.SendToCaja([caja], DateTimeOffset.UtcNow);
@@ -52,7 +55,7 @@ public class GlobalSearchServiceTests : IDisposable
         var result = sut.Search("rivera", NoContacts);
 
         Assert.Equal(
-            new[] { SearchModule.Casos, SearchModule.F8, SearchModule.Subidas, SearchModule.Caja, SearchModule.SinCarpetas },
+            new[] { SearchModule.Casos, SearchModule.F8, SearchModule.Subidas, SearchModule.UltimaCarpeta, SearchModule.Caja, SearchModule.SinCarpetas },
             result.Hits.Select(h => h.Module).OrderBy(m => m).ToArray());
     }
 
@@ -174,7 +177,7 @@ public class GlobalSearchServiceTests : IDisposable
         var result = sut.Search("zzzzzz", NoContacts);
 
         Assert.Empty(result.Hits);
-        Assert.Equal(7, result.SearchedModules.Count);
+        Assert.Equal(8, result.SearchedModules.Count);
     }
 
     [Fact]
