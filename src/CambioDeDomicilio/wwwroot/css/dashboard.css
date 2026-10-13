@@ -724,6 +724,29 @@ input.form-control {
     scrollbar-color: #475569 #f1f5f9;
 }
 
+/* Horizontal scrollbar of the case tables, pinned to the bottom edge of the window (see table-fit.js).
+   It mirrors the table's own bar, so sideways scrolling is always one drag away however far the page is
+   scrolled vertically. */
+.hscroll-pinned {
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
+    height: 18px;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    flex: 0 0 auto;
+    background: #f1f5f9;
+    border-top: 1px solid var(--color-border);
+    scrollbar-width: auto;
+    scrollbar-color: #475569 #f1f5f9;
+}
+.hscroll-pinned > div {
+    height: 1px;
+}
+@media print {
+    .hscroll-pinned { display: none !important; }
+}
+
 /* Scrollbar estilizada */
 .card.table-card::-webkit-scrollbar {
     width: 12px;
