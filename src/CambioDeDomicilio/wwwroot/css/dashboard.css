@@ -943,7 +943,8 @@ table.cases-index tbody tr td:nth-child(-n+2) {
 }
 table.cases-index thead tr.header-cols th:nth-child(-n+2) {
     position: sticky;
-    background: #f8fafc;
+    /* Same tone as every other column header (one colour for the whole header row, no white/grey mix). */
+    background: var(--accent-soft, #e6e9f6);
     z-index: 12;
 }
 table.cases-index tbody tr > :nth-child(1),
