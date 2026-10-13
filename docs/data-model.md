@@ -73,10 +73,14 @@ named in the same source email.
 - `Destination`: `CaseDestination`, stored as text, default `None`:
   - `None` — still in Casos (`/Index`)
   - `F8` — transferred to `/F8` (folder not found)
+  - `UltimaCarpeta` — sent from F8 with "Última carpeta"; listed on `/UltimaCarpeta` until it goes to Caja or is
+    closed without folder
   - `Subidas` — transferred to `/SubidasASistema` once the confirmation email is sent from Casos
     (including through the one-click "Marcar subida")
   - `Caja` — in the Caja screen (open queue while `BoxId` is null, or in a closed box)
   - `SinCarpetas` — closed without a physical folder; listed on `/SinCarpetas`
+- `UltimaCarpetaRequestedAt`: When the operator marked the last folder as requested on `/UltimaCarpeta`
+  (schema V003). Null means not requested yet.
 - `TransferredAt`: When the case was moved to its current `Destination`. Null means not transferred.
 - `BoxId`: Closed `Box` this case was packed into. Null means it is still in the open Caja queue
   (only meaningful when `Destination = Caja`).
@@ -127,8 +131,10 @@ Pending -> Uploaded -> Confirmed
 ```
 None --Marcar subida / Enviar confirmación--> Subidas
 None --Traspaso a F8 (needs the F8 checkbox)--> F8
-None | Subidas | F8 --Caja--> Caja (open queue, BoxId NULL) --Cerrar Caja--> Caja (BoxId set)
-F8 | Subidas --Sin carpeta (or "S/C" as F8 date)--> SinCarpetas   (terminal, read-only)
+F8 --Última carpeta--> UltimaCarpeta --Caja--> Caja (open queue, BoxId NULL)
+None | Subidas --Caja--> Caja (open queue, BoxId NULL) --Cerrar Caja--> Caja (BoxId set)
+UltimaCarpeta --Sin carpeta--> SinCarpetas
+F8 | Subidas | UltimaCarpeta --Sin carpeta (or "S/C" as F8 date)--> SinCarpetas   (terminal, read-only)
 F8 --Revertir--> None (Status Pending, SoloCaja = 1)
 Subidas --Rectificar--> None (Status Pending)
 Caja (open queue) --Devolver a casos--> None

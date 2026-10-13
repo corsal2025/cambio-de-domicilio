@@ -17,6 +17,7 @@
   var SECCIONES = {
     '/': 'Cambio de Domicilio',
     '/f8': 'F8',
+    '/ultimacarpeta': 'Última Carpeta',
     '/subidasasistema': 'Subidas a Sistema',
     '/sincarpetas': 'Sin Carpetas',
     '/caja': 'Caja',
@@ -41,7 +42,7 @@
       target: '.app-subnav-main',
       titulo: 'Los sistemas',
       icono: '🧭',
-      descripcion: 'Aquí saltas entre pantallas: <b>Cambio de Domicilio</b>, <b>F8</b>, <b>Subidas a Sistema</b>, <b>Sin Carpetas</b>, <b>Caja</b> y <b>Estadísticas</b>. La pantalla donde estás aparece resaltada.'
+      descripcion: 'Aquí saltas entre pantallas: <b>Cambio de Domicilio</b>, <b>F8</b>, <b>Última Carpeta</b>, <b>Subidas a Sistema</b>, <b>Sin Carpetas</b>, <b>Caja</b> y <b>Estadísticas</b>. La pantalla donde estás aparece resaltada.'
     },
     {
       pagina: '/', pose: 'explica',
@@ -139,7 +140,17 @@
       fallbackTarget: 'main',
       titulo: 'F8: carpeta física no encontrada',
       icono: '🚨',
-      descripcion: 'Aquí llegan los casos con la casilla <b>F8</b>. Registras el <b>código F8</b> y la fecha de la penúltima carpeta. Desde F8 puedes <b>Marcar subida</b>, enviar a <b>Caja</b> (si la encuentras), cerrar <b>Sin carpeta</b> o <b>Revertir</b> sin perder lo digitado.'
+      descripcion: 'Aquí llegan los casos con la casilla <b>F8</b>. Registras el <b>código F8</b> y la fecha de la penúltima carpeta. Desde F8 puedes <b>Marcar subida</b>, enviar a <b>Última carpeta</b> para pedir la última carpeta, cerrar <b>Sin carpeta</b> o <b>Revertir</b> sin perder lo digitado.'
+    },
+
+    // ---------- ULTIMA CARPETA ----------
+    {
+      pagina: '/ultimacarpeta', pose: 'explica',
+      target: '.table-card',
+      fallbackTarget: 'main',
+      titulo: 'Última Carpeta: pedir la última carpeta',
+      icono: '🗂️',
+      descripcion: 'Aquí llegan los casos de F8 con <b>Última carpeta</b>. Imprime la lista para pedir cada carpeta y marca <b>Pedida</b>. Si la carpeta llega, <b>Caja</b> la manda a la cola; si no existe, <b>Sin carpeta</b> la cierra en Sin Carpetas, donde termina el trámite.'
     },
 
     // ---------- SUBIDAS A SISTEMA ----------

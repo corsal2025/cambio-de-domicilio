@@ -1,0 +1,401 @@
+@page
+@model CambioDeDomicilio.Dashboard.Pages.UltimaCarpetaModel
+@using CambioDeDomicilio.Domain
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Última Carpeta — CambioDeDomicilio</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tema-lico.css" asp-append-version="true" />
+    <style>
+        .doc-sheet {
+            background: #fff;
+            padding: 24px;
+            border-radius: var(--radius);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            margin-bottom: 24px;
+        }
+
+        .doc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 3px solid var(--color-primary);
+            padding-bottom: 14px;
+            margin-bottom: 0;
+            position: relative;
+        }
+
+        .doc-header::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -6px;
+            height: 2px;
+            background: var(--color-accent);
+        }
+
+        .doc-header .doc-seal {
+            height: 64px;
+            width: auto;
+            flex: none;
+            object-fit: contain;
+        }
+
+        .doc-header .doc-title-block {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .doc-header .doc-org {
+            margin: 0;
+            font-size: 0.82rem;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 700;
+        }
+
+        .doc-header h2 {
+            margin: 4px 0 0;
+            color: var(--color-primary);
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+
+        .doc-header .doc-meta {
+            text-align: right;
+            font-size: 0.88rem;
+            color: var(--color-text-muted);
+            white-space: nowrap;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius);
+            padding: 8px 16px;
+            line-height: 1.5;
+        }
+
+        .doc-header .doc-meta strong {
+            color: var(--color-primary);
+            font-size: 1.02rem;
+        }
+
+        .doc-subheader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 16px 0 14px;
+            padding: 6px 12px;
+            background: var(--color-bg);
+            border-left: 3px solid var(--color-accent);
+            border-radius: 0 4px 4px 0;
+            font-size: 0.78rem;
+            color: var(--color-text-muted);
+        }
+
+        .doc-subheader span:last-child {
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        /* The shared .card.table-card is sized for the fixed-height Casos/F8 layout (height: 0 inside
+           a flex column). This page is a normal-flow document sheet, so without this override the
+           table collapses to zero height and the list looks empty. */
+        .doc-sheet .card.table-card {
+            flex: none;
+            height: auto;
+            overflow: visible !important;
+        }
+
+        .sin-carpetas-toolbar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .sin-carpetas-toolbar-left {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .sin-carpetas-toolbar-right {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+        }
+
+        @@media print {
+            .no-print, .app-header, .app-subnav, .sin-carpetas-toolbar, .btn-action, .author-footer, .nav-search {
+                display: none !important;
+            }
+            body {
+                background: #fff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .doc-sheet {
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            table.cases th {
+                background: #eef2f6 !important;
+                color: #000 !important;
+                font-size: 0.88rem !important;
+                padding: 6px 8px !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            table.cases td {
+                border: 1px solid #888 !important;
+                color: #000 !important;
+                font-size: 0.88rem !important;
+                padding: 6px 8px !important;
+            }
+            tbody tr { break-inside: avoid; }
+        }
+    </style>
+    <style id="page-size-style">
+        @@page {
+            size: A4;
+            margin: 12mm;
+        }
+    </style>
+</head>
+<body class="cases-page">
+    <header class="app-header no-print">
+        <div class="brand">
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                CambioDeDomicilio
+                <small>Municipalidad de Valparaíso</small>
+                <small>Última Carpeta</small>
+            </span>
+        </div>
+        <nav class="app-nav">
+            <button type="button" id="btn-guia-global" class="btn-guia-accion" title="Cómo usar el sistema (Guía interactiva)" data-tooltip="Simulador interactivo con flecha explicativa que te enseña paso a paso cómo usar el sistema">
+                <span class="lico-mini" data-lico="saluda" aria-hidden="true"></span>
+                <span>Cómo usar el sistema</span>
+            </button>
+            <div class="nav-group nav-group-filters">
+                <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            </div>
+            <div class="nav-group nav-group-end">
+                <partial name="_GlobalSearch" />
+            </div>
+        </nav>
+    </header>
+    <div class="app-subnav no-print">
+        <div class="app-subnav-main">
+            <span class="app-subnav-label">Sistemas</span>
+            <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/UltimaCarpeta" class="nav-ultima-carpeta active"><partial name="_NavIcon" model="@("ultima")" /><span>Última Carpeta</span></a>
+            <a asp-page="/SubidasASistema" class="nav-subidas"><partial name="_NavIcon" model="@("upload")" /><span>Subidas a Sistema</span></a>
+            <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
+            <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
+        </div>
+        <div class="app-subnav-docs">
+            <span class="app-subnav-label">Documentos</span>
+            <a asp-page="/Sector" asp-route-sector="Archivo" class="nav-pdf-archivo" title="Generar listado para Archivo">
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Archivo</span>
+            </a>
+            <a asp-page="/Sector" asp-route-sector="Oficina43" class="nav-pdf-oficina43" title="Generar listado para Oficina 43">
+                <partial name="_NavIcon" model="@("pdf")" /><span>PDF Oficina 43</span>
+            </a>
+        </div>
+    </div>
+
+    <main>
+        <section class="page-head" aria-labelledby="page-title">
+            <button type="button" class="head-lico" id="btn-lico-saludo" data-lico="saluda" aria-label="Abrir la guía con Lico"><span class="head-lico-burbuja">¡Hola! Me llamo Lico</span></button>
+            <div class="page-head-text">
+                <h1 id="page-title">Última Carpeta</h1>
+                <div class="sub">Casos de F8 cuya última carpeta hay que pedir</div>
+            </div>
+            <div class="stat-row" role="group" aria-label="Resumen de Última Carpeta">
+                <div class="stat-chip"><b class="num">@Model.TotalCount</b><span>En el módulo</span></div>
+                <div class="stat-chip"><b class="num">@Model.PendingCount</b><span>Por pedir</span></div>
+            </div>
+        </section>
+        @if (Model.Message is not null)
+        {
+            <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
+        }
+
+        <div class="sin-carpetas-toolbar no-print">
+            <div class="sin-carpetas-toolbar-left">
+                <button type="button" class="btn-primary" onclick="window.print()">
+                    <partial name="_NavIcon" model="@("pdf")" /><span>Imprimir / Guardar como PDF</span>
+                </button>
+                <span style="display:flex; gap:6px; align-items:center; margin-left:8px;">
+                    <label class="form-label" for="page-size-select" style="margin:0;">Tamaño de hoja</label>
+                    <select id="page-size-select" onchange="updatePageSize()"
+                            style="border:1px solid var(--color-border); border-radius:4px; padding:5px 8px; font-size:0.85rem;">
+                        <option value="A4">A4</option>
+                        <option value="letter">Carta</option>
+                        <option value="legal">Oficio</option>
+                    </select>
+                </span>
+            </div>
+            <div class="sin-carpetas-toolbar-right">
+                Casos en Última Carpeta: <strong>@Model.TotalCount</strong> · Por pedir: <strong>@Model.PendingCount</strong>
+                @if (!string.IsNullOrWhiteSpace(Model.Search))
+                {
+                    <span> · Mostrando <strong>@Model.Cases.Count</strong> resultado(s) para "<strong>@Model.Search</strong>"</span>
+                }
+            </div>
+        </div>
+
+        <div class="doc-sheet">
+            <div class="doc-header">
+                <div class="doc-title-block">
+                    <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="doc-seal" />
+                    <div>
+                        <p class="doc-org">Municipalidad de Valparaíso — Dirección de Tránsito</p>
+                        <h2>Listado de Últimas Carpetas por Pedir</h2>
+                    </div>
+                </div>
+                <div class="doc-meta">
+                    <div>Folio: <strong>UC-@DateTimeOffset.Now.ToString("yyyyMMdd-HHmm")</strong></div>
+                    <div>Generado: <strong>@DateTimeOffset.Now.ToString("dd-MM-yyyy HH:mm")</strong></div>
+                </div>
+            </div>
+            <div class="doc-subheader">
+                <span>Casos de F8 cuya última carpeta debe solicitarse</span>
+                <span>@Model.Cases.Count caso(s) en este listado</span>
+            </div>
+
+            @if (Model.Cases.Count == 0)
+            {
+                <div class="empty-state" style="padding: 32px 16px; text-align: center; color: var(--color-text-muted);">
+                    No hay casos en Última Carpeta actualmente.
+                </div>
+            }
+            else
+            {
+                <div class="card table-card" style="box-shadow:none; border:none; margin:0;">
+                    <table class="cases cases-index">
+                        <thead>
+                            <tr class="header-cols">
+                                <th style="width: 45px; text-align: center;">N°</th>
+                                <th>Nombre completo</th>
+                                <th>RUT</th>
+                                <th>Comuna</th>
+                                <th>Código F8</th>
+                                <th>Fecha última carpeta</th>
+                                <th>Enviado el</th>
+                                <th>Estado</th>
+                                <th class="no-print">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @for (var i = 0; i < Model.Cases.Count; i++)
+                        {
+                            var item = Model.Cases[i];
+                            <tr>
+                                <td style="text-align: center; font-weight: 600; color: var(--color-text-muted);">@(i + 1)</td>
+                                <td class="text-cell" style="font-weight: 600;">@item.FullName</td>
+                                <td class="text-cell">@item.Rut</td>
+                                <td class="text-cell">@item.Comuna</td>
+                                <td class="text-cell">@(string.IsNullOrWhiteSpace(item.CodigoF8) ? "—" : item.CodigoF8)</td>
+                                <td class="text-cell">@(item.FechaUltimaCarpeta is { } fecha ? fecha.ToString("dd-MM-yyyy") : "—")</td>
+                                <td class="text-cell">@(item.TransferredAt is { } sentAt ? sentAt.LocalDateTime.ToString("dd-MM-yyyy HH:mm") : "—")</td>
+                                <td class="text-cell">
+                                    @if (item.UltimaCarpetaRequestedAt is { } requestedAt)
+                                    {
+                                        <span>Pedida el @requestedAt.LocalDateTime.ToString("dd-MM-yyyy")</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Por pedir</span>
+                                    }
+                                </td>
+                                <td class="no-print">
+                                    <div class="action-group">
+                                        @if (item.UltimaCarpetaRequestedAt is null)
+                                        {
+                                            <form method="post" asp-page-handler="MarkRequested">
+                                                <input type="hidden" name="id" value="@item.Id" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <button type="submit" class="btn-action btn-action--confirm" title="Registrar que la última carpeta ya fue pedida" aria-label="Marcar como pedida">
+                                                    <partial name="_ActionIcon" model="@("confirm")" /><span>Pedida</span>
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <form method="post" asp-page-handler="UndoRequested">
+                                                <input type="hidden" name="id" value="@item.Id" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <button type="submit" class="btn-action" title="Quitar la marca de pedida" aria-label="Deshacer pedida">
+                                                    <partial name="_ActionIcon" model="@("rectify")" /><span>Deshacer</span>
+                                                </button>
+                                            </form>
+                                        }
+                                        <form method="post" asp-page-handler="SendToCaja">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="hidden" name="search" value="@Model.Search" />
+                                            <button type="submit" class="btn-action btn-action--caja" title="La carpeta llegó: enviar a la cola de Caja (sin enviar correo)" aria-label="Enviar a Caja">
+                                                <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
+                                            </button>
+                                        </form>
+                                        <form method="post" asp-page-handler="CloseWithoutFolder"
+                                              onsubmit="return confirm('La carpeta no existe: el caso se cierra en Sin Carpetas y el trámite termina ahí. ¿Continuar?');">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="hidden" name="search" value="@Model.Search" />
+                                            <button type="submit" class="btn-action btn-action--sin-carpeta" title="La carpeta no existe: cerrar el caso en Sin Carpetas" aria-label="Sin carpeta">
+                                                <partial name="_ActionIcon" model="@("sin-carpeta")" /><span>Sin carpeta</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </main>
+
+    <script>
+        function updatePageSize() {
+            var val = document.getElementById('page-size-select').value;
+            document.getElementById('page-size-style').textContent = '@@page { size: ' + val + '; margin: 12mm; }';
+        }
+
+        function formatSearchRut(input) {
+            var raw = input.value;
+            if (!/^\d+[kK]?$/.test(raw.replace(/[.\-]/g, ''))) return;
+            var clean = raw.replace(/[.\-]/g, '');
+            if (clean.length < 2) return;
+            var body = clean.slice(0, -1);
+            var dv = clean.slice(-1).toUpperCase();
+            var formattedBody = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            input.value = formattedBody + '-' + dv;
+        }
+
+        function clearSearchIfEmpty(input) {
+            if (input.value === '' && input.dataset.hadValue === 'true') {
+                input.form.submit();
+            }
+            input.dataset.hadValue = input.value !== '' ? 'true' : 'false';
+        }
+    </script>
+    <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
+    <script src="~/js/guia-interactiva.js" asp-append-version="true"></script>
+    <partial name="_AuthorFooter" />
+</body>
+</html>

@@ -39,6 +39,7 @@
             <span class="app-subnav-label">Sistemas</span>
             <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
             <a asp-page="/F8" class="nav-f8 active"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/UltimaCarpeta" class="nav-ultima-carpeta"><partial name="_NavIcon" model="@("ultima")" /><span>Última Carpeta</span></a>
             <a asp-page="/SubidasASistema" class="nav-subidas"><partial name="_NavIcon" model="@("upload")" /><span>Subidas a Sistema</span></a>
             <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
             <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
@@ -244,12 +245,12 @@
                                     </button>
                                 </form>
                             }
-                                <form method="post" asp-page-handler="SendToCaja">
+                                <form method="post" asp-page-handler="SendToUltimaCarpeta">
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <input type="hidden" name="search" value="@Model.Search" />
                                     <input type="hidden" name="highlightId" value="@Model.HighlightId" />
-                                    <button type="submit" class="btn-action btn-action--caja" title="Carpeta encontrada: enviar a la cola de Caja (sin enviar correo)" aria-label="Enviar a Caja">
-                                        <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
+                                    <button type="submit" class="btn-action btn-action--caja" title="Enviar a Última Carpeta para pedir la última carpeta (sin enviar correo)" aria-label="Enviar a Última Carpeta">
+                                        <partial name="_ActionIcon" model="@("ultima")" /><span>Última carpeta</span>
                                     </button>
                                 </form>
                                 <form method="post" asp-page-handler="CloseWithoutFolder">

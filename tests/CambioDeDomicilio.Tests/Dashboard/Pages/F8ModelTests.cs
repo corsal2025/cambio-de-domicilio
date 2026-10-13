@@ -135,15 +135,25 @@ public class F8ModelTests : IDisposable
     }
 
     [Fact]
-    public void OnPostSendToCaja_MovesF8CaseToCajaQueue()
+    public void OnPostSendToUltimaCarpeta_MovesF8CaseToUltimaCarpetaAndKeepsItsData()
     {
         var id = repository.Insert(NewRequest("msg-1", "Persona F8"));
         repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.SetCodigoF8(id, "F8-77");
 
-        model.OnPostSendToCaja(id);
+        model.OnPostSendToUltimaCarpeta(id);
 
-        Assert.Equal(CaseDestination.Caja, repository.FindById(id)!.Destination);
-        Assert.Contains(repository.GetCajaQueue(), c => c.Id == id);
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.UltimaCarpeta, stored.Destination);
+        Assert.Equal("F8-77", stored.CodigoF8);
+        Assert.Null(stored.UltimaCarpetaRequestedAt);
+        Assert.DoesNotContain(repository.GetCajaQueue(), c => c.Id == id);
+    }
+
+    [Fact]
+    public void F8Page_ExposesNoHandlerThatSendsStraightToCaja()
+    {
+        Assert.Null(typeof(F8Model).GetMethod("OnPostSendToCaja"));
     }
 
     [Fact]
