@@ -205,3 +205,26 @@ Every dashboard screen SHALL show a footer crediting Raúl Salazar as the creato
 - **WHEN** a sector or box listing is printed
 - **THEN** the authorship footer is not part of the printout
 
+
+### Requirement: Global search across every module
+The header search box present on every dashboard page SHALL search ALL modules at once and show the result grouped by module, regardless of the page it was typed in. The searchable modules are: Cambio de Domicilio (Casos), F8, Subidas a Sistema, Caja (open queue and closed boxes), Sin Carpetas, Descartados and Comunas. A case SHALL be matched by full name (case- and accent-insensitive, partial), RUT (with or without dots and dash, partial), F8 code and comuna. Descartados SHALL be matched by sender, subject and reason; Comunas by comuna name, contact email and domain. Each hit SHALL state the module it lives in and link to that module with the search applied. When nothing matches, the result SHALL say that no module has a record and list the modules searched. Queries shorter than two characters SHALL return no hits.
+
+#### Scenario: Person in Sin Carpetas found from Casos
+- **WHEN** the operator types the RUT of a case closed without folder in the search box of the Casos page
+- **THEN** the result lists that case under "Sin Carpetas" with a link to that module
+
+#### Scenario: Person in a closed box
+- **WHEN** the search matches a case packed in a closed box
+- **THEN** the hit shows the box code and the N° of the case inside the box
+
+#### Scenario: RUT typed without separators
+- **WHEN** the operator types `187853877`
+- **THEN** the case with RUT `18.785.387-7` is found
+
+#### Scenario: Name without accents
+- **WHEN** the operator types `MELENDEZ`
+- **THEN** a case named `MELÉNDEZ` is found
+
+#### Scenario: Nothing found
+- **WHEN** no module has a match
+- **THEN** the page says no record exists in any module and lists the modules searched
