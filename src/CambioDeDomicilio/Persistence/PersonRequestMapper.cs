@@ -60,7 +60,8 @@ internal static class PersonRequestMapper
             BoxId = GetNullableInt64("BoxId"),
             SoloCaja = GetBoolean("SoloCaja"),
             ClosedWithoutFolderAt = GetNullableDateTimeOffset("ClosedWithoutFolderAt"),
-            UltimaCarpetaRequestedAt = GetNullableDateTimeOffset("UltimaCarpetaRequestedAt")
+            UltimaCarpetaRequestedAt = GetNullableDateTimeOffset("UltimaCarpetaRequestedAt"),
+            MonthlyRequestPrintedAt = GetNullableDateTimeOffset("MonthlyRequestPrintedAt")
         };
     }
 }

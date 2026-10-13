@@ -66,8 +66,18 @@
             <div class="stat-row" role="group" aria-label="Resumen de F8">
                 <div class="stat-chip"><b class="num">@Model.TotalF8Count</b><span>Total F8</span></div>
                 <div class="stat-chip stat-chip--soft"><b class="num">@Model.Cases.Count</b><span>En pantalla</span></div>
+                <a class="btn-primary" asp-page="/PedidoMensual" title="Listado mensual de carpetas de F8 para pedir a Archivo">
+                    <partial name="_NavIcon" model="@("pdf")" /><span>Pedido mensual</span>
+                </a>
             </div>
         </section>
+        @if (Model.MonthlyReminderMonth is not null)
+        {
+            <p class="message-banner">
+                Recuerda pedir las carpetas mensuales de <strong>@Model.MonthlyReminderMonth</strong>.
+                <a asp-page="/PedidoMensual" asp-route-month="@Model.MonthlyReminderMonth">Ir a Pedido mensual</a>
+            </p>
+        }
         @if (Model.Message is not null)
         {
             <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>

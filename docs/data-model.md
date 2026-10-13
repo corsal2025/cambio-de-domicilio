@@ -81,6 +81,8 @@ named in the same source email.
   - `SinCarpetas` — closed without a physical folder; listed on `/SinCarpetas`
 - `UltimaCarpetaRequestedAt`: When the operator marked the last folder as requested on `/UltimaCarpeta`
   (schema V003). Null means not requested yet.
+- `MonthlyRequestPrintedAt`: Set by "Marcar como pedido" on `/PedidoMensual` for every case of the listed month
+  (schema V004). It only silences the day 1-10 reminder; the case stays in that month's listing.
 - `TransferredAt`: When the case was moved to its current `Destination`. Null means not transferred.
 - `BoxId`: Closed `Box` this case was packed into. Null means it is still in the open Caja queue
   (only meaningful when `Destination = Caja`).

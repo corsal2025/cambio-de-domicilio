@@ -100,6 +100,13 @@
                 <div class="stat-chip stat-chip--bad"><b class="num">@Model.BouncedCount</b><span>Rebotados</span></div>
             </div>
         </section>
+        @if (Model.MonthlyReminderMonth is not null)
+        {
+            <p class="message-banner">
+                Recuerda pedir las carpetas mensuales de <strong>@Model.MonthlyReminderMonth</strong>.
+                <a asp-page="/PedidoMensual" asp-route-month="@Model.MonthlyReminderMonth">Ir a Pedido mensual</a>
+            </p>
+        }
         @if (Model.Message is not null)
         {
             <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>

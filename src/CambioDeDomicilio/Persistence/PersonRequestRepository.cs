@@ -85,6 +85,9 @@ public interface IPersonRequestRepository
     /// <summary>Records (or clears, with null) when the last folder of a case in Última Carpeta was requested.</summary>
     void SetUltimaCarpetaRequested(long id, DateTimeOffset? requestedAt);
 
+    /// <summary>Stamps the cases of a monthly folder request as requested ("Pedido mensual").</summary>
+    void SetMonthlyRequestPrinted(IReadOnlyList<long> ids, DateTimeOffset printedAt);
+
     /// <summary>Permanently removes a case — operator-triggered, for entries that shouldn't have
     /// been tracked at all (e.g. a mistaken manual entry). Not the same as reverting a status.</summary>
     void Delete(long id);
@@ -589,6 +592,23 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.Parameters.AddWithValue("$requestedAt", requestedAt is { } at ? at.ToString("O") : DBNull.Value);
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
+    }
+
+    public void SetMonthlyRequestPrinted(IReadOnlyList<long> ids, DateTimeOffset printedAt)
+    {
+        if (ids.Count == 0) return;
+        using var connection = Open();
+        using var transaction = connection.BeginTransaction();
+        foreach (var id in ids)
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "UPDATE PersonRequest SET MonthlyRequestPrintedAt = $printedAt WHERE Id = $id";
+            command.Parameters.AddWithValue("$printedAt", printedAt.ToString("O"));
+            command.Parameters.AddWithValue("$id", id);
+            command.ExecuteNonQuery();
+        }
+        transaction.Commit();
     }
 
     private SqliteConnection Open()
