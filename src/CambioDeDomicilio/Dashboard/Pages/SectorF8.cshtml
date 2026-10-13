@@ -204,6 +204,7 @@
                 <span class="lico-mini" data-lico="saluda" aria-hidden="true"></span>
                 <span>Cómo usar el sistema</span>
             </button>
+            <partial name="_GlobalSearch" />
             <a asp-page="/SectorF8" asp-route-sector="Archivo" class="@(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Archivo ? "active" : "")"><partial name="_NavIcon" model="@("pdf")" /><span>PDF Archivo</span></a>
             <a asp-page="/SectorF8" asp-route-sector="Oficina43" class="@(Model.SelectedSector == CambioDeDomicilio.Domain.FolderSector.Oficina43 ? "active" : "")"><partial name="_NavIcon" model="@("pdf")" /><span>PDF Oficina 43</span></a>
         </nav>

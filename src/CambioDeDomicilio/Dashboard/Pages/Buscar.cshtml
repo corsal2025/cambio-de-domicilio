@@ -1,0 +1,127 @@
+@page
+@model CambioDeDomicilio.Dashboard.Pages.BuscarModel
+@using CambioDeDomicilio.Search
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Buscar — CambioDeDomicilio</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tema-lico.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="app-header">
+        <div class="brand">
+            <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="brand-logo" />
+            <span>
+                CambioDeDomicilio
+                <small>Municipalidad de Valparaíso</small>
+                <small>Búsqueda en todo el sistema</small>
+            </span>
+        </div>
+        <nav class="app-nav">
+            <button type="button" id="btn-guia-global" class="btn-guia-accion" title="Cómo usar el sistema (Guía interactiva)" data-tooltip="Simulador interactivo con flecha explicativa que te enseña paso a paso cómo usar el sistema">
+                <span class="lico-mini" data-lico="saluda" aria-hidden="true"></span>
+                <span>Cómo usar el sistema</span>
+            </button>
+            <div class="nav-group">
+                <a asp-page="/Index"><partial name="_NavIcon" model="@("back")" /><span>Volver a Casos</span></a>
+            </div>
+            <div class="nav-group nav-group-end">
+                <partial name="_GlobalSearch" />
+            </div>
+        </nav>
+    </header>
+    <div class="app-subnav">
+        <div class="app-subnav-main">
+            <span class="app-subnav-label">Sistemas</span>
+            <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
+            <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
+            <a asp-page="/SubidasASistema" class="nav-subidas"><partial name="_NavIcon" model="@("upload")" /><span>Subidas a Sistema</span></a>
+            <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
+            <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
+            <a asp-page="/Estadisticas" class="nav-estadisticas"><partial name="_NavIcon" model="@("stats")" /><span>Estadísticas</span></a>
+        </div>
+    </div>
+
+    <main>
+        <section class="page-head" aria-labelledby="page-title">
+            <div class="page-head-text">
+                <h1 id="page-title">Resultado de la búsqueda</h1>
+                <div class="sub">
+                    @if (!string.IsNullOrWhiteSpace(Model.Result.Query))
+                    {
+                        <span>Se buscó <strong>"@Model.Result.Query"</strong> en todos los módulos.</span>
+                    }
+                    else
+                    {
+                        <span>Escribe un RUT o un nombre para buscar en todos los módulos.</span>
+                    }
+                </div>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.Result.Query))
+            {
+                <div class="stat-row" role="group" aria-label="Resumen por módulo">
+                    @foreach (var module in Model.Result.SearchedModules)
+                    {
+                        var count = Model.Result.Hits.Count(h => h.Module == module);
+                        <div class="stat-chip @(count > 0 ? "stat-chip--ok" : "")">
+                            <b class="num">@count</b><span>@SearchModuleInfo.DisplayName(module)</span>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        @if (Model.QueryTooShort)
+        {
+            <p class="message-banner message-error">Escribe al menos @GlobalSearchService.MinQueryLength caracteres para buscar.</p>
+        }
+        else if (!string.IsNullOrWhiteSpace(Model.Result.Query) && Model.Result.Count == 0)
+        {
+            <p class="message-banner message-error">
+                No existe ningún registro para <strong>"@Model.Result.Query"</strong> en ningún módulo.
+                Se buscó en: @string.Join(", ", Model.Result.SearchedModules.Select(SearchModuleInfo.DisplayName)).
+            </p>
+        }
+
+        @foreach (var module in Model.Result.SearchedModules)
+        {
+            var hits = Model.Result.Hits.Where(h => h.Module == module).ToList();
+            if (hits.Count == 0) { continue; }
+
+            <h2 class="section-title">@SearchModuleInfo.DisplayName(module) <span class="badge">@hits.Count</span></h2>
+            <div class="card table-card" style="height:auto; flex:none; overflow:visible !important; margin-bottom:16px;">
+                <table class="cases">
+                    <thead>
+                        <tr>
+                            <th>Registro</th>
+                            <th>Detalle</th>
+                            <th style="width:140px;">Abrir</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var hit in hits)
+                    {
+                        <tr>
+                            <td class="text-cell" style="font-weight:600;">@hit.Title</td>
+                            <td class="text-cell">@hit.Detail</td>
+                            <td>
+                                <a class="btn-cross-search" asp-page="@hit.Page" asp-all-route-data="@hit.Route.Where(r => r.Value is not null).ToDictionary(r => r.Key, r => r.Value!)">
+                                    Ver en @SearchModuleInfo.DisplayName(hit.Module)
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </main>
+    <script src="~/js/scroll-preserve.js" asp-append-version="true"></script>
+    <partial name="_AuthorFooter" />
+    <script src="~/js/guia-interactiva.js" asp-append-version="true"></script>
+</body>
+</html>
