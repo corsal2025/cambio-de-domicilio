@@ -140,7 +140,7 @@
       fallbackTarget: 'main',
       titulo: 'F8: carpeta física no encontrada',
       icono: '🚨',
-      descripcion: 'Aquí llegan los casos con la casilla <b>F8</b>. Registras el <b>código F8</b> y la fecha de la penúltima carpeta. Desde F8 puedes <b>Marcar subida</b>, enviar a <b>Última carpeta</b> para pedir la última carpeta, cerrar <b>Sin carpeta</b> o <b>Revertir</b> sin perder lo digitado.'
+      descripcion: 'Aquí llegan los casos con la casilla <b>F8</b>. Registras el <b>código F8</b> y la fecha de la penúltima carpeta. Cada mes, <b>Pedido mensual</b> te da el listado imprimible de las carpetas subidas el mes anterior para pedirlas. Desde F8 puedes <b>Marcar subida</b>, enviar a <b>Última carpeta</b> para pedir la última carpeta, cerrar <b>Sin carpeta</b> o <b>Revertir</b> sin perder lo digitado.'
     },
 
     // ---------- ULTIMA CARPETA ----------

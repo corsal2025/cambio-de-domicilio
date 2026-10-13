@@ -228,3 +228,24 @@ The header search box present on every dashboard page SHALL search ALL modules a
 #### Scenario: Nothing found
 - **WHEN** no module has a match
 - **THEN** the page says no record exists in any module and lists the modules searched
+
+### Requirement: Monthly folder request from F8
+The F8 module SHALL offer a "Pedido mensual" screen (modelled on the monthly printing of F8 Urgentes) that lists, for a chosen month (`yyyy-MM`, default the previous month), the cases whose folder was uploaded in that month and whose last-folder date is known, so the operator can request those folders. A case belongs to a month when it is in F8 or Última Carpeta, is not closed without folder, its status is `Uploaded` or `Confirmed`, `FechaUltimaCarpeta` is set and its upload date (`UploadedAt`, or `ConfirmedAt` when missing) falls in that month. The listing SHALL show N°, full name, RUT and the last-folder date in long Spanish format, ordered by upload date then id, a total, a folio `F8-Mensual-AAAAMM-HHmm` and a "Quien solicita" signature box, and SHALL be printable / savable as PDF. A "Marcar como pedido" action SHALL record `MonthlyRequestPrintedAt` on the listed cases; it SHALL NOT remove them from the listing and SHALL NOT send any email. From day 1 to day 10 of each month, F8 and Casos SHALL show a reminder while any case of the previous month has `MonthlyRequestPrintedAt` null, linking to the screen for that month.
+
+#### Scenario: Previous month by default
+- **WHEN** the operator opens "Pedido mensual" on 5 October 2026 without choosing a month
+- **THEN** the listing is for `2026-09`
+
+#### Scenario: Case selection
+- **WHEN** a F8 case was uploaded in September 2026 and has a last-folder date
+- **THEN** it is listed for `2026-09` and not for `2026-10`
+- **AND** a case with no last-folder date, or still `Pending`, or closed without folder, is never listed
+
+#### Scenario: Marking as requested
+- **WHEN** the operator presses "Marcar como pedido" for a month
+- **THEN** every listed case has `MonthlyRequestPrintedAt` set and the listing still shows them
+- **AND** the reminder for that month disappears once all its cases are marked
+
+#### Scenario: Reminder window
+- **WHEN** it is the 11th of the month or later
+- **THEN** no reminder is shown even if the previous month still has unmarked cases

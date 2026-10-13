@@ -86,6 +86,12 @@ Diagrama acordado con el operador (2026-07-03), actualizado a octubre de 2026 co
                      de Caja; si no existe, "Sin carpeta" la
                      cierra en Sin Carpetas (fin del trámite).
                      F8 ya no tiene botón "Caja".
+   • "Pedido mensual" → listado imprimible (N°, nombre, RUT, fecha
+                     de última carpeta, firma "Quien solicita") de
+                     las carpetas de F8 subidas en un mes (por
+                     defecto el anterior). "Marcar como pedido"
+                     solo apaga el recordatorio de los días 1-10;
+                     el listado se conserva. No envía correo.
    • "Sin carpeta" → se cierra el proceso sin carpeta (también
                      escribiendo S/C como fecha en F8, o desde
                      Subidas a Sistema): el caso pasa a la

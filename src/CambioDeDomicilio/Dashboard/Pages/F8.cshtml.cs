@@ -32,6 +32,10 @@ public class F8Model(
 
     public int TotalF8Count { get; private set; }
 
+    /// <summary>Month (yyyy-MM) whose monthly folder request is still pending, shown as a reminder on
+    /// days 1-10 of the month. Null when there is nothing to remind.</summary>
+    public string? MonthlyReminderMonth { get; private set; }
+
     /// <summary>Number of cases still in Casos (not transferred) matching the search query.</summary>
     public int CasosMatchCount { get; private set; }
 
@@ -261,6 +265,12 @@ public class F8Model(
             .ToList();
 
         TotalF8Count = f8Cases.Count;
+
+        var monthlyCandidates = repository.Find(new CaseQuery { Destinations = [CaseDestination.F8, CaseDestination.UltimaCarpeta] });
+        var now = clock.GetLocalNow();
+        MonthlyReminderMonth = MonthlyFolderRequest.ShouldRemind(monthlyCandidates, now)
+            ? MonthlyFolderRequest.PreviousMonthKey(now)
+            : null;
 
         if (!string.IsNullOrWhiteSpace(Search))
         {

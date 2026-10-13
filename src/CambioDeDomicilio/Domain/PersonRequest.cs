@@ -124,6 +124,11 @@ public sealed class PersonRequest
     /// screen. Null means it has not been requested yet.</summary>
     public DateTimeOffset? UltimaCarpetaRequestedAt { get; set; }
 
+    /// <summary>When the monthly folder request listing ("Pedido mensual") that includes this case was
+    /// marked as requested. It only silences the reminder: the case keeps appearing in that month's
+    /// listing. Null means the month has not been marked yet.</summary>
+    public DateTimeOffset? MonthlyRequestPrintedAt { get; set; }
+
     /// <summary>True once the operator finished working this case (folder uploaded, confirmation
     /// sent, sent to Caja or closed without folder). The dashboard greys these rows out so the
     /// untouched (white) ones stand out.</summary>

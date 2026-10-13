@@ -25,6 +25,10 @@ public class IndexModel(
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
     public IReadOnlyList<ComunaContact> ComunaOptions { get; private set; } = [];
     public int NeedsReviewCount { get; private set; }
+
+    /// <summary>Month (yyyy-MM) whose monthly folder request is still pending, shown as a reminder on
+    /// days 1-10 of the month. Null when there is nothing to remind.</summary>
+    public string? MonthlyReminderMonth { get; private set; }
     public int DiscardedCount { get; private set; }
 
     /// <summary>Confirmed cases whose confirmation email bounced (see <see cref="PersonRequest.ConfirmationBouncedAt"/>).</summary>
@@ -501,6 +505,12 @@ public class IndexModel(
     private void Load()
     {
         NeedsReviewCount = repository.Count(new CaseQuery { NeedsReview = true });
+
+        var monthlyCandidates = repository.Find(new CaseQuery { Destinations = [CaseDestination.F8, CaseDestination.UltimaCarpeta] });
+        var now = clock.GetLocalNow();
+        MonthlyReminderMonth = MonthlyFolderRequest.ShouldRemind(monthlyCandidates, now)
+            ? MonthlyFolderRequest.PreviousMonthKey(now)
+            : null;
         BouncedCount = repository.Count(new CaseQuery { Bounced = true });
         DiscardedCount = discardedRepository.Count();
         ComunaOptions = routingService.LoadDirectory()
