@@ -121,7 +121,7 @@ public sealed class GlobalSearchService(
 
     private static bool CaseMatches(PersonRequest c, string text, string rutDigits)
     {
-        if (Normalize(c.FullName).Contains(text, StringComparison.Ordinal)
+        if (ContainsAllWords(Normalize(c.FullName), text)
             || Normalize(c.Comuna).Contains(text, StringComparison.Ordinal)
             || Normalize(c.CodigoF8).Contains(text, StringComparison.Ordinal))
         {
@@ -197,6 +197,14 @@ public sealed class GlobalSearchService(
             CaseDestination.Caja => SearchModule.Caja,
             _ => SearchModule.Casos
         };
+    }
+
+    /// <summary>Every word of the query must appear in the name, in any order, so "perez juan" and
+    /// "juan perez" both find "PEREZ SOTO JUAN ANDRES" (the directory stores surname-first names).</summary>
+    private static bool ContainsAllWords(string haystack, string text)
+    {
+        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return words.Length > 0 && words.All(word => haystack.Contains(word, StringComparison.Ordinal));
     }
 
     private static int PositionOf(IReadOnlyList<PersonRequest> cases, long id)

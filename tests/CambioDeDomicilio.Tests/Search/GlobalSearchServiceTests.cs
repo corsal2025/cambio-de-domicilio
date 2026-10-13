@@ -76,6 +76,27 @@ public class GlobalSearchServiceTests : IDisposable
         Assert.Single(sut.Search("melendez", NoContacts).Hits);
     }
 
+    [Theory]
+    [InlineData("juan perez")]
+    [InlineData("perez juan")]
+    [InlineData("SOTO  juan")]
+    [InlineData("jua per")]
+    public void Search_NameWordsInAnyOrder_FindsTheCase(string query)
+    {
+        Insert("m1", "PEREZ SOTO JUAN ANDRES", "11.111.111-1");
+
+        Assert.Single(sut.Search(query, NoContacts).Hits);
+    }
+
+    [Fact]
+    public void Search_NameWordsOfDifferentPeople_DoNotMatchEitherOfThem()
+    {
+        Insert("m1", "JUAN TORRES", "11.111.111-1");
+        Insert("m2", "PEDRO PEREZ", "22.222.222-2");
+
+        Assert.Empty(sut.Search("juan perez", NoContacts).Hits);
+    }
+
     [Fact]
     public void Search_CodigoF8_FindsTheCase()
     {
