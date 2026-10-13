@@ -67,6 +67,7 @@ builder.Services.AddSingleton<IMailSender, EwsMailSender>();
 builder.Services.AddSingleton<ICsvReportWriter, CsvReportWriter>();
 builder.Services.AddSingleton<AddressChangeRoutingService>();
 builder.Services.AddSingleton<CambioDeDomicilio.Statistics.StatisticsService>();
+builder.Services.AddSingleton<CambioDeDomicilio.Search.GlobalSearchService>();
 
 builder.Services.AddSingleton<INotificationChannel, WindowsToastNotificationChannel>();
 builder.Services.AddSingleton<INotificationChannel, EmailNotificationChannel>();

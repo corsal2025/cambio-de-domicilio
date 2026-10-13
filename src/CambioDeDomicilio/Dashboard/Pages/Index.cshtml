@@ -59,17 +59,7 @@
             </div>
 
             <div class="nav-group nav-group-end">
-                <form method="get" class="nav-search">
-                    <input type="hidden" name="status" value="@Model.StatusFilter" />
-                    <input type="hidden" name="needsReview" value="@Model.OnlyNeedsReview" />
-                    <input type="hidden" name="bounced" value="@Model.OnlyBounced" />
-                    <input type="text" name="search" id="search-input" placeholder="Buscar por RUT o nombre..." value="@Model.SearchQuery" data-had-value="@(!string.IsNullOrEmpty(Model.SearchQuery) ? "true" : "false")" oninput="formatSearchRut(this); clearSearchIfEmpty(this)" />
-                    <button type="submit" class="nav-pill"><partial name="_NavIcon" model="@("search")" /><span>Buscar</span></button>
-                    @if (!string.IsNullOrEmpty(Model.SearchQuery))
-                    {
-                        <a asp-page="/Index" asp-route-status="@Model.StatusFilter" asp-route-needsReview="@Model.OnlyNeedsReview" asp-route-bounced="@Model.OnlyBounced" class="nav-search-clear"><partial name="_NavIcon" model="@("clear")" /><span>Limpiar</span></a>
-                    }
-                </form>
+                <partial name="_GlobalSearch" />
                 <form method="post" asp-page-handler="SyncNow" id="sync-form" onsubmit="return handleSyncSubmit(this);"><button type="submit" class="nav-pill nav-sync"><partial name="_NavIcon" model="@("sync")" /><span>Sincronizar ahora</span></button></form>
             </div>
         </nav>

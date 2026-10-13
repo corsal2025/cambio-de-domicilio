@@ -30,14 +30,7 @@
                 <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("back")" /><span>Volver a Cambio de Domicilio</span></a>
             </div>
             <div class="nav-group nav-group-end">
-                <form method="get" class="nav-search">
-                    <input type="text" name="search" id="search-input" placeholder="Buscar por RUT o nombre..." value="@Model.Search" data-had-value="@(!string.IsNullOrEmpty(Model.Search) ? "true" : "false")" oninput="formatSearchRut(this); clearSearchIfEmpty(this)" />
-                    <button type="submit" class="nav-pill"><partial name="_NavIcon" model="@("search")" /><span>Buscar</span></button>
-                    @if (!string.IsNullOrEmpty(Model.Search))
-                    {
-                        <a asp-page="/SubidasASistema" class="nav-search-clear"><partial name="_NavIcon" model="@("clear")" /><span>Limpiar</span></a>
-                    }
-                </form>
+                <partial name="_GlobalSearch" />
             </div>
         </nav>
     </header>
