@@ -9,6 +9,7 @@
     <title>Subidas a Sistema — CambioDeDomicilio</title>
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tema-lico.css" asp-append-version="true" />
 </head>
 <body class="cases-page">
     <header class="app-header">
@@ -22,7 +23,7 @@
         </div>
         <nav class="app-nav">
             <button type="button" id="btn-guia-global" class="btn-guia-accion" title="Cómo usar el sistema (Guía interactiva)" data-tooltip="Simulador interactivo con flecha explicativa que te enseña paso a paso cómo usar el sistema">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span class="lico-mini" data-lico="saluda" aria-hidden="true"></span>
                 <span>Cómo usar el sistema</span>
             </button>
             <div class="nav-group nav-group-filters">
@@ -63,6 +64,17 @@
     </div>
 
     <main>
+        <section class="page-head" aria-labelledby="page-title">
+            <button type="button" class="head-lico" id="btn-lico-saludo" data-lico="saluda" aria-label="Abrir la guía con Lico"><span class="head-lico-burbuja">¡Hola! Me llamo Lico</span></button>
+            <div class="page-head-text">
+                <h1 id="page-title">Subidas a Sistema</h1>
+                <div class="sub">Casos ya subidos o confirmados, pendientes de derivar a Caja o Sin Carpeta</div>
+            </div>
+            <div class="stat-row" role="group" aria-label="Resumen de Subidas a Sistema">
+                <div class="stat-chip"><b class="num">@Model.TotalCount</b><span>Total</span></div>
+                <div class="stat-chip stat-chip--soft"><b class="num">@Model.Cases.Count</b><span>En pantalla</span></div>
+            </div>
+        </section>
         @if (Model.Message is not null)
         {
             <p class="message-banner @(Model.MessageIsError ? "message-error" : "")">@Model.Message</p>
@@ -200,7 +212,7 @@
             }
         }
     </script>
-    <script src="~/js/system-tour.js" asp-append-version="true"></script>
+    <script src="~/js/guia-interactiva.js" asp-append-version="true"></script>
     <partial name="_AuthorFooter" />
 </body>
 </html>

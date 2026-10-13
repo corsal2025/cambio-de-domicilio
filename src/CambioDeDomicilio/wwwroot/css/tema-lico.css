@@ -1,0 +1,316 @@
+/* ==========================================================================
+   TEMA LICO - CambioDeDomicilio (Municipalidad de Valparaiso)
+   Visual theme derived from the "Lico" kit (tematica-lico/tema-lico.css).
+
+   Differences from the kit, on purpose:
+   - This app does NOT use Bootstrap, and it has its own stylesheet (dashboard.css) with
+     class names that collide with Bootstrap's (.btn, .card, .badge, .table...). So the kit's
+     Bootstrap restyling blocks are NOT included; only the Lico-specific components are
+     (page-head, stat-chip, head-lico, lico-mini, btn-guia-accion, tour-*).
+   - The rest of the screens are re-themed by remapping dashboard.css design tokens to the
+     Lico palette and by shape overrides at the bottom of this file.
+   - No external fonts or libraries (the system runs on-premise).
+
+   Load AFTER dashboard.css. Screen-only: printable documents (Sector, SectorF8, the print
+   views of Caja and Sin Carpetas) keep their own @media print rules and stay unthemed.
+   ========================================================================== */
+
+:root {
+  /* Lico palette (kit variables) */
+  --canvas: #eef2fb;
+  --surface: #ffffff;
+  --ink: #1b2140;
+  --ink-soft: #4d5578;
+  --ink-faint: #7a82a3;
+  --line: #dde3f3;
+  --line-strong: #c9d2ea;
+  --accent: #26388c;
+  --accent-hover: #1a2766;
+  --accent-soft: #e6e9f6;
+  --brand-cyan: #1fb5d9;
+  --brand-green: #2fb56a;
+  --brand-pink: #e889c4;
+  --brand-yellow: #f6d23c;
+  --brand-red: #e8503f;
+  --road: repeating-linear-gradient(90deg, var(--brand-yellow) 0 22px, transparent 22px 40px);
+  --ok-ink: #5b21b6;
+
+  /* dashboard.css tokens remapped to the Lico palette */
+  --color-primary: #26388c;
+  --color-primary-dark: #1a2766;
+  --color-primary-light: #3550c8;
+  --color-accent: #26388c;
+  --color-accent-hover: #1a2766;
+  --color-accent-subtle: #e6e9f6;
+  --color-bg: #eef2fb;
+  --color-border: #dde3f3;
+  --color-border-strong: #c9d2ea;
+  --color-text: #1b2140;
+  --color-text-secondary: #4d5578;
+  --color-text-muted: #6b7394;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --font-sans: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(38, 56, 140, .07) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--canvas);
+}
+body.cases-page { background:
+    radial-gradient(circle at 1px 1px, rgba(38, 56, 140, .07) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--canvas); }
+
+/* ---------- Header: logo palette stripe on top, yellow road line at the bottom ---------- */
+header.app-header {
+  background: linear-gradient(120deg, #1d2c75, var(--accent) 55%, #3550c8);
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+header.app-header::before {
+  content: "";
+  position: absolute; left: 0; right: 0; top: 0; height: 5px;
+  background: linear-gradient(90deg,
+    var(--accent) 0 30%, var(--brand-cyan) 30% 45%, var(--brand-green) 45% 60%,
+    var(--brand-yellow) 60% 72%, var(--brand-pink) 72% 86%, var(--brand-red) 86% 100%);
+}
+header.app-header::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+  background: var(--road);
+  opacity: .9;
+}
+header.app-header .brand > span { border-left: 4px solid var(--brand-yellow); padding-left: .75rem; }
+header.app-header .brand small:last-child { color: var(--brand-yellow); }
+
+div.app-subnav { background: #16205a; }
+a.nav-casos, a.nav-f8, a.nav-subidas, a.nav-sin-carpetas, a.nav-caja, a.nav-estadisticas,
+a.nav-pdf-archivo, a.nav-pdf-oficina43 { border-radius: 999px; padding-left: 14px; padding-right: 14px; }
+nav.app-nav a.active { color: var(--accent-hover); }
+
+/* ---------- Page head: blue card with the road line, counters and Lico ---------- */
+.page-head {
+  position: relative;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+  flex: 0 0 auto;
+  margin: 4px 0 10px;
+  padding: .6rem 1.4rem 1.25rem;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 92% -20%, rgba(31, 181, 217, .55), transparent 45%),
+    radial-gradient(circle at 5% 130%, rgba(232, 137, 196, .35), transparent 40%),
+    linear-gradient(120deg, #1d2c75, var(--accent) 55%, #3550c8);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  color: #fff;
+}
+.page-head::after {
+  content: "";
+  position: absolute; left: 0; right: 0; bottom: 10px; height: 4px;
+  background: var(--road);
+  opacity: .9;
+}
+.page-head h1 { color: #fff; margin: 0 0 .1rem; font-size: 1.3rem; font-weight: 800; letter-spacing: -.02em; }
+.page-head .sub { color: rgba(255, 255, 255, .82); font-size: .86rem; }
+.page-head-text { flex: 1 1 260px; min-width: 0; }
+
+/* ---------- Summary chips ---------- */
+.stat-row { display: flex; gap: .5rem; flex-wrap: wrap; }
+.stat-chip {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 84px;
+  padding: .5rem .9rem .35rem;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .96);
+  color: var(--ink);
+  box-shadow: 0 6px 16px rgba(10, 16, 60, .25);
+  position: relative;
+  transition: transform .18s ease;
+}
+.stat-chip:hover { transform: translateY(-3px) rotate(-1deg); }
+.stat-chip::before {
+  content: ""; position: absolute; left: 14px; right: 14px; top: 0; height: 5px;
+  border-radius: 0 0 6px 6px; background: var(--line-strong);
+}
+.stat-chip:first-child::before { background: var(--accent); }
+.stat-chip--soft::before { background: var(--brand-yellow); }
+.stat-chip--ok::before { background: var(--brand-green); }
+.stat-chip--bad::before { background: var(--brand-red); }
+.stat-chip b { font-size: 1.4rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat-chip:first-child b { color: var(--accent); }
+.stat-chip--ok b { color: #11693a; }
+.stat-chip--soft b { color: #8a6500; }
+.stat-chip--bad b { color: #b0301f; }
+.stat-chip span { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-faint); }
+
+
+/* ---------- Shapes of the existing dashboard components (no layout metrics changed) ---------- */
+/* Sticky two-row table headers rely on fixed row heights (--header-row2-top), so only colors and
+   an inset cyan underline are themed here: never padding or border widths. */
+table.cases th {
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: inset 0 -3px 0 var(--brand-cyan);
+}
+/* Printable documents (Sector, SectorF8) must stay unthemed. */
+.doc-sheet table.cases th {
+  background: #f8fafc;
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+.card, .message-banner { border-radius: 16px; }
+.card.table-card { border-radius: 20px; border-color: var(--line); box-shadow: var(--shadow-md); }
+.doc-sheet, .doc-sheet .card { border-radius: 0; box-shadow: none; }
+button.btn-primary, .btn-primary {
+  background: linear-gradient(135deg, var(--accent), #3550c8);
+  border-radius: 999px;
+}
+button.btn-primary:hover, .btn-primary:hover {
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+}
+
+/* ---------- Visible focus (WCAG 2.4.7): dark ring + yellow halo reads on light and dark bars ---------- */
+a:focus-visible, button:focus-visible, summary:focus-visible, select:focus-visible,
+input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--brand-yellow);
+}
+header.app-header a:focus-visible, header.app-header button:focus-visible,
+div.app-subnav a:focus-visible, .page-head button:focus-visible {
+  outline-color: #fff;
+}
+
+/* ---------- Lico in the page head: speech bubble ---------- */
+.head-lico {
+  display: inline-flex; align-items: flex-end; gap: .4rem;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  position: relative; z-index: 1;
+}
+.head-lico svg { width: 64px; height: 64px; flex-shrink: 0; margin-bottom: -1.2rem; }
+.head-lico-burbuja {
+  position: relative;
+  align-self: center;
+  background: #fff; color: var(--accent);
+  font-weight: 800; font-size: .88rem;
+  padding: .45rem .8rem; border-radius: 14px 14px 14px 4px;
+  box-shadow: 0 4px 12px rgba(10, 16, 60, .25);
+  white-space: nowrap;
+  transition: transform .15s ease;
+}
+.head-lico-burbuja::before {
+  /* speech bubble tail, points at Lico */
+  content: ""; position: absolute; left: -9px; bottom: 7px;
+  border-style: solid; border-width: 7px 10px 7px 0;
+  border-color: transparent #fff transparent transparent;
+}
+.head-lico:hover .head-lico-burbuja { transform: scale(1.06); }
+.head-lico:focus-visible { outline: 3px solid var(--brand-yellow); outline-offset: 4px; border-radius: 12px; box-shadow: none; }
+@media (max-width: 900px) { .head-lico-burbuja { display: none; } }
+
+/* ---------- Help button with Lico's face ---------- */
+.btn-guia-accion {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .3rem 1rem .3rem .4rem;
+  background: linear-gradient(135deg, var(--accent), var(--brand-cyan) 160%);
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(10, 16, 60, .35);
+  font-family: inherit;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .015em;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition: box-shadow .15s ease, transform .15s ease;
+}
+.btn-guia-accion:hover {
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+  box-shadow: 0 6px 18px rgba(10, 16, 60, .5);
+  transform: translateY(-1px);
+  color: #fff;
+}
+.btn-guia-accion:active { transform: translateY(0); }
+.lico-mini { display: inline-flex; width: 34px; height: 34px; background: #fff; border-radius: 50%; overflow: hidden; align-items: flex-end; justify-content: center; }
+.lico-mini svg { width: 40px; height: 40px; margin-bottom: -6px; }
+
+/* ---------- Lico: animations ---------- */
+.lico-svg { overflow: visible; }
+.lico-svg .lico-cuerpo { transform-origin: 50% 90%; animation: lico-rebote 2.6s ease-in-out infinite; }
+.lico-svg .lico-ojos { transform-box: fill-box; transform-origin: center; animation: lico-parpadeo 4.5s infinite; }
+.lico-svg .lico-saludo { transform-box: fill-box; transform-origin: 20% 90%; animation: lico-saludo 1.4s ease-in-out infinite; }
+@keyframes lico-rebote { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
+@keyframes lico-parpadeo { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes lico-saludo { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-16deg); } }
+
+/* ---------- Guide: card with mascot (overrides the base tour-* rules of dashboard.css) ---------- */
+.tour-spotlight {
+  border: 3px solid var(--brand-yellow);
+  border-radius: 16px;
+  box-shadow: 0 0 0 9999px rgba(18, 24, 66, .72), 0 0 24px 6px rgba(246, 210, 60, .6);
+}
+.tour-card {
+  width: 540px;
+  padding: 1.2rem 1.4rem 1rem;
+  border: 0;
+  border-radius: 24px;
+  box-shadow: 0 24px 60px rgba(8, 12, 50, .55);
+  text-align: left;
+  overflow: visible;
+}
+.tour-card::before {
+  content: ""; position: absolute; left: 24px; right: 24px; top: 0; height: 6px;
+  border-radius: 0 0 8px 8px; background: var(--road); background-color: var(--accent);
+}
+.tour-card-header { justify-content: flex-start; gap: .6rem; }
+.tour-paso-badge { background: var(--accent); color: #fff; border: 0; padding: .3rem .8rem; }
+.tour-card-body { display: flex; gap: 1rem; align-items: flex-start; }
+.tour-mascota { flex: 0 0 110px; width: 110px; height: 118px; display: flex; align-items: flex-end; justify-content: center; }
+.tour-mascota svg { width: 118px; height: 118px; }
+.tour-card-texto {
+  flex: 1; min-width: 0;
+  background: var(--accent-soft);
+  border-radius: 18px 18px 18px 6px;
+  padding: .85rem 1rem;
+}
+.tour-card-titulo { justify-content: flex-start; color: var(--accent); text-align: left; font-size: 1.05rem; }
+.tour-card-desc { text-align: left; margin-top: .4rem; color: var(--ink-soft); font-size: 13px; }
+.tour-card-desc b { color: var(--ink); }
+.tour-dot { background: var(--line-strong); }
+.tour-dot.activo { background: var(--accent); }
+.tour-dots { flex: 1; margin: 0 1rem; }
+.tour-progreso { display: block; width: 100%; height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.tour-progreso > i { display: block; height: 100%; border-radius: 999px; background-color: var(--accent); background-image: linear-gradient(90deg, var(--accent), var(--brand-cyan)); transition: width .25s ease; }
+.tour-card-footer { border-top: 1px dashed var(--line-strong); }
+.tour-btn-nav { border-radius: 999px; padding: .4rem 1.1rem; }
+.tour-btn-primary { background: linear-gradient(135deg, var(--accent), #3550c8); border-color: var(--accent); }
+.tour-btn-primary:hover:not(:disabled) { background: linear-gradient(135deg, var(--accent-hover), var(--accent)); }
+.tour-btn-salir-flotante { border-radius: 999px; border-color: var(--brand-yellow); }
+.tour-toast { background: var(--accent); border-radius: 999px; padding: .75rem 1.4rem; }
+@media (max-width: 640px) {
+  .tour-mascota { display: none; }
+}
+
+/* ---------- Reduced motion: no animation, no hover movement, instant transitions ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .lico-svg .lico-cuerpo, .lico-svg .lico-ojos, .lico-svg .lico-saludo { animation: none; }
+  .stat-chip, .head-lico-burbuja, .btn-guia-accion, nav.app-nav a, .app-subnav a,
+  .tour-spotlight, .tour-card, .tour-progreso > i, .tooltip-flotante {
+    transition: none !important;
+  }
+  .stat-chip:hover, .btn-guia-accion:hover, nav.app-nav a:hover, .app-subnav a:hover { transform: none !important; }
+  .head-lico:hover .head-lico-burbuja { transform: none; }
+}
+
+/* Never theme paper output. */
+@media print {
+  .page-head, header.app-header::before, header.app-header::after { display: none !important; }
+  body, body.cases-page { background: #fff !important; }
+}
