@@ -131,14 +131,15 @@ _ = Task.Run(async () =>
     }
 });
 
-// Port 5002 is loopback-only (127.0.0.1, see appsettings.json) and exists solely so a local
-// port-forwarding tool (e.g. a VS Code Dev Tunnel) can reach real content over plain HTTP — those
-// tools proxy to a local HTTP port, not TLS, and TLS-terminate themselves at their own public
-// HTTPS endpoint. Since 5002 never leaves the machine, skipping the redirect there doesn't expose
-// anything on the LAN; the public-facing HTTP listener (port 5000, reachable on 0.0.0.0) still
-// only ever redirects, never serves data.
+// The tunnel port (Kestrel:Endpoints:TunnelHttp, 5002 in production) is loopback-only (127.0.0.1)
+// and exists solely so a local port-forwarding tool (e.g. a VS Code Dev Tunnel) can reach real
+// content over plain HTTP — those tools proxy to a local HTTP port, not TLS, and TLS-terminate
+// themselves at their own public HTTPS endpoint. Since that port never leaves the machine, skipping
+// the redirect there doesn't expose anything on the LAN; the public-facing HTTP listener (port 5000,
+// reachable on 0.0.0.0) still only ever redirects, never serves data.
+var tunnelPort = TunnelPortPolicy.ResolveTunnelPort(app.Configuration["Kestrel:Endpoints:TunnelHttp:Url"]);
 app.UseWhen(
-    context => context.Connection.LocalPort != 5002,
+    context => TunnelPortPolicy.ShouldRedirectToHttps(context.Connection.LocalPort, tunnelPort),
     branch => branch.UseHttpsRedirection());
 app.UseStaticFiles();
 app.MapRazorPages();
