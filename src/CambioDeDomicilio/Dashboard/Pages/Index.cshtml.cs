@@ -99,7 +99,7 @@ public class IndexModel(
             repository.ClearFechaUltimaCarpeta(id);
             if (isAjax)
             {
-                return new JsonResult(new { success = true, fecha = "", sector = "—" });
+                return new JsonResult(new { success = true, fecha = "", sector = "S/C" });
             }
             return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
         }
@@ -554,11 +554,10 @@ public class IndexModel(
         // MarkedAt (see Sector.cshtml.cs).
         Cases = all
             .OrderBy(c => c.Status == RequestStatus.Confirmed)
-            .ThenByDescending(c => c.Marked && c.SectorPdfGeneratedAt is null)
-            .ThenByDescending(c => c.Marked)
-            .ThenBy(c => c.FechaUltimaCarpeta is not null)
             .ThenBy(c => c.ConfirmedAt)
             .ThenByDescending(c => c.ReceivedAt)
+            .ThenByDescending(c => c.CreatedAt)
+            .ThenByDescending(c => c.Id)
             .ToList();
     }
 

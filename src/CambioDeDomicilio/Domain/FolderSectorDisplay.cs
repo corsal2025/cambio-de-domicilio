@@ -12,7 +12,7 @@ public static class FolderSectorDisplay
         _ => sector.ToString()
     };
 
-    /// <summary>"—" when the sector isn't derivable yet (no última-carpeta date).</summary>
+    /// <summary>"S/C" when the sector isn't derivable yet (no última/penúltima-carpeta date).</summary>
     public static string ToDisplayName(this FolderSector? sector) =>
-        sector is { } value ? value.ToDisplayName() : "—";
+        sector is { } value ? value.ToDisplayName() : "S/C";
 }

@@ -54,7 +54,7 @@ public class F8Model(
             repository.ClearFechaUltimaCarpeta(id);
             if (isAjax)
             {
-                return new JsonResult(new { success = true, fecha = "", sector = "—" });
+                return new JsonResult(new { success = true, fecha = "", sector = "S/C" });
             }
             return RedirectToPage(new { search = Search, highlightId = HighlightId });
         }
@@ -257,6 +257,8 @@ public class F8Model(
             .OrderBy(c => c.Status == RequestStatus.Confirmed)
             .ThenBy(c => c.ConfirmedAt)
             .ThenByDescending(c => c.ReceivedAt)
+            .ThenByDescending(c => c.CreatedAt)
+            .ThenByDescending(c => c.Id)
             .ToList();
 
         TotalF8Count = f8Cases.Count;

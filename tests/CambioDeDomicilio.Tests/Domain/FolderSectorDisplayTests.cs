@@ -14,10 +14,10 @@ public class FolderSectorDisplayTests
     }
 
     [Fact]
-    public void ToDisplayName_NullSector_ReturnsDash()
+    public void ToDisplayName_NullSector_ReturnsSinCarpetaAbbreviation()
     {
         FolderSector? sector = null;
 
-        Assert.Equal("—", sector.ToDisplayName());
+        Assert.Equal("S/C", sector.ToDisplayName());
     }
 }

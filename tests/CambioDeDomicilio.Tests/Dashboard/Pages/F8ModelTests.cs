@@ -212,6 +212,47 @@ public class F8ModelTests : IDisposable
         Assert.Equal(1, model.CasosMatchCount);
     }
 
+    [Fact]
+    public void OnPostSetFecha_EmptyDate_ReturnsSinCarpetaSector()
+    {
+        var id = repository.Insert(NewRequest("msg-1", "Persona F8"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.SetFechaUltimaCarpeta(id, new DateOnly(2020, 5, 1));
+
+        var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        httpContext.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
+        model.PageContext = new Microsoft.AspNetCore.Mvc.RazorPages.PageContext
+        {
+            HttpContext = httpContext
+        };
+
+        var result = model.OnPostSetFecha(id, "");
+        var json = Assert.IsType<JsonResult>(result);
+        var sector = json.Value?.GetType().GetProperty("sector")?.GetValue(json.Value)?.ToString();
+
+        Assert.Equal("S/C", sector);
+    }
+
+    [Fact]
+    public void OnGet_CasesOrderedByFechaIngreso_NewestOnTop()
+    {
+        var older = NewRequest("msg-older", "Persona Antigua");
+        older.ReceivedAt = new DateTimeOffset(2026, 10, 14, 10, 0, 0, TimeSpan.Zero);
+        var olderId = repository.Insert(older);
+        repository.SetDestination(olderId, CaseDestination.F8, DateTimeOffset.UtcNow);
+
+        var newer = NewRequest("msg-newer", "Persona Nueva");
+        newer.ReceivedAt = new DateTimeOffset(2026, 10, 15, 10, 0, 0, TimeSpan.Zero);
+        var newerId = repository.Insert(newer);
+        repository.SetDestination(newerId, CaseDestination.F8, DateTimeOffset.UtcNow);
+
+        model.OnGet();
+
+        Assert.Equal(2, model.Cases.Count);
+        Assert.Equal("msg-newer", model.Cases[0].SourceMessageId);
+        Assert.Equal("msg-older", model.Cases[1].SourceMessageId);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId, string fullName) => new()
     {
         FullName = fullName,
