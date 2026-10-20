@@ -95,6 +95,21 @@ public class UltimaCarpetaModelTests : IDisposable
     }
 
     [Fact]
+    public void OnPostRevertToF8_MovesTheCaseBackToF8()
+    {
+        var id = InUltimaCarpeta("m1", "ANA RIVERA", DateTimeOffset.UtcNow);
+        repository.SetUltimaCarpetaRequested(id, DateTimeOffset.UtcNow);
+
+        var result = Assert.IsType<RedirectToPageResult>(model.OnPostRevertToF8(id));
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.F8, stored.Destination);
+        Assert.Null(stored.UltimaCarpetaRequestedAt);
+        model.OnGet();
+        Assert.Empty(model.Cases);
+    }
+
+    [Fact]
     public void Page_ExposesNoHandlerThatSendsEmail()
     {
         var handlers = typeof(UltimaCarpetaModel).GetMethods()
@@ -103,7 +118,7 @@ public class UltimaCarpetaModelTests : IDisposable
             .OrderBy(n => n)
             .ToArray();
 
-        Assert.Equal(new[] { "OnPostCloseWithoutFolder", "OnPostMarkRequested", "OnPostSendToCaja", "OnPostUndoRequested" }, handlers);
+        Assert.Equal(new[] { "OnPostCloseWithoutFolder", "OnPostMarkRequested", "OnPostRevertToF8", "OnPostSendToCaja", "OnPostUndoRequested" }, handlers);
     }
 
     private long InUltimaCarpeta(string messageId, string name, DateTimeOffset transferredAt)

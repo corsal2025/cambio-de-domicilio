@@ -359,6 +359,13 @@
                                                 <partial name="_ActionIcon" model="@("sin-carpeta")" /><span>Sin carpeta</span>
                                             </button>
                                         </form>
+                                        <form method="post" asp-page-handler="RevertToF8">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="hidden" name="search" value="@Model.Search" />
+                                            <button type="submit" class="btn-action btn-action--revert" title="Devolver caso a la pantalla F8" aria-label="Revertir a F8">
+                                                <partial name="_ActionIcon" model="@("revert")" /><span>Revertir</span>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>

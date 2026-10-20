@@ -73,6 +73,20 @@ public class UltimaCarpetaModel(IPersonRequestRepository repository) : PageModel
         return RedirectToPage(new { search = Search });
     }
 
+    /// <summary>Revertir: devuelve el caso a la pantalla F8.</summary>
+    public IActionResult OnPostRevertToF8(long id)
+    {
+        var request = repository.FindById(id);
+        if (request?.Destination == CaseDestination.UltimaCarpeta)
+        {
+            repository.SetUltimaCarpetaRequested(id, null);
+            repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+            SetFlash($"Caso de {request.FullName} devuelto a F8.", isError: false);
+        }
+
+        return RedirectToPage(new { search = Search });
+    }
+
     private void SetFlash(string message, bool isError)
     {
         if (TempData is null) return;
