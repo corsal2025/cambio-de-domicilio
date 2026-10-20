@@ -6,7 +6,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Última Carpeta — CambioDeDomicilio</title>
+    <title>Penúltima Carpeta — CambioDeDomicilio</title>
     <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/tema-lico.css" asp-append-version="true" />
@@ -200,7 +200,7 @@
             <span class="app-subnav-label">Sistemas</span>
             <a asp-page="/Index" class="nav-casos"><partial name="_NavIcon" model="@("home")" /><span>Cambio de Domicilio</span></a>
             <a asp-page="/F8" class="nav-f8"><partial name="_NavIcon" model="@("f8")" /><span>F8</span></a>
-            <a asp-page="/UltimaCarpeta" class="nav-ultima-carpeta active"><partial name="_NavIcon" model="@("ultima")" /><span>Última Carpeta</span></a>
+            <a asp-page="/UltimaCarpeta" class="nav-ultima-carpeta active"><partial name="_NavIcon" model="@("ultima")" /><span>Penúltima Carpeta</span></a>
             <a asp-page="/SubidasASistema" class="nav-subidas"><partial name="_NavIcon" model="@("upload")" /><span>Subidas a Sistema</span></a>
             <a asp-page="/SinCarpetas" class="nav-sin-carpetas"><partial name="_NavIcon" model="@("sin-carpetas")" /><span>Sin Carpetas</span></a>
             <a asp-page="/Caja" class="nav-caja"><partial name="_NavIcon" model="@("caja")" /><span>Caja</span></a>
@@ -221,10 +221,10 @@
         <section class="page-head" aria-labelledby="page-title">
             <button type="button" class="head-lico" id="btn-lico-saludo" data-lico="saluda" aria-label="Abrir la guía con Lico"><span class="head-lico-burbuja">¡Hola! Me llamo Lico</span></button>
             <div class="page-head-text">
-                <h1 id="page-title">Última Carpeta</h1>
-                <div class="sub">Casos de F8 cuya última carpeta hay que pedir</div>
+                <h1 id="page-title">Penúltima Carpeta</h1>
+                <div class="sub">Casos de F8 cuya penúltima carpeta hay que pedir</div>
             </div>
-            <div class="stat-row" role="group" aria-label="Resumen de Última Carpeta">
+            <div class="stat-row" role="group" aria-label="Resumen de Penúltima Carpeta">
                 <div class="stat-chip"><b class="num">@Model.TotalCount</b><span>En el módulo</span></div>
                 <div class="stat-chip"><b class="num">@Model.PendingCount</b><span>Por pedir</span></div>
             </div>
@@ -250,7 +250,7 @@
                 </span>
             </div>
             <div class="sin-carpetas-toolbar-right">
-                Casos en Última Carpeta: <strong>@Model.TotalCount</strong> · Por pedir: <strong>@Model.PendingCount</strong>
+                Casos en Penúltima Carpeta: <strong>@Model.TotalCount</strong> · Por pedir: <strong>@Model.PendingCount</strong>
                 @if (!string.IsNullOrWhiteSpace(Model.Search))
                 {
                     <span> · Mostrando <strong>@Model.Cases.Count</strong> resultado(s) para "<strong>@Model.Search</strong>"</span>
@@ -264,7 +264,7 @@
                     <img src="~/images/logo-municipalidad.png" alt="Municipalidad de Valparaíso" class="doc-seal" />
                     <div>
                         <p class="doc-org">Municipalidad de Valparaíso — Dirección de Tránsito</p>
-                        <h2>Listado de Últimas Carpetas por Pedir</h2>
+                        <h2>Listado de Penúltimas Carpetas por Pedir</h2>
                     </div>
                 </div>
                 <div class="doc-meta">
@@ -273,14 +273,14 @@
                 </div>
             </div>
             <div class="doc-subheader">
-                <span>Casos de F8 cuya última carpeta debe solicitarse</span>
+                <span>Casos de F8 cuya penúltima carpeta debe solicitarse</span>
                 <span>@Model.Cases.Count caso(s) en este listado</span>
             </div>
 
             @if (Model.Cases.Count == 0)
             {
                 <div class="empty-state" style="padding: 32px 16px; text-align: center; color: var(--color-text-muted);">
-                    No hay casos en Última Carpeta actualmente.
+                    No hay casos en Penúltima Carpeta actualmente.
                 </div>
             }
             else
@@ -294,7 +294,7 @@
                                 <th>RUT</th>
                                 <th>Comuna</th>
                                 <th>Código F8</th>
-                                <th>Fecha última carpeta</th>
+                                <th>Fecha penúltima carpeta</th>
                                 <th>Enviado el</th>
                                 <th>Estado</th>
                                 <th class="no-print">Acción</th>

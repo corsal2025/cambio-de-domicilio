@@ -127,7 +127,7 @@ public class F8Model(
     public IActionResult OnPostSendToUltimaCarpeta(long id)
     {
         repository.SendToUltimaCarpeta(id, DateTimeOffset.UtcNow);
-        Message = "Caso enviado a Última Carpeta.";
+        Message = "Caso enviado a Penúltima Carpeta.";
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
