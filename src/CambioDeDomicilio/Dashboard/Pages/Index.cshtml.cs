@@ -376,14 +376,6 @@ public class IndexModel(
             return Page();
         }
 
-        if (request.SoloCaja && request.FechaUltimaCarpeta is null && !request.SinCarpeta)
-        {
-            Message = "Debe ingresar la fecha de última carpeta antes de subir la carpeta a Caja.";
-            MessageIsError = true;
-            Load();
-            return Page();
-        }
-
         repository.SendToCaja([id], DateTimeOffset.UtcNow);
         Message = $"Carpeta de {request.FullName} enviada a Caja (sin enviar correo).";
         return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });

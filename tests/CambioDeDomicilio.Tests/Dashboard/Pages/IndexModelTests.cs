@@ -871,6 +871,21 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
+    public void OnPostSubirACaja_SoloCajaCaseWithoutFecha_MovesToCajaAndLeavesCasos()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.RevertF8AndReturnToCasos(id);
+
+        var result = model.OnPostSubirACaja(id);
+
+        Assert.IsType<Microsoft.AspNetCore.Mvc.RedirectToPageResult>(result);
+        Assert.Equal(CaseDestination.Caja, repository.FindById(id)!.Destination);
+        model.OnGet(status: null);
+        Assert.DoesNotContain(model.Cases, c => c.Id == id);
+    }
+
+    [Fact]
     public void OnGet_ClosedWithoutFolderCase_MovesToSinCarpetasAndHiddenFromCasos()
     {
         var id = repository.Insert(NewRequest("msg-1"));

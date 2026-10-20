@@ -222,7 +222,7 @@
                                 <td style="text-align:left; font-weight:600;">@item.FullName</td>
                                 <td style="text-align:center;">@item.Rut</td>
                                 <td style="text-align:center;">@item.Comuna</td>
-                                <td style="text-align:center;">@(item.SinCarpeta ? "S/C" : item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")</td>
+                                <td style="text-align:center;">@(item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "S/C")</td>
                                 <td class="no-print" style="text-align:center;">
                                     <form method="post" asp-page-handler="RemoveFromClosedBox" style="display:inline;">
                                         <input type="hidden" name="id" value="@item.Id" />
@@ -292,7 +292,7 @@
                                 <td style="text-align:left; font-weight:600;">@item.FullName</td>
                                 <td style="text-align:center;">@item.Rut</td>
                                 <td style="text-align:center;">@item.Comuna</td>
-                                <td style="text-align:center;">@(item.SinCarpeta ? "S/C" : item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "")</td>
+                                <td style="text-align:center;">@(item.FechaUltimaCarpeta is { } f ? SpanishDate.Format(f) : "S/C")</td>
                                 <td style="text-align:center;"><span class="badge @(item.Status == RequestStatus.Confirmed ? "badge-confirmed" : "badge-uploaded")">@item.Status</span></td>
                                 <td style="text-align:center;">
                                     <form method="post" asp-page-handler="UndoSingle" style="display:inline;">
