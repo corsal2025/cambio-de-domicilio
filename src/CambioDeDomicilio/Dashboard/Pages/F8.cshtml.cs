@@ -122,11 +122,12 @@ public class F8Model(
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 
-    /// <summary>"Caja": the physical folder was found, so the case goes straight to the Caja queue. No email is sent.</summary>
-    public IActionResult OnPostSendToCaja(long id)
+    /// <summary>"Última carpeta": the case moves to the Última Carpeta screen, where its last folder is
+    /// requested. F8 no longer sends straight to Caja. No email is sent.</summary>
+    public IActionResult OnPostSendToUltimaCarpeta(long id)
     {
-        repository.SendToCaja([id], DateTimeOffset.UtcNow);
-        Message = "Carpeta enviada a la cola de Caja.";
+        repository.SendToUltimaCarpeta(id, DateTimeOffset.UtcNow);
+        Message = "Caso enviado a Última Carpeta.";
         return RedirectToPage(new { search = Search, highlightId = HighlightId });
     }
 

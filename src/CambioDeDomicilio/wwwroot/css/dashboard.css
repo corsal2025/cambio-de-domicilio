@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
 /* ==========================================================================
    DESIGN TOKENS — MUNICIPALIDAD DE VALPARAÍSO
    ========================================================================== */
@@ -99,14 +97,9 @@ html {
 
 html.cases-page-html,
 html:has(body.cases-page) {
-    /* auto, not hidden: this is a safety net, not the normal path. A correctly-sized window
-       never triggers it (content fits exactly in 100%, auto shows nothing). If any browser
-       quirk ever makes the flex chain a few px taller than the viewport, this gives the operator
-       a real, native scrollbar to reach it instead of silently clipping it away with no way to
-       get it back short of resizing the window. */
-    overflow: auto !important;
-    height: 100% !important;
-    max-height: 100% !important;
+    overflow-y: scroll;
+    height: auto;
+    min-height: 100%;
 }
 
 body {
@@ -365,6 +358,7 @@ div.app-subnav span.app-subnav-label {
 
 a.nav-casos,
 a.nav-f8,
+a.nav-ultima-carpeta,
 a.nav-subidas,
 a.nav-sin-carpetas,
 a.nav-caja,
@@ -400,6 +394,14 @@ a.nav-f8 {
 }
 a.nav-f8:hover { background: rgba(251, 191, 36, 0.22); color: #ffffff; }
 a.nav-f8.active { background: #d97706; color: #ffffff; border-color: #fbbf24; font-weight: 700; }
+
+a.nav-ultima-carpeta {
+    background: rgba(45, 212, 191, 0.12);
+    color: #99f6e4;
+    border-color: rgba(45, 212, 191, 0.3);
+}
+a.nav-ultima-carpeta:hover { background: rgba(45, 212, 191, 0.24); color: #ffffff; }
+a.nav-ultima-carpeta.active { background: #0d9488; color: #ffffff; border-color: #2dd4bf; font-weight: 700; }
 
 a.nav-subidas {
     background: rgba(20, 184, 166, 0.14);
@@ -556,25 +558,24 @@ main {
 body.cases-page {
     display: flex;
     flex-direction: column;
-    height: 100% !important;
-    max-height: 100% !important;
-    /* auto, not hidden — see html.cases-page-html above for why. */
-    overflow: auto !important;
+    min-height: 100vh;
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: visible;
     background: var(--color-bg);
 }
 
 body.cases-page main {
-    flex: 1 1 0;
+    flex: 1 0 auto;
     display: flex;
     flex-direction: column;
     max-width: none;
     width: 100%;
-    padding: 4px 8px 6px;
-    min-height: 0;
-    height: 0;
+    padding: 8px 12px 24px;
+    min-height: auto;
+    height: auto;
     min-width: 0;
-    /* auto, not hidden — see html.cases-page-html above for why. */
-    overflow: auto;
+    overflow: visible;
 }
 
 /* ==========================================================================
@@ -707,20 +708,43 @@ input.form-control {
    TABLA DE CASOS (COMPONENTE CRÍTICO OPERATIVO)
    ========================================================================== */
 .card.table-card {
-    flex: 1 1 0;
+    flex: 1 0 auto;
     width: 100%;
     max-width: 100%;
-    min-height: 0;
-    height: 0;
+    min-height: auto;
+    height: auto;
     min-width: 0;
-    overflow-x: scroll !important;
-    overflow-y: scroll !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
     background: var(--color-surface);
     box-shadow: var(--shadow-sm);
     scrollbar-width: auto;
     scrollbar-color: #475569 #f1f5f9;
+}
+
+/* Horizontal scrollbar of the case tables, pinned to the bottom edge of the window (see table-fit.js).
+   It mirrors the table's own bar, so sideways scrolling is always one drag away however far the page is
+   scrolled vertically. */
+.hscroll-pinned {
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
+    height: 18px;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    flex: 0 0 auto;
+    background: #f1f5f9;
+    border-top: 1px solid var(--color-border);
+    scrollbar-width: auto;
+    scrollbar-color: #475569 #f1f5f9;
+}
+.hscroll-pinned > div {
+    height: 1px;
+}
+@media print {
+    .hscroll-pinned { display: none !important; }
 }
 
 /* Scrollbar estilizada */
@@ -942,7 +966,8 @@ table.cases-index tbody tr td:nth-child(-n+2) {
 }
 table.cases-index thead tr.header-cols th:nth-child(-n+2) {
     position: sticky;
-    background: #f8fafc;
+    /* Same tone as every other column header (one colour for the whole header row, no white/grey mix). */
+    background: var(--accent-soft, #e6e9f6);
     z-index: 12;
 }
 table.cases-index tbody tr > :nth-child(1),
@@ -954,28 +979,10 @@ table.cases-index thead tr.header-cols > :nth-child(2) {
     border-right: 2px solid var(--color-border);
 }
 
-/* Solid backgrounds on the frozen cells so scrolled content never shows through. */
-table.cases-index tbody tr td:nth-child(-n+2) { background-color: #ffffff; }
-table.cases-index tbody tr.row-alt td:nth-child(-n+2) { background-color: #ffffff; }
-table.cases-index tbody tr:hover td:nth-child(-n+2) { background-color: #f1f5f9; }
-table.cases-index tbody tr.row-done td:nth-child(-n+2) { background-color: var(--row-done-bg) !important; }
-table.cases-index tbody tr.row-done:hover td:nth-child(-n+2) { background-color: var(--row-done-hover) !important; }
-table.cases-index tbody tr.row-needs-review td:nth-child(-n+2) { background-color: var(--row-review-bg) !important; }
-table.cases-index tbody tr.row-needs-review:hover td:nth-child(-n+2) { background-color: #ffe4e6 !important; }
-table.cases-index tbody tr.row-bounced td:nth-child(-n+2) { background-color: var(--row-bounced-bg) !important; }
-table.cases-index tbody tr.row-bounced:hover td:nth-child(-n+2) { background-color: #fecdd3 !important; }
-table.cases-index tbody tr.row-marked td:nth-child(-n+2),
-table.cases-index tbody tr:has(input[name="markedValue"]:checked) td:nth-child(-n+2) { background-color: var(--row-marked-bg) !important; }
-table.cases-index tbody tr.row-marked:hover td:nth-child(-n+2),
-table.cases-index tbody tr:has(input[name="markedValue"]:checked):hover td:nth-child(-n+2) { background-color: #fef08a !important; }
-table.cases-index tbody tr.row-pendiente-carpeta td:nth-child(-n+2),
-table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked) td:nth-child(-n+2) { background-color: var(--row-pendiente-bg) !important; }
-table.cases-index tbody tr.row-pendiente-carpeta:hover td:nth-child(-n+2),
-table.cases-index tbody tr:has(input[name="pendienteCarpetaValue"]:checked):hover td:nth-child(-n+2) { background-color: #ddd6fe !important; }
-table.cases-index tbody tr.row-f8-pending td:nth-child(-n+2),
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked) td:nth-child(-n+2) { background-color: var(--row-f8-bg) !important; }
-table.cases-index tbody tr.row-f8-pending:hover td:nth-child(-n+2),
-table.cases-index tbody tr:has(input[name="folderNotFoundValue"]:checked):hover td:nth-child(-n+2) { background-color: var(--row-f8-hover) !important; }
+/* The frozen Nombre/RUT cells must be opaque (scrolled content never shows through) AND paint exactly
+   the colour of their row in every state (marked, pendiente, done, review, bounced, F8, hover...).
+   Inheriting the row background keeps them in lockstep, so a row can never split into two tones. */
+table.cases-index tbody tr td:nth-child(-n+2) { background-color: inherit !important; transition: none !important; }
 
 /* Checkboxes modernos */
 .marked-checkbox {
@@ -2031,47 +2038,6 @@ table.cases-index .codigo-f8-input {
 /* ==========================================================================
    SIMULADOR INTERACTIVO (SPOTLIGHT & GUÍA CON FLECHA EXPLICATIVA)
    ========================================================================== */
-.btn-guia-accion {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
-    color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    font-weight: 600 !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 0.45rem !important;
-    padding: 0.35rem 0.9rem !important;
-    border-radius: 9999px !important;
-    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35) !important;
-    transition: all 0.15s ease !important;
-    cursor: pointer !important;
-    font-size: 0.78rem !important;
-    letter-spacing: 0.015em !important;
-    text-decoration: none !important;
-    line-height: 1.25 !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-    -webkit-font-smoothing: antialiased !important;
-    -moz-osx-font-smoothing: grayscale !important;
-    white-space: nowrap !important;
-}
-
-.btn-guia-accion:hover {
-    background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%) !important;
-    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.5) !important;
-    transform: translateY(-1px) !important;
-    color: #ffffff !important;
-    border-color: rgba(255, 255, 255, 0.5) !important;
-}
-
-.btn-guia-accion:active {
-    transform: translateY(0) !important;
-    box-shadow: 0 1px 4px rgba(79, 70, 229, 0.4) !important;
-}
-
-.btn-guia-accion svg {
-    flex-shrink: 0 !important;
-    stroke: currentColor !important;
-}
-
 /* Tooltip flotante animado */
 .tooltip-flotante {
     position: fixed;

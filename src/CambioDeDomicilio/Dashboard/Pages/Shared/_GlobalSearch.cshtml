@@ -1,0 +1,18 @@
+@* Header search box shared by every page. It always goes to /Buscar, which searches ALL modules. *@
+<form method="get" asp-page="/Buscar" class="nav-search" role="search">
+    <input type="text" name="search" id="search-input" autocomplete="off"
+           placeholder="Buscar en todo el sistema (RUT o nombre)..."
+           value="@(ViewContext.HttpContext.Request.Query["search"].ToString())"
+           oninput="formatGlobalSearchRut(this)" />
+    <button type="submit" class="nav-pill"><partial name="_NavIcon" model="@("search")" /><span>Buscar</span></button>
+</form>
+<script>
+    // Auto-formats a RUT typed as raw digits (e.g. "135516122" -> "13.551.612-2"). A name is left untouched.
+    function formatGlobalSearchRut(input) {
+        var clean = input.value.replace(/[.\-]/g, '');
+        if (!/^\d+[kK]?$/.test(clean) || clean.length < 2) return;
+        var body = clean.slice(0, -1);
+        var dv = clean.slice(-1).toUpperCase();
+        input.value = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + dv;
+    }
+</script>

@@ -33,8 +33,8 @@ variables de entorno de sistema, en vez de escribirlas en el JSON.
 
 ## 4. Certificado HTTPS para el dashboard
 
-El dashboard web solo sirve datos por HTTPS (el puerto HTTP solo redirige,
-nunca entrega contenido) — esto protege los nombres/RUTs que viajan por la
+El dashboard web solo se sirve por HTTPS y es el único puerto en escucha (5001): no existe
+listener HTTP, ni siquiera para redirigir. Esto protege los nombres/RUTs que viajan por la
 red municipal.
 
 En el equipo donde corre el servicio:
@@ -87,6 +87,12 @@ Confirmar que `data/reporte.csv` se crea/actualiza tras la primera sincronizaci�
 (el sondeo es manual: botón "Sincronizar ahora" del dashboard), y que
 `https://localhost:5001` (o `https://<nombre-del-pc>:5001` desde otro equipo
 de la red) muestra el dashboard.
+
+Para que otros equipos de la red municipal lleguen al dashboard, el Firewall de Windows del PC
+necesita una única regla de entrada para TCP 5001 (no hay otros puertos en escucha):
+```powershell
+New-NetFirewallRule -DisplayName "CambioDeDomicilio HTTPS 5001" -Direction Inbound -Protocol TCP -LocalPort 5001 -Action Allow -Profile Domain,Private
+```
 
 ## Actualización de la base de datos y respaldo
 

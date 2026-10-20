@@ -197,7 +197,7 @@ Operaciones EWS implementadas:
 - **Todos los nombres son editables desde el dashboard**, no solo los marcados "Requiere revisión" — porque la extracción es heurística y a veces produce un nombre incompleto o levemente incorrecto sin activar la bandera de revisión.
 - **Autenticación del dashboard eliminada (2026-09)**: se implementó login por usuario con PBKDF2 + recuperación por correo, y luego se eliminó por completo — el dashboard corre en la red municipal y el acceso se controla a nivel de red, no de la aplicación.
 - **Sector derivado de la fecha**: la fecha de última carpeta la digita el operador; el sistema deriva Archivo (< julio 2023) u Oficina 43 (≥ julio 2023).
-- **HTTPS obligatorio en la LAN**: los RUTs nunca viajan en claro; el puerto HTTP solo redirige.
+- **HTTPS obligatorio en la LAN**: los RUTs nunca viajan en claro; el único puerto en escucha es HTTPS 5001 (sin listener HTTP).
 - **Sin frameworks innecesarios**: sin EF Core, sin ASP.NET Identity, sin framework CSS/JS.
 
 ## 9. Incidentes detectados y corregidos durante el desarrollo
@@ -216,5 +216,5 @@ Operaciones EWS implementadas:
 - **PII en reposo sin cifrado propio**: SQLite y CSV contienen nombres y RUTs en texto plano — depende del cifrado de disco (BitLocker) del equipo.
 - **Extracción heurística**: el cuerpo cubre la mayoría de los formatos reales conocidos, pero sigue siendo heurística — por eso todos los nombres (no solo los marcados "Requiere revisión") son editables desde el dashboard.
 - **El botón "Marcar subida" no se ha probado en vivo contra un caso real**: hacerlo enviaría una confirmación real a una comuna externa y movería un correo real de producción. Quedó cubierto por tests unitarios con dobles de EWS; la primera prueba en vivo la hace el operador, idealmente reasignando temporalmente el correo de contacto de una comuna a un colega (vía la pantalla "Comunas") antes de probar.
-- **Alcance de red**: el dashboard está pensado para la red municipal (LAN) con Firewall abierto solo ahí; no está expuesto a internet ni se recomienda hacerlo dado el tipo de datos que maneja (RUTs y nombres reales de contribuyentes).
+- **Alcance de red**: el dashboard está pensado para la red municipal (LAN) con una única regla de Firewall de Windows (TCP 5001) abierta solo ahí; no está expuesto a internet ni se recomienda hacerlo dado el tipo de datos que maneja (RUTs y nombres reales de contribuyentes).
 - **Historial de casos anterior al 2026-07-06 se perdió** en el incidente de OneDrive (ver sección 9) — no recuperable; el sistema sigue funcionando correctamente hacia adelante.

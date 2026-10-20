@@ -5,11 +5,11 @@
 The operator-facing web dashboard for the upload-confirmation flow: case list with lifecycle status, manual data entry, confirmation actions, sector PDF generation, comuna directory management, and portable distribution. It runs on the municipal LAN with no login gate — access is controlled at the network layer, not the application.
 ## Requirements
 ### Requirement: Encrypted transport
-The dashboard SHALL be served over HTTPS only; plain HTTP requests SHALL be redirected to HTTPS, never served with data.
+The dashboard SHALL be served over HTTPS only, on a single listening port (HTTPS 5001); there SHALL be no plain-HTTP listener, so data is never served over a plain connection.
 
-#### Scenario: HTTP request redirected
-- **WHEN** a browser requests `http://<host>:<port>/...`
-- **THEN** the response is a redirect to the equivalent `https://` URL, with no page content served over the plain connection
+#### Scenario: Single HTTPS listener
+- **WHEN** the application starts with the default configuration
+- **THEN** the only endpoint Kestrel binds is `https://0.0.0.0:5001`, and nothing listens on a plain-HTTP port
 
 ### Requirement: Case list reflecting the real lifecycle
 The dashboard SHALL show tracked cases (`PersonRequest`) with their current status (`Pending`/`Uploaded`/`Confirmed`), filterable by status and by "Requiere revisión." Cases transferred to another screen (`TransferredAt` set, e.g. F8 or Caja) SHALL NOT appear in Casos. Cases closed without folder SHALL appear with the label "Cerrado sin carpeta" and no actions. The action column SHALL show only the actions valid for the case state, rendered as icon buttons with a tooltip and accessible label.
@@ -205,3 +205,26 @@ Every dashboard screen SHALL show a footer crediting Raúl Salazar as the creato
 - **WHEN** a sector or box listing is printed
 - **THEN** the authorship footer is not part of the printout
 
+
+### Requirement: Global search across every module
+The header search box present on every dashboard page SHALL search ALL modules at once and show the result grouped by module, regardless of the page it was typed in. The searchable modules are: Cambio de Domicilio (Casos), F8, Subidas a Sistema, Caja (open queue and closed boxes), Sin Carpetas, Descartados and Comunas. A case SHALL be matched by full name (case- and accent-insensitive, partial, every word of the query present in any order), RUT (with or without dots and dash, partial), F8 code and comuna. Descartados SHALL be matched by sender, subject and reason; Comunas by comuna name, contact email and domain. Each hit SHALL state the module it lives in and link to that module with the search applied. When nothing matches, the result SHALL say that no module has a record and list the modules searched. Queries shorter than two characters SHALL return no hits.
+
+#### Scenario: Person in Sin Carpetas found from Casos
+- **WHEN** the operator types the RUT of a case closed without folder in the search box of the Casos page
+- **THEN** the result lists that case under "Sin Carpetas" with a link to that module
+
+#### Scenario: Person in a closed box
+- **WHEN** the search matches a case packed in a closed box
+- **THEN** the hit shows the box code and the N° of the case inside the box
+
+#### Scenario: RUT typed without separators
+- **WHEN** the operator types `187853877`
+- **THEN** the case with RUT `18.785.387-7` is found
+
+#### Scenario: Name without accents
+- **WHEN** the operator types `MELENDEZ`
+- **THEN** a case named `MELÉNDEZ` is found
+
+#### Scenario: Nothing found
+- **WHEN** no module has a match
+- **THEN** the page says no record exists in any module and lists the modules searched

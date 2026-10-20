@@ -146,6 +146,36 @@ public class IndexModelTests : IDisposable
     }
 
     [Fact]
+    public void OnGet_NeedsReviewCases_FloatToFirstRows()
+    {
+        // Unreviewed cases (NeedsReview = true) must appear in the first row(s),
+        // ordered by ReceivedAt descending among themselves.
+        var olderNeedsReview = NewRequest("msg-review-older");
+        olderNeedsReview.ReceivedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        olderNeedsReview.NeedsReview = true;
+
+        var newerNeedsReview = NewRequest("msg-review-newer");
+        newerNeedsReview.ReceivedAt = new DateTimeOffset(2026, 3, 1, 0, 0, 0, TimeSpan.Zero);
+        newerNeedsReview.NeedsReview = true;
+
+        var newestNormal = NewRequest("msg-normal-newest");
+        newestNormal.ReceivedAt = new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
+        newestNormal.NeedsReview = false;
+
+        repository.Insert(olderNeedsReview);
+        repository.Insert(newerNeedsReview);
+        repository.Insert(newestNormal);
+
+        model.OnGet(status: null);
+
+        Assert.Equal(3, model.Cases.Count);
+        // The unreviewed cases come first, newest first among them:
+        Assert.Equal("msg-review-newer", model.Cases[0].SourceMessageId);
+        Assert.Equal("msg-review-older", model.Cases[1].SourceMessageId);
+        Assert.Equal("msg-normal-newest", model.Cases[2].SourceMessageId);
+    }
+
+    [Fact]
     public void OnGet_ConfirmedCases_SortToTheEndOrderedByConfirmedAtAscending()
     {
         // Confirmed cases (blue row) sink below everything else, including marked-but-not-yet-

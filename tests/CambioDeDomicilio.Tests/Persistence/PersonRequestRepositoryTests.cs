@@ -1025,6 +1025,98 @@ public class PersonRequestRepositoryTests : IDisposable
         Assert.Equal(CaseDestination.SinCarpetas, closed.Destination);
     }
 
+    [Fact]
+    public void SendToUltimaCarpeta_F8Case_MovesAndKeepsTypedData()
+    {
+        var id = repository.Insert(NewRequest("msg-uc"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.SetCodigoF8(id, "F8-123");
+        repository.SetFechaUltimaCarpeta(id, new DateOnly(2019, 5, 17));
+        var sentAt = new DateTimeOffset(2026, 10, 14, 10, 0, 0, TimeSpan.Zero);
+
+        repository.SendToUltimaCarpeta(id, sentAt);
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.UltimaCarpeta, stored.Destination);
+        Assert.Equal(sentAt, stored.TransferredAt);
+        Assert.Equal("F8-123", stored.CodigoF8);
+        Assert.Equal(new DateOnly(2019, 5, 17), stored.FechaUltimaCarpeta);
+        Assert.Null(stored.UltimaCarpetaRequestedAt);
+    }
+
+    [Theory]
+    [InlineData(CaseDestination.None)]
+    [InlineData(CaseDestination.Subidas)]
+    [InlineData(CaseDestination.Caja)]
+    public void SendToUltimaCarpeta_CaseNotInF8_IsNotChanged(CaseDestination destination)
+    {
+        var id = repository.Insert(NewRequest("msg-uc"));
+        if (destination != CaseDestination.None)
+        {
+            repository.SetDestination(id, destination, DateTimeOffset.UtcNow);
+        }
+
+        repository.SendToUltimaCarpeta(id, DateTimeOffset.UtcNow);
+
+        Assert.Equal(destination, repository.FindById(id)!.Destination);
+    }
+
+    [Fact]
+    public void SendToUltimaCarpeta_ClosedWithoutFolder_IsNotChanged()
+    {
+        var id = repository.Insert(NewRequest("msg-uc"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
+
+        repository.SendToUltimaCarpeta(id, DateTimeOffset.UtcNow);
+
+        Assert.Equal(CaseDestination.SinCarpetas, repository.FindById(id)!.Destination);
+    }
+
+    [Fact]
+    public void SetUltimaCarpetaRequested_MarksAndUnmarks()
+    {
+        var id = repository.Insert(NewRequest("msg-uc"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.SendToUltimaCarpeta(id, DateTimeOffset.UtcNow);
+        var requestedAt = new DateTimeOffset(2026, 10, 15, 9, 30, 0, TimeSpan.Zero);
+
+        repository.SetUltimaCarpetaRequested(id, requestedAt);
+        Assert.Equal(requestedAt, repository.FindById(id)!.UltimaCarpetaRequestedAt);
+
+        repository.SetUltimaCarpetaRequested(id, null);
+        Assert.Null(repository.FindById(id)!.UltimaCarpetaRequestedAt);
+    }
+
+    [Fact]
+    public void SendToCaja_UltimaCarpetaCase_MovesToQueueAsConfirmed()
+    {
+        var id = repository.Insert(NewRequest("msg-uc"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.SendToUltimaCarpeta(id, DateTimeOffset.UtcNow);
+
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+
+        var stored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.Caja, stored.Destination);
+        Assert.Equal(RequestStatus.Confirmed, stored.Status);
+        Assert.Null(stored.BoxId);
+        Assert.Contains(repository.GetCajaQueue(), c => c.Id == id);
+    }
+
+    [Fact]
+    public void SendToCaja_UltimaCarpetaCaseClosedWithoutFolder_IsNotMoved()
+    {
+        var id = repository.Insert(NewRequest("msg-uc"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.SendToUltimaCarpeta(id, DateTimeOffset.UtcNow);
+        repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
+
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+
+        Assert.NotEqual(CaseDestination.Caja, repository.FindById(id)!.Destination);
+    }
+
     private static PersonRequest NewRequest(string sourceMessageId, string rut = "18.785.387-7") => new()
     {
         FullName = "GUSTAVO ANDRÉS PEÑA CASTRO",
