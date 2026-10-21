@@ -381,6 +381,23 @@ public class IndexModel(
         return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
     }
 
+    /// <summary>Closes a case without a physical folder and moves it to Sin Carpetas.</summary>
+    public IActionResult OnPostCloseWithoutFolder(long id)
+    {
+        var request = repository.FindById(id);
+        if (request is null)
+        {
+            Message = "El caso no existe.";
+            MessageIsError = true;
+            Load();
+            return Page();
+        }
+
+        repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
+        Message = $"Caso de {request.FullName} cerrado sin carpeta física (trasladado a 'Sin Carpetas').";
+        return RedirectToPage(new { status = StatusFilter, needsReview = OnlyNeedsReview, search = SearchQuery, bounced = OnlyBounced });
+    }
+
     public IActionResult OnPostTransferToF8(long id)
     {
         // F8's "Fecha penúltima carpeta" is a distinct date from Casos' última carpeta — carrying

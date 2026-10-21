@@ -419,6 +419,12 @@
                                         <partial name="_ActionIcon" model="@("caja")" /><span>Caja</span>
                                     </button>
                                 </form>
+                                <form method="post" asp-page-handler="CloseWithoutFolder">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--sin-carpeta" title="Cerrar el proceso sin carpeta física y trasladar a Sin Carpetas" aria-label="Sin carpeta">
+                                        <partial name="_ActionIcon" model="@("sin-carpeta")" /><span>Sin carpeta</span>
+                                    </button>
+                                </form>
                             }
                             else if (item.Status == RequestStatus.Pending && !item.NeedsReview)
                             {
@@ -437,6 +443,12 @@
                                         <partial name="_ActionIcon" model="@("upload")" /><span>Marcar subida</span>
                                     </button>
                                 </form>
+                                <form method="post" asp-page-handler="CloseWithoutFolder" class="no-f8-only">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--sin-carpeta" title="Cerrar el proceso sin carpeta física y trasladar a Sin Carpetas" aria-label="Sin carpeta">
+                                        <partial name="_ActionIcon" model="@("sin-carpeta")" /><span>Sin carpeta</span>
+                                    </button>
+                                </form>
                             }
                             else if (item.FolderNotFound)
                             {
@@ -453,6 +465,12 @@
                                     <input type="hidden" name="id" value="@item.Id" />
                                     <button type="submit" class="btn-action btn-action--confirm" title="Enviar confirmación a la comuna" aria-label="Confirmar">
                                         <partial name="_ActionIcon" model="@("confirm")" /><span>Confirmar</span>
+                                    </button>
+                                </form>
+                                <form method="post" asp-page-handler="CloseWithoutFolder">
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn-action btn-action--sin-carpeta" title="Cerrar el proceso sin carpeta física y trasladar a Sin Carpetas" aria-label="Sin carpeta">
+                                        <partial name="_ActionIcon" model="@("sin-carpeta")" /><span>Sin carpeta</span>
                                     </button>
                                 </form>
                             }

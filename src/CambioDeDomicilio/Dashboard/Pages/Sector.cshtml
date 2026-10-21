@@ -147,9 +147,22 @@
             width: 220px;
         }
 
+        .doc-signoff .sig-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--color-text);
+            margin-bottom: 2px;
+        }
+
+        .doc-signoff .sig-rut {
+            font-size: 0.82rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 4px;
+        }
+
         .doc-signoff .sig-line {
             border-top: 1px solid var(--color-text);
-            margin-bottom: 5px;
+            margin: 4px auto 5px;
             padding-top: 3px;
         }
 
@@ -183,6 +196,10 @@
                 padding: 6px 8px !important;
             }
             .doc-signoff { break-inside: avoid; }
+            .doc-signoff div { color: #000 !important; }
+            .doc-signoff .sig-name { font-size: 0.95rem !important; font-weight: 700 !important; color: #000 !important; }
+            .doc-signoff .sig-rut { font-size: 0.82rem !important; color: #000 !important; }
+            .doc-signoff .sig-line { border-top-color: #000 !important; }
             tbody tr { break-inside: avoid; }
         }
     </style>
@@ -308,10 +325,10 @@
 
                 <div class="doc-signoff">
                     <div>
+                        <div class="sig-name">RAUL SALAZAR JAMEN</div>
+                        <div class="sig-rut">15071261-0</div>
                         <p class="sig-line">&nbsp;</p>
                         <div>Quien solicita</div>
-                        <div style="font-weight: 700; margin-top: 2px;">RAUL SALAZAR JAMEN</div>
-                        <div>15071261-0</div>
                     </div>
                 </div>
             }

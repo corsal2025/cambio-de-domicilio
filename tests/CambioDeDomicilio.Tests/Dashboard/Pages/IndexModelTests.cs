@@ -897,6 +897,59 @@ public class IndexModelTests : IDisposable
         Assert.DoesNotContain(model.Cases, c => c.Id == id);
     }
 
+    [Fact]
+    public void OnPostCloseWithoutFolder_PendingCase_ClosesWithoutFolderAndLeavesCasos()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+
+        var result = model.OnPostCloseWithoutFolder(id);
+
+        Assert.IsType<Microsoft.AspNetCore.Mvc.RedirectToPageResult>(result);
+        var stored = repository.FindById(id)!;
+        Assert.True(stored.SinCarpeta);
+        Assert.Equal(CaseDestination.SinCarpetas, stored.Destination);
+        Assert.NotNull(stored.ClosedWithoutFolderAt);
+
+        model.OnGet(status: null);
+        Assert.DoesNotContain(model.Cases, c => c.Id == id);
+    }
+
+    [Fact]
+    public void OnPostCloseWithoutFolder_SoloCajaCase_ClosesWithoutFolderAndLeavesCasos()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        repository.SetDestination(id, CaseDestination.F8, DateTimeOffset.UtcNow);
+        repository.RevertF8AndReturnToCasos(id);
+
+        var result = model.OnPostCloseWithoutFolder(id);
+
+        Assert.IsType<Microsoft.AspNetCore.Mvc.RedirectToPageResult>(result);
+        var stored = repository.FindById(id)!;
+        Assert.True(stored.SinCarpeta);
+        Assert.Equal(CaseDestination.SinCarpetas, stored.Destination);
+        Assert.NotNull(stored.ClosedWithoutFolderAt);
+
+        model.OnGet(status: null);
+        Assert.DoesNotContain(model.Cases, c => c.Id == id);
+    }
+
+    [Fact]
+    public void OnPostCloseWithoutFolder_RedirectsWithCurrentListState()
+    {
+        var id = repository.Insert(NewRequest("msg-1"));
+        model.SearchQuery = "18.785.387-7";
+        model.StatusFilter = "Pending";
+        model.OnlyNeedsReview = true;
+        model.OnlyBounced = false;
+
+        var result = Assert.IsType<Microsoft.AspNetCore.Mvc.RedirectToPageResult>(model.OnPostCloseWithoutFolder(id));
+
+        Assert.Equal("18.785.387-7", result.RouteValues!["search"]);
+        Assert.Equal("Pending", result.RouteValues["status"]);
+        Assert.Equal(true, result.RouteValues["needsReview"]);
+        Assert.Equal(false, result.RouteValues["bounced"]);
+    }
+
     [Theory]
     [InlineData(nameof(IndexModel.StatusFilter), "status")]
     [InlineData(nameof(IndexModel.OnlyNeedsReview), "needsReview")]

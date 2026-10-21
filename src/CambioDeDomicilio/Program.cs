@@ -47,6 +47,18 @@ if (optionsValidation.Errors.Count > 0)
     throw new InvalidOperationException(
         $"Invalid '{RouterOptions.SectionName}' configuration:{Environment.NewLine}- {string.Join($"{Environment.NewLine}- ", optionsValidation.Errors)}");
 }
+if (!Path.IsPathRooted(routerOptions.SqliteDbPath))
+{
+    routerOptions.SqliteDbPath = Path.Combine(AppContext.BaseDirectory, routerOptions.SqliteDbPath);
+}
+if (!Path.IsPathRooted(routerOptions.ComunaDirectoryCsvPath))
+{
+    routerOptions.ComunaDirectoryCsvPath = Path.Combine(AppContext.BaseDirectory, routerOptions.ComunaDirectoryCsvPath);
+}
+if (!Path.IsPathRooted(routerOptions.ReportCsvPath))
+{
+    routerOptions.ReportCsvPath = Path.Combine(AppContext.BaseDirectory, routerOptions.ReportCsvPath);
+}
 builder.Services.AddSingleton(routerOptions);
 builder.Services.AddSingleton(TimeProvider.System);
 
