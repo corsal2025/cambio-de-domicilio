@@ -116,8 +116,8 @@ public sealed class PersonRequest
 
     /// <summary>When the operator pressed "Sin carpeta" on an F8 case: the process is closed without
     /// a physical folder. Distinct from <see cref="SinCarpeta"/> (the "S/C" typed in place of a
-    /// date). The case shows in Casos as "Cerrado sin carpeta", with no actions, and can never
-    /// enter Caja. Null means not closed.</summary>
+    /// date). The case appears in Sin Carpetas and cannot enter Caja until the operator
+    /// explicitly reopens it after finding the folder. Null means not closed.</summary>
     public DateTimeOffset? ClosedWithoutFolderAt { get; set; }
 
     /// <summary>When the operator marked the last folder of this case as requested, on the Última Carpeta

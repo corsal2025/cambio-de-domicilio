@@ -178,9 +178,9 @@
       pagina: '/sincarpetas',
       target: '.table-card',
       fallbackTarget: 'main',
-      titulo: 'Sin Carpetas: cierre definitivo',
+      titulo: 'Sin Carpetas: carpeta encontrada',
       icono: '🗄️',
-      descripcion: 'Aquí quedan los casos en que <b>no se encontró la carpeta física</b>. Es un listado final <b>sin acciones</b>: solo se puede <b>imprimir o guardar como PDF</b>. Es el cierre del trámite.'
+      descripcion: 'Aquí quedan los casos en que <b>no se encontró la carpeta física</b>. Si aparece, pulsa <b>Carpeta encontrada</b> y confirma: el mismo registro vuelve a <b>Cambio de Domicilio</b> conservando sus datos y sin enviar correos. Los casos ya subidos o confirmados vuelven listos para <b>Caja</b>. También puedes <b>imprimir o guardar como PDF</b>.'
     },
 
     // ---------- COMUNAS ----------
@@ -217,6 +217,10 @@
 
   // ---- Lico: mascota licencia de conducir (SVG generado, sin archivos externos) ----
   function licoSvg(pose) {
+    var image = document.querySelector('meta[name="lico-image"]');
+    if (image) {
+      return '<img class="lico-volume" src="' + image.content + '" alt="Lico" width="160" height="160" decoding="async" />';
+    }
     var INK = '#23262a', AZ = '#26388c';
     var brazo = function (d) {
       return '<path d="' + d + '" stroke="' + AZ + '" stroke-width="9" fill="none" stroke-linecap="round"/>';
@@ -323,7 +327,7 @@
   function montarLicos() {
     var els = document.querySelectorAll('[data-lico]');
     for (var i = 0; i < els.length; i++) {
-      if (!els[i].querySelector('svg')) {
+      if (!els[i].querySelector('svg, img')) {
         els[i].insertAdjacentHTML('afterbegin', licoSvg(els[i].getAttribute('data-lico')));
       }
     }

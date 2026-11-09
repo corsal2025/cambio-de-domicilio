@@ -48,7 +48,7 @@ The system SHALL provide an "Última Carpeta" module, reachable from the Sistema
 #### Scenario: The folder does not exist
 - **WHEN** the operator presses "Sin carpeta" on a listed case
 - **THEN** the case has `ClosedWithoutFolderAt` set, `SinCarpeta = true` and `Destination = SinCarpetas`
-- **AND** the case no longer appears in Última Carpeta and appears in Sin Carpetas, where it has no further actions
+- **AND** the case no longer appears in Última Carpeta and appears in Sin Carpetas, where it can be reopened if the physical folder is found
 
 #### Scenario: Closed without folder never reaches Caja from here
 - **WHEN** a Caja transfer is requested for a case with `ClosedWithoutFolderAt` set
@@ -66,16 +66,21 @@ The system SHALL offer a "Sin carpeta" action on the F8 and Subidas screens (als
 - **WHEN** a Caja transfer is requested for a case with `ClosedWithoutFolderAt` set
 - **THEN** the case is not changed
 
-### Requirement: Sin Carpetas is a terminal, read-only list
-The Sin Carpetas screen SHALL list every case closed without folder (the penultimate folder was not found) and SHALL offer no actions on them: no revert to F8, no Caja, no edit. The only available action is printing/saving the list as PDF. The system SHALL NOT expose any handler that moves a case out of `SinCarpetas`.
+### Requirement: Reopen Sin Carpetas when the physical folder is found
+The Sin Carpetas screen SHALL list every case closed without folder and offer a "Carpeta encontrada" action on unboxed cases. The action SHALL require a confirmation and an antiforgery-protected POST. It SHALL return the same record to Casos by clearing `SinCarpeta`, `ClosedWithoutFolderAt`, `FolderNotFound` and `TransferredAt`, and setting `Destination = None`. It SHALL preserve identity, typed data, status and upload/confirmation history, and SHALL NOT send email or create a new record. Uploaded or Confirmed cases SHALL return with `SoloCaja = true`; Pending cases SHALL keep their existing `SoloCaja` value. The action column SHALL NOT be printed.
 
-#### Scenario: Listed case has no actions
-- **WHEN** a case sits on the Sin Carpetas screen
-- **THEN** its row shows only data (name, RUT, comuna, dates, F8 code, closing date) and no action column
+#### Scenario: Folder found after closure
+- **WHEN** the operator confirms "Carpeta encontrada" for an unboxed Sin Carpetas case
+- **THEN** the same case disappears from Sin Carpetas and appears in Casos with its data preserved
+- **AND** no email is sent
 
-#### Scenario: No way back
-- **WHEN** a POST to a revert handler is attempted on the Sin Carpetas page
-- **THEN** no such handler exists and the case keeps `Destination = SinCarpetas`
+#### Scenario: Already confirmed case is reopened
+- **WHEN** an already Confirmed case is reopened
+- **THEN** its confirmation history is preserved and Casos offers Caja without resending a confirmation
+
+#### Scenario: Invalid or repeated reopening
+- **WHEN** reopening targets a missing case, a case outside Sin Carpetas, an already reopened case, or a case assigned to a closed box
+- **THEN** the record is not changed and the operator receives an error message
 
 ### Requirement: Unified F8 revert
 The F8 screen SHALL expose a single "Revertir" action. Regardless of whether the F8 was already uploaded, it SHALL clear the F8 status (`FolderNotFound`, `Destination`, `TransferredAt`, confirmation data, marks) while keeping the data the operator already typed (`FullName`, `Rut`, `CodigoF8`, `FechaUltimaCarpeta`, `SinCarpeta`) and return the case to Casos as `Pending` with `SoloCaja = true`. No email SHALL be sent.

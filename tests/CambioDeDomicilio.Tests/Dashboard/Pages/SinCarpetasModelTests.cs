@@ -35,14 +35,76 @@ public class SinCarpetasModelTests : IDisposable
     }
 
     [Fact]
-    public void Page_ExposesNoHandlerThatMovesACaseOutOfSinCarpetas()
+    public void FoundFolder_ReturnsTheSameCaseToCasosAndPreservesItsData()
     {
-        var postHandlers = typeof(SinCarpetasModel).GetMethods()
-            .Where(m => m.Name.StartsWith("OnPost", StringComparison.Ordinal))
-            .Select(m => m.Name)
-            .ToList();
+        var id = repository.Insert(NewRequest("found-folder"));
+        repository.SetCodigoF8(id, "F8-123");
+        repository.SetFechaUltimaCarpeta(id, new DateOnly(2020, 6, 15));
+        repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
 
-        Assert.Empty(postHandlers);
+        model.OnPostRestoreFolder(id);
+
+        var restored = repository.FindById(id)!;
+        Assert.Equal(CaseDestination.None, restored.Destination);
+        Assert.False(restored.SinCarpeta);
+        Assert.Null(restored.ClosedWithoutFolderAt);
+        Assert.Null(restored.TransferredAt);
+        Assert.False(restored.FolderNotFound);
+        Assert.Equal("PERSONA DE PRUEBA", restored.FullName);
+        Assert.Equal("18.785.387-7", restored.Rut);
+        Assert.Equal("F8-123", restored.CodigoF8);
+        Assert.Equal(new DateOnly(2020, 6, 15), restored.FechaUltimaCarpeta);
+        Assert.Equal(RequestStatus.Pending, restored.Status);
+        Assert.False(restored.SoloCaja);
+        Assert.Single(repository.GetAll());
+        model.OnGet();
+        Assert.Empty(model.Cases);
+    }
+
+    [Fact]
+    public void FoundFolder_PreservesConfirmationAndAllowsCajaWithoutResendingMail()
+    {
+        var id = repository.Insert(NewRequest("confirmed-folder"));
+        var confirmedAt = DateTimeOffset.UtcNow;
+        repository.MarkUploaded(id, confirmedAt);
+        repository.UpdateStatusToConfirmed(id, confirmedAt);
+        repository.CloseWithoutFolder(id, confirmedAt);
+
+        model.OnPostRestoreFolder(id);
+
+        var restored = repository.FindById(id)!;
+        Assert.Equal(RequestStatus.Confirmed, restored.Status);
+        Assert.Equal(confirmedAt, restored.ConfirmedAt);
+        Assert.Equal(confirmedAt, restored.UploadedAt);
+        Assert.True(restored.SoloCaja);
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+        Assert.Equal(id, Assert.Single(repository.GetCajaQueue()).Id);
+    }
+
+    [Fact]
+    public void FoundFolder_RejectsUnrelatedMissingAndAlreadyRestoredCases()
+    {
+        var id = repository.Insert(NewRequest("untouched"));
+        Assert.False(repository.RestoreFoundFolder(id));
+        Assert.False(repository.RestoreFoundFolder(long.MaxValue));
+        Assert.False(repository.FindById(id)!.SoloCaja);
+        repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
+        Assert.True(repository.RestoreFoundFolder(id));
+        Assert.False(repository.RestoreFoundFolder(id));
+    }
+
+    [Fact]
+    public void FoundFolder_DoesNotChangeClosedBoxMembership()
+    {
+        var id = repository.Insert(NewRequest("boxed"));
+        repository.MarkUploaded(id, DateTimeOffset.UtcNow);
+        repository.SendToCaja([id], DateTimeOffset.UtcNow);
+        var boxes = new BoxRepository($"Data Source={dbPath}");
+        var box = boxes.CloseBox("TEST-BOX", DateTimeOffset.UtcNow);
+        repository.CloseWithoutFolder(id, DateTimeOffset.UtcNow);
+
+        Assert.False(repository.RestoreFoundFolder(id));
+        Assert.Equal(box.Id, repository.FindById(id)!.BoxId);
     }
 
     public void Dispose()

@@ -37,9 +37,14 @@ public interface IPersonRequestRepository
     /// wrong decision never forces retyping. No email is sent.</summary>
     void RevertF8AndReturnToCasos(long id);
 
-    /// <summary>"Sin carpeta" on an F8 case: records ClosedWithoutFolderAt, clears the F8 flag and
-    /// returns the case to Casos (Destination None, TransferredAt cleared). No email is sent.</summary>
+    /// <summary>Closes a case without a physical folder and transfers it to Sin Carpetas.
+    /// It can be reopened explicitly when the folder is found. No email is sent.</summary>
     void CloseWithoutFolder(long id, DateTimeOffset closedAt);
+
+    /// <summary>Reopens an unboxed Sin Carpetas case when its physical folder is found.
+    /// Preserves identity, dates and confirmation history. Completed uploads return with
+    /// SoloCaja enabled to avoid another confirmation. Returns false for stale/invalid requests.</summary>
+    bool RestoreFoundFolder(long id);
 
     void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long? confirmedByUserId = null);
 
@@ -457,6 +462,25 @@ public sealed class PersonRequestRepository(string connectionString) : IPersonRe
         command.Parameters.AddWithValue("$closedAt", closedAt.ToString("O"));
         command.Parameters.AddWithValue("$id", id);
         command.ExecuteNonQuery();
+    }
+
+    public bool RestoreFoundFolder(long id)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            UPDATE PersonRequest
+            SET Destination = 'None',
+                TransferredAt = NULL,
+                ClosedWithoutFolderAt = NULL,
+                SinCarpeta = 0,
+                FolderNotFound = 0,
+                SoloCaja = CASE WHEN Status IN ('Uploaded', 'Confirmed') THEN 1 ELSE SoloCaja END
+            WHERE Id = $id AND BoxId IS NULL
+              AND (Destination = 'SinCarpetas' OR ClosedWithoutFolderAt IS NOT NULL OR SinCarpeta = 1)
+            """;
+        command.Parameters.AddWithValue("$id", id);
+        return command.ExecuteNonQuery() == 1;
     }
 
     public void UpdateStatusToConfirmed(long id, DateTimeOffset confirmedAt, long? confirmedByUserId = null)

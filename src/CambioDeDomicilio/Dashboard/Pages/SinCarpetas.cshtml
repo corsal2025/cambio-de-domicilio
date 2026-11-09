@@ -134,6 +134,18 @@
             color: var(--color-text-muted);
         }
 
+        @@media screen {
+            .doc-sheet .card.table-card { overflow: auto !important; }
+            .folder-restore-action {
+                position: sticky;
+                right: 0;
+                z-index: 3;
+                background: #fff;
+                box-shadow: -3px 0 6px rgba(15, 23, 42, .08);
+            }
+            table.cases th.folder-restore-action { z-index: 11; }
+        }
+
         @@media print {
             .no-print, .app-header, .app-subnav, .sin-carpetas-toolbar, .btn-action, .author-footer, .nav-search {
                 display: none !important;
@@ -171,6 +183,7 @@
             margin: 12mm;
         }
     </style>
+    <partial name="_OperationalTheme" />
 </head>
 <body class="cases-page">
     <header class="app-header no-print">
@@ -222,7 +235,7 @@
             <button type="button" class="head-lico" id="btn-lico-saludo" data-lico="saluda" aria-label="Abrir la guía con Lico"><span class="head-lico-burbuja">¡Hola! Me llamo Lico</span></button>
             <div class="page-head-text">
                 <h1 id="page-title">Sin Carpetas</h1>
-                <div class="sub">Cierre definitivo: casos cuya carpeta física no se encontró</div>
+                <div class="sub">Casos cuya carpeta física no se encontró. Si aparece, usa “Carpeta encontrada” para devolver el caso a Cambio de Domicilio.</div>
             </div>
             <div class="stat-row" role="group" aria-label="Resumen de Sin Carpetas">
                 <div class="stat-chip"><b class="num">@Model.TotalCount</b><span>Archivados</span></div>
@@ -285,7 +298,7 @@
             else
             {
                 <div class="card table-card" style="box-shadow:none; border:none; margin:0;">
-                    <table class="cases cases-index">
+                    <table class="cases">
                         <thead>
                             <tr class="header-cols">
                                 <th style="width: 45px; text-align: center;">N°</th>
@@ -295,6 +308,7 @@
                                 <th>Fecha de ingreso</th>
                                 <th>Código F8</th>
                                 <th>Fecha cierre S/C</th>
+                                <th class="no-print folder-restore-action">Acción</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -310,6 +324,23 @@
                                 <td class="text-cell">@(string.IsNullOrWhiteSpace(item.CodigoF8) ? "—" : item.CodigoF8)</td>
                                 <td class="text-cell">
                                     @(item.ClosedWithoutFolderAt is { } closedAt ? closedAt.LocalDateTime.ToString("dd-MM-yyyy HH:mm") : "—")
+                                </td>
+                                <td class="no-print folder-restore-action">
+                                    @if (item.BoxId is null)
+                                    {
+                                        <form method="post" asp-page-handler="RestoreFolder"
+                                              onsubmit="return confirm('¿Encontraste la carpeta física? El caso volverá a Cambio de Domicilio conservando sus datos. No se enviarán correos.');">
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <input type="hidden" name="Search" value="@Model.Search" />
+                                            <button type="submit" class="btn-action btn-action--return">
+                                                <partial name="_ActionIcon" model="@("return")" /><span>Carpeta encontrada</span>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span>En caja cerrada</span>
+                                    }
                                 </td>
                             </tr>
                         }

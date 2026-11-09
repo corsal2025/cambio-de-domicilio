@@ -5,8 +5,7 @@ using CambioDeDomicilio.Persistence;
 
 namespace CambioDeDomicilio.Dashboard.Pages;
 
-/// <summary>Terminal, read-only list: a case closed without folder (penultimate folder not found)
-/// stays here with no further actions.</summary>
+/// <summary>Cases closed without a folder, with an explicit reopening action when it is found.</summary>
 public class SinCarpetasModel(IPersonRequestRepository repository) : PageModel
 {
     public IReadOnlyList<PersonRequest> Cases { get; private set; } = [];
@@ -24,6 +23,21 @@ public class SinCarpetasModel(IPersonRequestRepository repository) : PageModel
         Message ??= TempData?["Message"] as string;
         if (TempData?["MessageIsError"] is bool isErr) MessageIsError = isErr;
         Load();
+    }
+
+    public IActionResult OnPostRestoreFolder(long id)
+    {
+        var restored = repository.RestoreFoundFolder(id);
+        Message = restored
+            ? "Carpeta encontrada: caso devuelto a Cambio de Domicilio con sus datos conservados. No se enviaron correos."
+            : "No se pudo revertir el caso: ya no está en Sin Carpetas, no existe o pertenece a una caja cerrada.";
+        MessageIsError = !restored;
+        if (TempData is not null)
+        {
+            TempData["Message"] = Message;
+            TempData["MessageIsError"] = MessageIsError;
+        }
+        return RedirectToPage(new { search = Search });
     }
 
     private void Load()
