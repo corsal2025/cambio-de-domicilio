@@ -322,7 +322,8 @@ public sealed class AddressChangeRoutingService(
         }
 
         var matches = contacts
-            .Where(c => bodyText.Contains(c.ContactEmail, StringComparison.OrdinalIgnoreCase))
+            .Where(c => EmailShapeValidator.SplitAddresses(c.ContactEmail)
+                .Any(addr => bodyText.Contains(addr, StringComparison.OrdinalIgnoreCase)))
             .Select(c => c.Comuna)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();

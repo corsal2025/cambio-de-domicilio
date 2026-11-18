@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using CambioDeDomicilio.Domain;
 
 namespace CambioDeDomicilio.Ews;
 
@@ -148,8 +149,15 @@ public static class EwsMessages
                                 new XElement(T + "Message",
                                     new XElement(T + "IsRead", isRead ? "true" : "false"))))))));
 
-    public static string BuildSendMailRequest(string toAddress, string subject, string body) =>
-        Envelope(
+    public static string BuildSendMailRequest(string toAddress, string subject, string body)
+    {
+        var recipients = EmailShapeValidator.SplitAddresses(toAddress);
+        if (recipients.Count == 0)
+        {
+            recipients = [toAddress];
+        }
+
+        return Envelope(
             new XElement(M + "CreateItem",
                 new XAttribute("MessageDisposition", "SendAndSaveCopy"),
                 new XElement(M + "SavedItemFolderId",
@@ -159,8 +167,10 @@ public static class EwsMessages
                         new XElement(T + "Subject", subject),
                         new XElement(T + "Body", new XAttribute("BodyType", "Text"), body),
                         new XElement(T + "ToRecipients",
-                            new XElement(T + "Mailbox",
-                                new XElement(T + "EmailAddress", toAddress)))))));
+                            recipients.Select(addr =>
+                                new XElement(T + "Mailbox",
+                                    new XElement(T + "EmailAddress", addr))))))));
+    }
 
     private static XElement Field(string uri) =>
         new(T + "FieldURI", new XAttribute("FieldURI", uri));

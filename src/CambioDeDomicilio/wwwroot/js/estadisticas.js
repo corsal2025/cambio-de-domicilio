@@ -4,15 +4,24 @@
 (function () {
     var data = JSON.parse(document.getElementById('stats-data').textContent);
 
+    if (typeof Chart !== 'undefined' && Chart.defaults) {
+        Chart.defaults.color = '#0f2942';
+        Chart.defaults.borderColor = '#cfe3f2';
+    }
+
     var palette = {
-        pending: '#6b7280',
-        uploaded: '#926100',
-        confirmed: '#1e7a3d',
-        primary: '#0b3d68',
-        accent: '#1a73b0',
-        danger: '#a11d33',
-        ok: '#1e7a3d',
-        muted: '#d7dde3'
+        pending: '#7dd3fc',
+        uploaded: '#f59e0b',
+        confirmed: '#0284c7',
+        primary: '#0f385a',
+        accent: '#0284c7',
+        sky: '#38bdf8',
+        brightSky: '#0ea5e9',
+        deepSky: '#0369a1',
+        teal: '#14b8a6',
+        danger: '#ef4444',
+        ok: '#14b8a6',
+        muted: '#7dd3fc'
     };
 
     function donut(canvasId, labels, values, colors) {
@@ -72,8 +81,9 @@
                 datasets: [{
                     label: 'Casos ingresados',
                     data: weekly.map(function (w) { return w.count; }),
-                    borderColor: palette.primary,
-                    backgroundColor: palette.primary,
+                    borderColor: palette.accent,
+                    backgroundColor: palette.sky,
+                    pointBackgroundColor: palette.deepSky,
                     tension: 0.2
                 }]
             },
@@ -127,13 +137,13 @@
         });
     }
 
-    donut('chart-sector', ['Archivo', 'Oficina 43'], [data.sector.archivo, data.sector.oficina43], [palette.muted, palette.accent]);
+    donut('chart-sector', ['Archivo', 'Oficina 43'], [data.sector.archivo, data.sector.oficina43], [palette.primary, palette.sky]);
 
     bar('chart-f8-deadline', 'Casos F8', ['Dentro de plazo', 'Vencido'], [data.f8Deadline.withinDeadline, data.f8Deadline.pastDeadline], [palette.ok, palette.danger],
         'Plazo', 'Cantidad de casos');
 
     bar('chart-f8-pdf', 'Casos F8', ['Generado', 'Pendiente'], [data.f8Pdf.generated, data.f8Pdf.pending],
-        undefined, 'Estado del PDF', 'Cantidad de casos');
+        [palette.deepSky, palette.pending], 'Estado del PDF', 'Cantidad de casos');
 
     var discarded = data.discarded || [];
     horizontalBar('chart-discarded', 'Correos descartados', discarded.map(function (r) { return r.reason; }), discarded.map(function (r) { return r.count; }), palette.danger,

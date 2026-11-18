@@ -63,7 +63,11 @@
             card.style.removeProperty('max-height');
             var top = card.getBoundingClientRect().top + window.scrollY;
             var available = Math.floor(window.innerHeight - top - BOTTOM_GAP);
-            card.style.setProperty('max-height', Math.max(MIN_HEIGHT, available) + 'px', 'important');
+            var hasHero = !!document.querySelector('.lico-hero');
+            var maxHeight = (hasHero || top > window.innerHeight * 0.45)
+                ? Math.max(560, window.innerHeight - 135)
+                : Math.max(MIN_HEIGHT, available);
+            card.style.setProperty('max-height', maxHeight + 'px', 'important');
             // The stylesheet forces overflow-y: visible !important on the card; an inline !important wins.
             card.style.setProperty('overflow-y', 'auto', 'important');
             card.style.setProperty('overflow-x', 'hidden', 'important');

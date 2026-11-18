@@ -94,7 +94,8 @@ public sealed class ComunaDirectory : IComunaDirectory
         }
 
         var exactAddressMatch = contacts.FirstOrDefault(c =>
-            string.Equals(c.ContactEmail, normalizedSender, StringComparison.OrdinalIgnoreCase));
+            EmailShapeValidator.SplitAddresses(c.ContactEmail)
+                .Any(addr => string.Equals(addr, normalizedSender, StringComparison.OrdinalIgnoreCase)));
         if (exactAddressMatch is not null)
         {
             return exactAddressMatch;
@@ -187,7 +188,7 @@ public sealed class ComunaDirectory : IComunaDirectory
     {
         newEmail = newEmail.Trim();
         newDomain = newDomain.Trim().ToLowerInvariant();
-        if (!EmailShapeValidator.IsValidEmailShape(newEmail) || !IsValidDomainShape(newDomain))
+        if (!EmailShapeValidator.AreAllValidEmailShapes(newEmail) || !IsValidDomainShape(newDomain))
         {
             return false;
         }
@@ -240,7 +241,7 @@ public sealed class ComunaDirectory : IComunaDirectory
         contactEmail = contactEmail.Trim();
         domain = domain.Trim().ToLowerInvariant();
 
-        if (comuna.Length == 0 || !EmailShapeValidator.IsValidEmailShape(contactEmail) || !IsValidDomainShape(domain))
+        if (comuna.Length == 0 || !EmailShapeValidator.AreAllValidEmailShapes(contactEmail) || !IsValidDomainShape(domain))
         {
             return false;
         }

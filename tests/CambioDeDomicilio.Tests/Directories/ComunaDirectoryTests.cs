@@ -353,4 +353,44 @@ public class ComunaDirectoryTests
         Assert.Equal(original, File.ReadAllText(path));
         File.Delete(path);
     }
+
+    [Fact]
+    public void UpdateContact_MultipleCommaSeparatedAddresses_PersistsAndResolvesBothSenders()
+    {
+        var path = Path.GetTempFileName();
+        File.WriteAllText(path,
+            "Comuna,ContactEmail,Domain\nLa Serena,isabel.pena@laserena.cl,laserena.cl\nOtra,otro@gmail.com,gmail.com\n");
+        var directory = new ComunaDirectory();
+
+        var updated = directory.UpdateContact(
+            path,
+            "La Serena",
+            "laserena.cl",
+            "laserena.cl",
+            "isabel.pena@laserena.cl, dalila.alcayaga@laserena.cl");
+
+        Assert.True(updated);
+        var contacts = directory.LoadFromCsv(path);
+        Assert.Equal("isabel.pena@laserena.cl, dalila.alcayaga@laserena.cl",
+            contacts.Single(c => c.Comuna == "La Serena").ContactEmail);
+        Assert.Equal("La Serena", directory.ResolveByDomain("isabel.pena@laserena.cl", "munivalpo.cl", contacts)?.Comuna);
+        Assert.Equal("La Serena", directory.ResolveByDomain("dalila.alcayaga@laserena.cl", "munivalpo.cl", contacts)?.Comuna);
+        File.Delete(path);
+    }
+
+    [Fact]
+    public void ResolveByDomain_SharedDomainWithMultipleAddresses_MatchesAnyConfiguredAddress()
+    {
+        IReadOnlyList<ComunaContact> contacts =
+        [
+            new ComunaContact("La Serena", "isabel.pena@gmail.com, dalila.alcayaga@gmail.com", "gmail.com"),
+            new ComunaContact("Requinoa", "licenciasf8requinoa@gmail.com", "gmail.com")
+        ];
+        var directory = new ComunaDirectory();
+
+        var match = directory.ResolveByDomain("dalila.alcayaga@gmail.com", "munivalpo.cl", contacts);
+
+        Assert.NotNull(match);
+        Assert.Equal("La Serena", match!.Comuna);
+    }
 }

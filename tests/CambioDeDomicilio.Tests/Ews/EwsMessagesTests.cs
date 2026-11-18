@@ -91,6 +91,23 @@ public class EwsMessagesTests
     }
 
     [Fact]
+    public void BuildSendMailRequest_MultipleCommaSeparatedAddresses_CreatesOneMailboxPerRecipient()
+    {
+        var xml = EwsMessages.BuildSendMailRequest(
+            "isabel.pena@laserena.cl, dalila.alcayaga@laserena.cl",
+            "Confirmación",
+            "Cuerpo");
+        var document = XDocument.Parse(xml);
+
+        var toRecipients = document.Descendants(EwsMessages.T + "ToRecipients").Single();
+        var mailboxes = toRecipients.Elements(EwsMessages.T + "Mailbox").ToList();
+        Assert.Equal(2, mailboxes.Count);
+        Assert.Equal(
+            new[] { "isabel.pena@laserena.cl", "dalila.alcayaga@laserena.cl" },
+            mailboxes.Select(m => m.Element(EwsMessages.T + "EmailAddress")!.Value));
+    }
+
+    [Fact]
     public void BuildGetItemRequest_RequestsTextBodyAndInternetMessageId()
     {
         var xml = EwsMessages.BuildGetItemRequest([("id-1", "ck-1")]);
